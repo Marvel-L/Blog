@@ -204,11 +204,21 @@ content:
         fields:
           - { name: text, label: 备案号, type: string }
           - { name: url, label: 备案链接, type: string }
-      - name: feedback
-        label: 反馈表单
+      - name: heroQuotes
+        label: 首页标题旁诗词名言
         type: object
         fields:
-          - { name: url, label: 反馈表单地址, type: string }
+          - { name: enabled, label: 启用, type: boolean }
+          - name: defaultSide
+            label: 默认位置（left / right）
+            type: string
+          - name: items
+            label: 追加诗词与名言（与内置词库合并）
+            type: object
+            list: true
+            fields:
+              - { name: text, label: 正文, type: string }
+              - { name: source, label: 出处, type: string }
       - name: intro
         label: 首页打字机引导
         type: object

@@ -18,6 +18,27 @@
   }
 }
 
+@keyframes hero-quote-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-quote-enter {
+  animation: hero-quote-enter 0.45s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-quote-enter {
+    animation: none;
+  }
+}
+
 /* 移动端底部标签栏（lg 以下）：高度 = 内容区 3.5rem + 底部安全区，
    壳内浮层（返回顶部/目录/进度徽标等）与主内容底部内边距据此避让；
    专注阅读模式无标签栏，壳内归零。壳外浮层（Cookie 提示等）使用 :root 值。 */

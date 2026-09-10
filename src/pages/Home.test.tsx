@@ -64,9 +64,10 @@ describe('Home', () => {
     });
   });
 
-  it('渲染站点英雄区（标题与副标题）', () => {
+  it('渲染站点英雄区（标题与副标题）', async () => {
     renderHome();
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+    expect(await screen.findByRole('figure', { name: '每日诗词与名言' })).toBeInTheDocument();
   });
 
   it('渲染文章卡片列表（来自构建期数据）', () => {

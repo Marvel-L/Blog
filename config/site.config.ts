@@ -61,9 +61,21 @@ export interface SiteFriendsPage {
   applyUrl: string;
 }
 
-export interface SiteFeedback {
-  /** 站点反馈表单地址（Tally），右侧中下部贴边的反馈侧签点击直达。 */
-  url: string;
+export interface SiteHeroQuoteItem {
+  /** 诗词或名言正文。 */
+  text: string;
+  /** 出处（作者 / 篇名）。 */
+  source: string;
+}
+
+/** 首页标题旁的随机诗词 / 名言。 */
+export interface SiteHeroQuotes {
+  /** 是否启用；false 时不展示。缺省视为启用（使用内置大词库）。 */
+  enabled?: boolean;
+  /** 默认摆放在标题左侧或右侧（left / right）；用户可本地切换并持久化。 */
+  defaultSide: string;
+  /** 可选追加条目（与内置词库合并去重）；CMS 可补写。 */
+  items?: SiteHeroQuoteItem[];
 }
 
 export interface SiteContent {
@@ -113,8 +125,8 @@ export interface SiteConfig {
   comments: SiteComments;
   guestbook: SiteGuestbook;
   friendsPage: SiteFriendsPage;
-  /** 站点反馈表单入口（右侧中下部贴边的反馈侧签）。 */
-  feedback: SiteFeedback;
+  /** 首页标题旁随机诗词 / 名言；缺省或 enabled=false 时不展示。 */
+  heroQuotes?: SiteHeroQuotes;
   /** 文章内容仓库（"在 GitHub 上编辑此文"/查看源文件入口使用）。 */
   content?: SiteContent;
   beian: SiteBeian;

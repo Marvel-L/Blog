@@ -45,8 +45,10 @@
     "repoUrl": "https://github.com/Marvel-L/Blog",
     "defaultBranch": "custom"
   },
-  "feedback": {
-    "url": ""
+  "heroQuotes": {
+    "enabled": true,
+    "defaultSide": "right",
+    "items": []
   },
   "beian": {
     "text": "",

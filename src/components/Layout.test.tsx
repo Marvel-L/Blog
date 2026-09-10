@@ -9,9 +9,6 @@ import { Layout } from './Layout';
 vi.mock('@/components/BackToTop', () => ({
   BackToTop: () => <div data-testid="mock-back-to-top" />,
 }));
-vi.mock('@/components/FeedbackDock', () => ({
-  FeedbackDock: () => <div data-testid="mock-feedback-dock" />,
-}));
 vi.mock('@/components/CookieNotice', () => ({
   CookieNotice: () => <div data-testid="mock-cookie-notice" />,
 }));
@@ -108,12 +105,13 @@ describe('Layout', () => {
     expect(screen.getByText('页面内容')).toBeInTheDocument();
   });
 
-  it('渲染反馈侧签（反馈入口迁出导航栏）', () => {
+  it('不再渲染反馈侧签', () => {
     renderLayout();
-    expect(screen.getByTestId('mock-feedback-dock')).toBeInTheDocument();
+    expect(screen.queryByTestId('mock-feedback-dock')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /反馈/ })).not.toBeInTheDocument();
   });
 
-  it('导航「更多」面板中不再包含反馈入口（已迁至右侧反馈侧签）', async () => {
+  it('导航「更多」面板中不包含反馈入口', async () => {
     const user = userEvent.setup();
     renderLayout();
     await user.click(screen.getByRole('button', { name: '打开更多菜单' }));

@@ -25,6 +25,8 @@ import { Pagination } from '@/components/Pagination';
 import { WaveFishDivider } from '@/components/effects/WaveFishDivider';
 import { canonicalizeHomeQuery, getHomeQueryState, setHomeQueryParam } from '@/utils/homeQuery';
 import { clearSearchQueryParams, setSearchQueryParams } from '@/utils/searchParams';
+import { HeroQuote, resolveHeroQuoteSide } from '@/components/HeroQuote';
+import { getHeroQuotesConfig, type HeroQuoteSide } from '@/utils/heroQuotes';
 
 const ShareModal = lazy(() => import('../components/ShareModal').then((m) => ({ default: m.ShareModal })));
 
@@ -186,6 +188,16 @@ const Hero = () => {
   // 偏好下跳过视差。
   const { scrollY } = useScroll();
   const heroOpacity = useTransform(scrollY, [0, 340], [1, 0.3]);
+  const quotesEnabled = Boolean(getHeroQuotesConfig());
+  // 默认右侧：与 SSR/水合首帧一致；客户端再读本地偏好，避免左右跳变。
+  const [quoteSide, setQuoteSide] = useState<HeroQuoteSide>('right');
+
+  useEffect(() => {
+    if (!quotesEnabled) {
+      return;
+    }
+    setQuoteSide(resolveHeroQuoteSide());
+  }, [quotesEnabled]);
 
   return (
     <div className="relative overflow-hidden px-4 pb-8 pt-5 text-center md:pb-10 md:pt-8">
@@ -193,9 +205,25 @@ const Hero = () => {
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-400">
           {siteConfig.subtitle}
         </p>
-        <h1 className="mb-3 text-balance font-serif text-5xl font-bold tracking-tight text-ink [overflow-wrap:anywhere] dark:text-white max-[400px]:text-4xl sm:text-6xl md:text-7xl">
-          {siteConfig.title}
-        </h1>
+
+        {/* 标题始终居中；诗词绝对定位到两侧远处，不挤占标题流式布局。 */}
+        <div className="relative mb-3">
+          <h1 className="text-balance font-serif text-5xl font-bold tracking-tight text-ink [overflow-wrap:anywhere] dark:text-white max-[400px]:text-4xl sm:text-6xl md:text-7xl">
+            {siteConfig.title}
+          </h1>
+          {quotesEnabled ? (
+            <div
+              className={`mt-4 flex justify-center sm:absolute sm:top-1/2 sm:mt-0 sm:w-[min(15rem,30%)] sm:-translate-y-1/2 md:w-[min(16rem,28%)] ${
+                quoteSide === 'left'
+                  ? 'sm:left-0 sm:justify-start lg:left-2 xl:left-6'
+                  : 'sm:right-0 sm:justify-end lg:right-2 xl:right-6'
+              }`}
+            >
+              <HeroQuote side={quoteSide} onSideChange={setQuoteSide} />
+            </div>
+          ) : null}
+        </div>
+
         <p className="mx-auto max-w-xl text-sm leading-6 text-zinc-600 dark:text-zinc-300 md:text-base">
           {siteConfig.description}
         </p>
