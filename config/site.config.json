@@ -23,17 +23,17 @@
   "toc": {
     "collapseInactiveRootBranches": true
   },
-  "giscusEnabled": false,
+  "giscusEnabled": true,
   "comments": {
     "repo": "Marvel-L/Blog",
-    "repoId": "",
-    "category": "文章评论",
-    "categoryId": "",
+    "repoId": "R_kgDOUUP-jA",
+    "category": "General",
+    "categoryId": "DIC_kwDOUUP-jM4DFRmv",
     "origin": "https://giscus.app",
     "strict": false
   },
   "guestbook": {
-    "discussionId": 0
+    "discussionId": 1
   },
   "friendsPage": {
     "repoUrl": "https://github.com/Marvel-L/Blog",
