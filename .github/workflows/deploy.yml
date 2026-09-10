@@ -14,12 +14,6 @@ on:
   push:
     branches: [custom]
   workflow_dispatch:
-    inputs:
-      payload:
-        description: 'Pages CMS payload as JSON，手动触发可用 {"repository":{"ref":"custom"}}'
-        required: false
-        type: string
-        default: '{"repository":{"ref":"custom"}}'
 
 concurrency:
   group: deploy-github-pages
@@ -38,9 +32,6 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
-        with:
-          # push：检出触发提交；手动/CMS：按 payload.ref（默认 custom）。
-          ref: ${{ github.event_name == 'workflow_dispatch' && (inputs.payload != '' && fromJSON(inputs.payload).repository.ref || 'custom') || github.ref }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v5
