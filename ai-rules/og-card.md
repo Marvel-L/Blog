@@ -2,24 +2,24 @@
 
 ## 功能概述
 
-构建期若存在 `public/logo.png`，基于该文件生成品牌化社交分享卡片（1200×630 PNG）：纸感渐变背景 + 居中 logo，供 og:image / twitter:image 使用。若 logo 不存在则跳过生成并清理旧的 `og-card.png`，不阻断构建。
+构建期生成社交分享卡片（1200×630 PNG）：有 `public/logo.png` 时为纸感渐变 + 居中 logo；无 logo 时仍生成纯渐变卡片，供默认 og:image / twitter:image 与 SEO 审计使用。
 
 ## 关键文件
 
 - `scripts/generate-og-card.mjs`（sharp 处理）
+- `config/site.config.json` 的 `seoImage`（通常指向 `/og-card.png`）
 
 ## 修改规则（必须遵守）
 
-1. **logo 可选**：`public/logo.png` 缺失时必须跳过并清理旧产物，不得阻断构建；若 logo 存在但尺寸读取失败/合成失败仍须抛错阻断构建。
+1. **必须产出卡片**：无论 logo 是否存在，都必须写出 `public/og-card.png`（无 logo 时用纯渐变）；合成失败须抛错阻断构建。
 2. **logo 尺寸夹紧**：竖图 logo 等比放大后高度超过卡片（630px）时必须 clamp（composite 负坐标行为未定义）。
 3. **纯构建期**：不引入运行时依赖；复用既有 sharp 依赖，不新增重依赖。
-4. **设计语义**：有 logo 时卡片为「渐变背景 + logo」设计，不叠加文字（避免引入 CJK 字体文件）；改动视觉需用户确认。
+4. **设计语义**：有 logo 时为「渐变背景 + logo」；无 logo 时为纯渐变、不叠加文字（避免引入 CJK 字体）；改动视觉需用户确认。
 
 ## 常见陷阱
 
 - 分享平台推荐 1200×630（1.91:1），改动尺寸需评估各平台裁切；
-- 输出路径 `public/og-card.png` 是站点级共享图，删除/改名会影响所有默认分享卡；
-- `site.config.json` 的 `seoImage` 为空时前端不输出默认 og:image。
+- 输出路径 `public/og-card.png` 是站点级共享图；`seoImage` 为空会导致 SSG 页缺少 og:image，SEO 审计失败阻断部署。
 
 ## 破例条款
 

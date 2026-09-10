@@ -101,7 +101,7 @@ export interface SiteConfig {
   logo: string;
   /** 导航栏小 Logo；空字符串表示导航仅展示文字标题。 */
   logoSmall: string;
-  /** 默认社交分享图；空字符串表示不输出默认 og:image。 */
+  /** 默认社交分享图（如 /og-card.png）；构建期由 generate-og-card 生成。 */
   seoImage: string;
   footerText: string;
   url: string;
