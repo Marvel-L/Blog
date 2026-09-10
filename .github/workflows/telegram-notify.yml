@@ -2,11 +2,11 @@
 #
 # 覆盖三类提醒：
 #   1. 💬 新评论 / 新讨论 / 新 Issue（giscus 文章评论、留言板留言等）；
-#   2. 🚀 push 到 main 的提交（提交列表 + 对比链接）；
+#   2. 🚀 push 到 custom 的提交（提交列表 + 对比链接）；
 #   3. ⚙️ 白名单内任一 Action 运行完成的结果（成功/失败/取消）。
 #
 # 触发：
-#   - push: main 分支提交（.pages.yml 保存内容等都会走到这里）；
+#   - push: custom 分支提交（.pages.yml 保存内容等都会走到这里）；
 #   - discussion_comment: created（giscus 评论）；
 #   - discussion: created（新建讨论）；
 #   - issues: opened（新 Issue）；
@@ -23,7 +23,7 @@ name: Telegram Notify
 
 on:
   push:
-    branches: [main]
+    branches: [custom]
   discussion_comment:
     types: [created]
   discussion:
@@ -43,13 +43,13 @@ on:
       - "Check Broken Links"
       - "Comment Keyword Filter"
       - "Comment Keyword Recheck"
-      - "Deploy to Cloudflare & EdgeOne"
+      - "Deploy to GitHub Pages"
       - "Notify Blog Post Update"
     types: [completed]
   workflow_dispatch:
     inputs:
       payload:
-        description: 'Pages CMS payload as JSON，手动触发可用 {"repository":{"ref":"main"}}'
+        description: 'Pages CMS payload as JSON，手动触发可用 {"repository":{"ref":"custom"}}'
         required: true
         type: string
 
