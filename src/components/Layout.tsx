@@ -25,6 +25,7 @@ import {
   MessageSquareText,
   MessageCircle,
   LayoutGrid,
+  Map as MapIcon,
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { preloadPage } from '@/utils/preload';
@@ -64,6 +65,7 @@ const TEXT = {
   navGuestbook: '留言',
   navShuoShuo: '说说',
   navAbout: '关于',
+  navRoad: 'Road',
   rssFeed: 'RSS 订阅',
 };
 
@@ -87,6 +89,7 @@ const navItems: NavPathItem[] = [
   { path: '/stats', label: TEXT.navStats, hint: '站点数据', icon: BarChart3 },
   { path: '/friends', label: TEXT.navFriends, hint: '友情链接', icon: Users },
   { path: '/guestbook', label: TEXT.navGuestbook, hint: '留言互动', icon: MessageSquareText },
+  { path: '/road', label: TEXT.navRoad, hint: '学习路线图', icon: MapIcon },
   { path: '/about', label: TEXT.navAbout, hint: '站点介绍', icon: Info },
 ];
 

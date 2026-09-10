@@ -1,0 +1,38 @@
+{
+  "graphs": [
+    {
+      "id": "golang",
+      "title": "Golang",
+      "description": "Go 语言核心概念与并发实践路线",
+      "nodes": [
+        {
+          "id": "golang",
+          "title": "Golang",
+          "description": "Go 语言根基与语言特性",
+          "posts": ["best-pagespeed-insights"]
+        },
+        {
+          "id": "channel",
+          "title": "Channel",
+          "description": "channel 的底层实现与常见用法",
+          "parents": ["golang"],
+          "posts": []
+        },
+        {
+          "id": "goroutine",
+          "title": "Goroutine",
+          "description": "协程模型、调度与生命周期",
+          "parents": ["golang"],
+          "posts": []
+        },
+        {
+          "id": "pool",
+          "title": "协程池实战",
+          "description": "结合 Channel 与 Goroutine 落地协程池",
+          "parents": ["channel", "goroutine"],
+          "posts": []
+        }
+      ]
+    }
+  ]
+}

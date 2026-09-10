@@ -459,6 +459,11 @@ export const runSsg = async ({
       schemaFromSeo: true,
     },
     {
+      path: 'road',
+      schemaType: 'WebPage',
+      schemaFromSeo: true,
+    },
+    {
       path: 'friends',
       schemaType: 'CollectionPage',
       schemaFromSeo: true,

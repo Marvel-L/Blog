@@ -17,6 +17,7 @@ const DEFAULT_STATIC_ROUTES = new Set([
   '/shuoshuo',
   '/guestbook',
   '/about',
+  '/road',
   '/cover',
   '/watermark',
   '/search',

@@ -803,6 +803,7 @@ const generateSitemap = () => {
     { path: 'shuoshuo', changefreq: 'weekly', priority: '0.6', lastmod: latestPostDate },
     { path: 'guestbook', changefreq: 'weekly', priority: '0.5', lastmod: latestPostDate },
     { path: 'about', changefreq: 'monthly', priority: '0.7', lastmod: latestPostDate },
+    { path: 'road', changefreq: 'weekly', priority: '0.7', lastmod: latestPostDate },
     { path: 'cover', changefreq: 'monthly', priority: '0.5', lastmod: latestPostDate },
     { path: 'watermark', changefreq: 'monthly', priority: '0.5', lastmod: latestPostDate },
     { path: 'search', changefreq: 'monthly', priority: '0.5', lastmod: latestPostDate },
