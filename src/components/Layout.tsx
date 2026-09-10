@@ -28,6 +28,15 @@ import {
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { preloadPage } from '@/utils/preload';
+import { WaveFishDivider } from '@/components/effects/WaveFishDivider';
+import { ParticleField } from '@/components/effects/ParticleField';
+import {
+  DEFAULT_PARTICLE_EFFECT,
+  PARTICLE_EFFECT_OPTIONS,
+  type ParticleEffectId,
+  readStoredParticleEffect,
+  writeStoredParticleEffect,
+} from '@/utils/particleEffect';
 import { assetUrl } from '@/utils/siteUrl';
 import { siteConfig } from '@config/site.config';
 import { pingBusuanzi } from '@/services/busuanzi';
@@ -46,6 +55,8 @@ const TEXT = {
   theme: '外观',
   themeLight: '浅色',
   themeDark: '深色',
+  atmosphere: '氛围',
+  atmosphereMenu: '外观与氛围',
   navPosts: '文章',
   navArchive: '归档',
   navTags: '标签',
@@ -146,11 +157,20 @@ const isEditableTarget = (target: EventTarget | null) => {
   return target.isContentEditable || tagName === 'input' || tagName === 'textarea' || tagName === 'select';
 };
 
-const ThemeToggle = () => {
+const ThemeToggle = ({
+  particleEffect,
+  onParticleEffectChange,
+}: {
+  particleEffect: ParticleEffectId;
+  onParticleEffectChange: (effect: ParticleEffectId) => void;
+}) => {
   type Theme = 'light' | 'dark';
   const hasInitializedThemeRef = useRef(false);
   const prefersReducedMotion = useSiteReducedMotion();
   const [theme, setTheme] = useState<Theme>('light');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const menuId = 'theme-atmosphere-menu';
 
   useEffect(() => {
     const root = document.documentElement;
@@ -224,8 +244,39 @@ const ThemeToggle = () => {
     hasInitializedThemeRef.current = true;
   }, [prefersReducedMotion, theme]);
 
-  const toggleTheme = () => {
-    const next = theme === 'light' ? 'dark' : 'light';
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+      if (!rootRef.current?.contains(target)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isMenuOpen]);
+
+  const setThemePreference = (next: Theme) => {
+    if (next === theme) {
+      return;
+    }
     setTheme(next);
     // 仅显式点击才持久化：系统检测出的默认值不落盘，保证每次打开页面都
     // 重新按系统偏好检测；用户点击一次后，该选择稳定沿用。
@@ -237,29 +288,111 @@ const ThemeToggle = () => {
   };
 
   const currentThemeLabel = theme === 'light' ? TEXT.themeLight : TEXT.themeDark;
-  const nextThemeLabel = theme === 'light' ? TEXT.themeDark : TEXT.themeLight;
+  const currentEffectLabel =
+    PARTICLE_EFFECT_OPTIONS.find((option) => option.id === particleEffect)?.label ?? particleEffect;
 
   return (
-    <button
-      onClick={toggleTheme}
-      className="group relative inline-flex h-11 w-11 items-center justify-center rounded-icon border border-zinc-300 bg-zinc-100 text-ink transition-colors hover:border-zinc-500 hover:bg-zinc-200 active:bg-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-zinc-500 dark:active:bg-zinc-700"
-      aria-label={`切换外观主题，当前为${currentThemeLabel}，点击切换为${nextThemeLabel}`}
-    >
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={theme}
-          initial={prefersReducedMotion ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={prefersReducedMotion ? undefined : { opacity: 0 }}
-          transition={{ duration: prefersReducedMotion ? 0 : 0.15 }}
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setIsMenuOpen((open) => !open)}
+        className="group relative inline-flex h-11 w-11 items-center justify-center rounded-icon border border-zinc-300 bg-zinc-100 text-ink transition-colors hover:border-zinc-500 hover:bg-zinc-200 active:bg-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-zinc-500 dark:active:bg-zinc-700"
+        aria-label={`${TEXT.atmosphereMenu}，当前${currentThemeLabel} · ${currentEffectLabel}`}
+        aria-haspopup="dialog"
+        aria-expanded={isMenuOpen}
+        aria-controls={menuId}
+      >
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={theme}
+            initial={prefersReducedMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.15 }}
+          >
+            {theme === 'light' ? <Sun size={18} /> : <Moon size={18} />}
+          </motion.div>
+        </AnimatePresence>
+        <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-control border border-zinc-700 bg-black px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 group-aria-expanded:opacity-0">
+          {TEXT.atmosphereMenu}
+        </span>
+      </button>
+
+      {isMenuOpen && (
+        <div
+          id={menuId}
+          role="dialog"
+          aria-label={TEXT.atmosphereMenu}
+          className="absolute right-0 top-full z-popover mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-surface border border-zinc-200 bg-paper p-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-950"
         >
-          {theme === 'light' ? <Sun size={18} /> : <Moon size={18} />}
-        </motion.div>
-      </AnimatePresence>
-      <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-control border border-zinc-700 bg-black px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
-        {currentThemeLabel}
-      </span>
-    </button>
+          <div className="space-y-3">
+            <div>
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
+                {TEXT.theme}
+              </p>
+              <div className="grid grid-cols-2 gap-1.5" role="group" aria-label={TEXT.theme}>
+                {(
+                  [
+                    { id: 'light' as const, label: TEXT.themeLight, Icon: Sun },
+                    { id: 'dark' as const, label: TEXT.themeDark, Icon: Moon },
+                  ] as const
+                ).map(({ id, label, Icon }) => {
+                  const active = theme === id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setThemePreference(id)}
+                      aria-pressed={active}
+                      className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-control border px-2 text-xs font-semibold transition-colors ${
+                        active
+                          ? 'border-ink bg-ink text-white dark:border-white dark:bg-white dark:text-ink'
+                          : 'border-zinc-300 bg-paper text-zinc-700 hover:border-ink hover:bg-zinc-100 dark:border-zinc-700 dark:bg-void dark:text-zinc-300 dark:hover:border-white dark:hover:bg-zinc-900'
+                      }`}
+                    >
+                      <Icon size={14} aria-hidden="true" />
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
+                {TEXT.atmosphere}
+              </p>
+              <div className="grid grid-cols-2 gap-1.5" role="group" aria-label={TEXT.atmosphere}>
+                {PARTICLE_EFFECT_OPTIONS.map((option) => {
+                  const active = particleEffect === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => onParticleEffectChange(option.id)}
+                      aria-pressed={active}
+                      title={option.hint}
+                      className={`inline-flex min-h-11 flex-col items-center justify-center rounded-control border px-2 py-1.5 text-xs font-semibold transition-colors ${
+                        active
+                          ? 'border-ink bg-ink text-white dark:border-white dark:bg-white dark:text-ink'
+                          : 'border-zinc-300 bg-paper text-zinc-700 hover:border-ink hover:bg-zinc-100 dark:border-zinc-700 dark:bg-void dark:text-zinc-300 dark:hover:border-white dark:hover:bg-zinc-900'
+                      }`}
+                    >
+                      <span>{option.label}</span>
+                      <span
+                        className={`mt-0.5 text-[10px] font-normal ${active ? 'text-white/70 dark:text-ink/60' : 'text-zinc-400 dark:text-zinc-500'}`}
+                      >
+                        {option.hint}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -267,7 +400,15 @@ type MobileNavPhase = 'closed' | 'opening' | 'open' | 'closing';
 
 const MOBILE_NAV_ANIMATION_DURATION_MS = 340;
 
-const Navbar = ({ onSearchNavigate }: { onSearchNavigate: () => void }) => {
+const Navbar = ({
+  onSearchNavigate,
+  particleEffect,
+  onParticleEffectChange,
+}: {
+  onSearchNavigate: () => void;
+  particleEffect: ParticleEffectId;
+  onParticleEffectChange: (effect: ParticleEffectId) => void;
+}) => {
   const [mobileNavPhase, setMobileNavPhase] = useState<MobileNavPhase>('closed');
   const [isMobileNavMounted, setIsMobileNavMounted] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
@@ -902,13 +1043,13 @@ const Navbar = ({ onSearchNavigate }: { onSearchNavigate: () => void }) => {
               >
                 <Search size={18} />
               </button>
-              <ThemeToggle />
+              <ThemeToggle particleEffect={particleEffect} onParticleEffectChange={onParticleEffectChange} />
             </div>
           </div>
 
           <div className="flex items-center gap-1.5 lg:hidden">
             {/* 移动端顶栏只保留主题切换：搜索/导航入口下沉到底部标签栏 */}
-            <ThemeToggle />
+            <ThemeToggle particleEffect={particleEffect} onParticleEffectChange={onParticleEffectChange} />
           </div>
         </motion.div>
       </nav>
@@ -1088,8 +1229,9 @@ const Navbar = ({ onSearchNavigate }: { onSearchNavigate: () => void }) => {
 
 const Footer = () => {
   return (
-    <footer className="site-footer mt-8 hidden border-t border-zinc-200/90 dark:border-zinc-800/90 md:mt-12 lg:block">
-      <div className="mx-auto max-w-7xl px-3 py-8 sm:px-6 md:py-10">
+    <footer className="site-footer mt-8 hidden md:mt-12 lg:block">
+      <WaveFishDivider variant="fish" className="mx-auto max-w-7xl px-3 sm:px-6" />
+      <div className="mx-auto max-w-7xl px-3 pb-8 pt-2 sm:px-6 md:pb-10">
         <div className="max-w-xl">
           <Link
             to="/"
@@ -1133,11 +1275,16 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const location = useLocation();
   const navigate = useNavigate();
   const { isReadingMode } = useReadingMode();
+  const [particleEffect, setParticleEffect] = useState<ParticleEffectId>(DEFAULT_PARTICLE_EFFECT);
   // 搜索为独立页面（/search）：所有搜索入口（顶栏按钮、Ctrl+K、移动端抽屉快捷动作）
   // 统一跳转到搜索页。
   const goToSearch = useCallback(() => {
     navigate('/search');
   }, [navigate]);
+  const handleParticleEffectChange = useCallback((effect: ParticleEffectId) => {
+    setParticleEffect(effect);
+    writeStoredParticleEffect(effect);
+  }, []);
   const prefersReducedMotion = useSiteReducedMotion();
   const routeVariants = prefersReducedMotion
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
@@ -1170,6 +1317,10 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToSearch]);
 
+  useEffect(() => {
+    setParticleEffect(readStoredParticleEffect());
+  }, []);
+
   // 不蒜子统计：路由变化即上报当前页访问并回填计数 span（适配 SPA 客户端导航，
   // 替代官方 <script> 仅首屏执行一次、无法为新路由上报/回填的局限）。
   useEffect(() => {
@@ -1184,7 +1335,14 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
       data-reading-mode={isReadingMode ? 'true' : undefined}
     >
       <Background />
-      {!isReadingMode && <Navbar onSearchNavigate={goToSearch} />}
+      {!isReadingMode && <ParticleField effect={particleEffect} />}
+      {!isReadingMode && (
+        <Navbar
+          onSearchNavigate={goToSearch}
+          particleEffect={particleEffect}
+          onParticleEffectChange={handleParticleEffectChange}
+        />
+      )}
       {/* 非阅读模式：main 顶部内边距 = 导航栏高度 + 呼吸间距，并补偿导航栏
           因 safe-area-inset-top 增高的部分，避免内容被顶高的导航遮挡。 */}
       <main

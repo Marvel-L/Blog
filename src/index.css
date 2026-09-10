@@ -1399,3 +1399,137 @@ html.dark .mermaid-diagram > svg {
     border-color: transparent !important;
   }
 }
+
+/* —— 水波 / 鱼跃装饰分割线 —— */
+.wave-fish-divider {
+  color: #57534e; /* stone-600，贴合 paper 暖灰调 */
+  pointer-events: none;
+  user-select: none;
+}
+
+.dark .wave-fish-divider {
+  color: #a8a29e; /* stone-400 */
+}
+
+.wave-fish-divider__layer--slow {
+  animation: wave-drift-x 9s ease-in-out infinite alternate;
+  transform-origin: center;
+}
+
+.wave-fish-divider__layer--fast {
+  animation: wave-drift-x 6.5s ease-in-out infinite alternate-reverse;
+  transform-origin: center;
+}
+
+@keyframes wave-drift-x {
+  from {
+    transform: translateX(-1.6%);
+  }
+  to {
+    transform: translateX(1.6%);
+  }
+}
+
+/* 鱼跃：沿水平移动 + 抛物线高度（CSS offset 近似用 translate） */
+.wave-fish-divider__fish {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.wave-fish-divider__fish--a {
+  animation: fish-leap-a 7.5s cubic-bezier(0.4, 0.05, 0.2, 1) infinite;
+}
+
+.wave-fish-divider__fish--b {
+  animation: fish-leap-b 11s cubic-bezier(0.4, 0.05, 0.2, 1) 3.2s infinite;
+}
+
+.wave-fish-divider__splash {
+  opacity: 0;
+}
+
+.wave-fish-divider__fish--a .wave-fish-divider__splash {
+  animation: fish-splash 7.5s ease-out infinite;
+}
+
+.wave-fish-divider__fish--b .wave-fish-divider__splash {
+  animation: fish-splash 11s ease-out 3.2s infinite;
+}
+
+@keyframes fish-leap-a {
+  0%,
+  8% {
+    transform: translate(80px, 52px) scaleX(1) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  22% {
+    transform: translate(220px, 18px) scaleX(1) rotate(-28deg);
+    opacity: 1;
+  }
+  32% {
+    transform: translate(360px, 50px) scaleX(1) rotate(12deg);
+    opacity: 1;
+  }
+  36%,
+  100% {
+    transform: translate(400px, 58px) scaleX(1) rotate(0deg);
+    opacity: 0;
+  }
+}
+
+@keyframes fish-leap-b {
+  0%,
+  10% {
+    transform: translate(720px, 54px) scaleX(-1) rotate(0deg);
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  24% {
+    transform: translate(560px, 16px) scaleX(-1) rotate(30deg);
+    opacity: 1;
+  }
+  34% {
+    transform: translate(400px, 50px) scaleX(-1) rotate(-10deg);
+    opacity: 1;
+  }
+  38%,
+  100% {
+    transform: translate(360px, 58px) scaleX(-1) rotate(0deg);
+    opacity: 0;
+  }
+}
+
+@keyframes fish-splash {
+  0%,
+  10% {
+    opacity: 0;
+  }
+  14% {
+    opacity: 0.5;
+  }
+  22% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.45;
+  }
+  38%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wave-fish-divider__layer--slow,
+  .wave-fish-divider__layer--fast,
+  .wave-fish-divider__fish--a,
+  .wave-fish-divider__fish--b,
+  .wave-fish-divider__splash {
+    animation: none !important;
+  }
+}

@@ -74,7 +74,7 @@ describe('Layout', () => {
 
   it('渲染主题切换按钮（桌面端与移动端顶栏各一个）', () => {
     renderLayout();
-    expect(screen.getAllByRole('button', { name: /切换外观主题/ }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByRole('button', { name: /外观与氛围/ }).length).toBeGreaterThanOrEqual(1);
   });
 
   it('渲染搜索入口按钮', () => {

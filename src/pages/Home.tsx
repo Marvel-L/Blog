@@ -22,6 +22,7 @@ import { removeReadingHistory } from '@/services/readingHistory';
 import { isReadingComplete } from '@/utils/readingProgress';
 import { absoluteSiteUrl } from '@/utils/siteUrl';
 import { Pagination } from '@/components/Pagination';
+import { WaveFishDivider } from '@/components/effects/WaveFishDivider';
 import { canonicalizeHomeQuery, getHomeQueryState, setHomeQueryParam } from '@/utils/homeQuery';
 import { clearSearchQueryParams, setSearchQueryParams } from '@/utils/searchParams';
 
@@ -523,6 +524,7 @@ export const Home = () => {
           根据 URL 中的 q 参数自动输出，无需在此显式传入。 */}
       <Seo title={seoTitle} description={seoDescription} />
       <Hero />
+      <WaveFishDivider variant="wave" className="mx-auto mb-2 max-w-3xl px-4 md:mb-4 md:px-0" />
 
       {continueReading && (
         <section
@@ -643,6 +645,8 @@ export const Home = () => {
           </div>
         )}
       </div>
+
+      <WaveFishDivider variant="fish" className="mx-auto mt-10 max-w-3xl px-4 md:mt-14 md:px-0 lg:hidden" />
 
       {sharePost && (
         <Suspense fallback={null}>
