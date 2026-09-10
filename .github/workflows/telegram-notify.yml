@@ -43,7 +43,7 @@ on:
       - "Check Broken Links"
       - "Comment Keyword Filter"
       - "Comment Keyword Recheck"
-      - "Deploy to Cloudflare & EdgeOne"
+      - "Deploy to GitHub Pages"
       - "Notify Blog Post Update"
     types: [completed]
   workflow_dispatch:

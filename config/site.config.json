@@ -4,15 +4,15 @@
   "seoHomeTitle": "D-blog - 跑路的duck的技术分享和生活随笔",
   "seoHomeDescription": "跑路的duck的技术博客 专注前端开发与 React TypeScript 等 Web 技术 分享编程教程 后端运维 AI 工具与效率软件测评 追求极致的静态页面体验",
   "description": "跑路的duck的技术分享和生活随笔",
-  "logo": "https://blog.pldduck.com/logo.png",
+  "logo": "https://Marvel-L.github.io/Blog/logo.png",
   "logoSmall": "/logo-96.png",
-  "seoImage": "https://blog.pldduck.com/og-card.png",
-  "footerText": "©2026 PLDDUCK",
-  "url": "https://blog.pldduck.com",
+  "seoImage": "https://Marvel-L.github.io/Blog/logo.png",
+  "footerText": "©2026 Marvel-L",
+  "url": "https://Marvel-L.github.io/Blog",
   "social": {
-    "github": "https://github.com/ououduck/",
-    "email": "mailto:i@pldduck.com",
-    "rawEmail": "i@pldduck.com"
+    "github": "https://github.com/Marvel-L/",
+    "email": "mailto:weima7914@gmail.com",
+    "rawEmail": "weima7914@gmail.com"
   },
   "author": {
     "name": "跑路的duck",
@@ -23,33 +23,33 @@
   "toc": {
     "collapseInactiveRootBranches": true
   },
-  "giscusEnabled": true,
+  "giscusEnabled": false,
   "comments": {
-    "repo": "ououduck/D-blog",
-    "repoId": "R_kgDORApwuA",
+    "repo": "Marvel-L/Blog",
+    "repoId": "",
     "category": "文章评论",
-    "categoryId": "DIC_kwDORApwuM4DCztq",
+    "categoryId": "",
     "origin": "https://giscus.app",
     "strict": false
   },
   "guestbook": {
-    "discussionId": 9
+    "discussionId": 0
   },
   "friendsPage": {
-    "repoUrl": "https://github.com/ououduck/D-blog",
-    "repoFriendsUrl": "https://github.com/ououduck/D-blog/tree/main/friends",
+    "repoUrl": "https://github.com/Marvel-L/Blog",
+    "repoFriendsUrl": "https://github.com/Marvel-L/Blog/tree/custom/friends",
     "repoFriendsDir": "friends",
-    "applyUrl": "https://tally.so/r/xX8Oyv"
+    "applyUrl": ""
   },
   "content": {
-    "repoUrl": "https://github.com/ououduck/D-blog",
-    "defaultBranch": "main"
+    "repoUrl": "https://github.com/Marvel-L/Blog",
+    "defaultBranch": "custom"
   },
   "feedback": {
-    "url": "https://tally.so/r/rj8zKX"
+    "url": ""
   },
   "beian": {
-    "text": "湘ICP备2025101669号",
-    "url": "https://beian.miit.gov.cn"
+    "text": "",
+    "url": ""
   }
 }

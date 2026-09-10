@@ -214,12 +214,12 @@ content:
 # 文档: https://pagescms.org/docs/configuration/actions/
 actions:
   - name: deploy-site
-    label: 🚀 部署到 Cloudflare & EdgeOne
+    label: 🚀 部署到 GitHub Pages
     workflow: deploy.yml
     ref: current
     confirm:
       title: 确认部署？
-      message: 将在 GitHub Actions 中构建全站，并直传部署到 Cloudflare Pages 与 EdgeOne Pages
+      message: 将在 GitHub Actions 中构建全站并发布到 GitHub Pages（push custom 也会自动部署）
       button: 开始部署
 
   # ── 评论关键词全量复查：每次执行都会重新审查一次所有评论 ──
