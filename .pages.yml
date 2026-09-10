@@ -209,6 +209,13 @@ content:
         type: object
         fields:
           - { name: url, label: 反馈表单地址, type: string }
+      - name: intro
+        label: 首页打字机引导
+        type: object
+        fields:
+          - { name: enabled, label: 启用引导, type: boolean }
+          - { name: lines, label: 引导文案（逐行打印）, type: string, list: true }
+          - { name: holdMs, label: 打印完成后等待毫秒数, type: number }
 
 # ── 部署动作：CMS 侧边栏按钮，触发 .github/workflows/deploy.yml ──
 # 文档: https://pagescms.org/docs/configuration/actions/

@@ -78,6 +78,16 @@ export interface SiteBeian {
   url: string;
 }
 
+/** 首页首次进入的打字机引导文案（可在 site.config.json / PagesCMS 中修改）。 */
+export interface SiteIntro {
+  /** 是否启用引导遮罩；false 时不展示。 */
+  enabled: boolean;
+  /** 逐行打印的文案；空数组视为关闭。 */
+  lines: string[];
+  /** 全部行打印完成后自动进入首页的等待毫秒数。 */
+  holdMs: number;
+}
+
 export interface SiteConfig {
   title: string;
   subtitle: string;
@@ -106,6 +116,8 @@ export interface SiteConfig {
   /** 文章内容仓库（"在 GitHub 上编辑此文"/查看源文件入口使用）。 */
   content?: SiteContent;
   beian: SiteBeian;
+  /** 首页首次进入的打字机引导；缺省或 enabled=false 时不展示。 */
+  intro?: SiteIntro;
 }
 
 export const siteConfig: SiteConfig = siteConfigJson;

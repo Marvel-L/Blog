@@ -28,6 +28,9 @@ const Watermark = lazy(pageLoaders['/watermark']);
 const SearchPage = lazy(pageLoaders['/search']);
 const NotFound = lazy(() => import('./pages/NotFound').then((m) => ({ default: m.NotFound })));
 const CookieNotice = lazy(() => import('./components/CookieNotice').then((m) => ({ default: m.CookieNotice })));
+const TypewriterIntro = lazy(() =>
+  import('./components/TypewriterIntro').then((m) => ({ default: m.TypewriterIntro })),
+);
 
 const RouteFallback: React.FC = () => (
   <div className="mx-auto flex min-h-[50vh] max-w-7xl items-center justify-center">
@@ -143,20 +146,28 @@ const AppRoutes: React.FC = () => {
 };
 
 const AppShell: React.FC = () => {
+  const [introReady, setIntroReady] = useState(false);
   const [showCookieNotice, setShowCookieNotice] = useState(false);
 
+  // Cookie 提示延后到打字机引导结束，避免双层浮层抢焦点。
   useEffect(() => {
+    if (!introReady) {
+      return;
+    }
     const timer = window.setTimeout(() => {
       setShowCookieNotice(true);
     }, 2000);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [introReady]);
 
   return (
     <ErrorBoundary>
       <AppRoutes />
       <OfflineStatus />
       <ServiceWorkerUpdatePrompt />
+      <Suspense fallback={null}>
+        <TypewriterIntro onReady={() => setIntroReady(true)} />
+      </Suspense>
       {showCookieNotice && (
         <Suspense fallback={null}>
           <CookieNotice />
