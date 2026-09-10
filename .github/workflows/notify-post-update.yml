@@ -2,7 +2,7 @@ name: Notify Blog Post Update
 
 on:
   push:
-    branches: [main]
+    branches: [custom]
     paths:
       - 'posts/**/*.md'
   workflow_dispatch:

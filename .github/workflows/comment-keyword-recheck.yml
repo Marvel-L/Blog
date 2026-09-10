@@ -7,7 +7,7 @@
 #
 # 触发方式（仅 workflow_dispatch）：
 #   1. Pages CMS 侧边栏「🔍 重新审查全部评论」按钮（见 .pages.yml 的 actions 段），
-#   2. GitHub Actions 页面手动 Run workflow（payload 最小可用 {"repository":{"ref":"main"}}）。
+#   2. GitHub Actions 页面手动 Run workflow（payload 最小可用 {"repository":{"ref":"custom"}}）。
 #
 # Pages CMS 会以 JSON 字符串填充 inputs.payload（含 repository.ref / sha、触发人等），
 # 协议见 https://pagescms.org/docs/configuration/actions/
@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
     inputs:
       payload:
-        description: 'Pages CMS payload as JSON，手动触发可用 {"repository":{"ref":"main"}}'
+        description: 'Pages CMS payload as JSON，手动触发可用 {"repository":{"ref":"custom"}}'
         required: true
         type: string
 
@@ -39,7 +39,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v5
         with:
-          # Pages CMS 触发时按 CMS 当前打开的分支（main）检出，
+          # Pages CMS 触发时按 CMS 当前打开的分支（custom）检出，
           # 保证脚本读取到最新保存的关键词配置；手动触发时回退到触发分支。
           ref: ${{ inputs.payload != '' && fromJSON(inputs.payload).repository.ref || '' }}
       - name: Set up Node.js
