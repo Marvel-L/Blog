@@ -19,6 +19,7 @@ GitHub Actions 自动化：ci（push/PR 全量门禁）、deploy（手动双平�
 6. **版本固定**：第三方 action 用 major tag（checkout@v5 等）；CLI 工具（wrangler/edgeone）用精确版本（部署可复现）。
 7. **PagesCMS 字段白名单**：.pages.yml 的 siteConfig fields 必须覆盖 site.config.json 实际使用的全部键（缺字段 CMS 保存会丢数据）。
 8. **CI 门禁**：check/test/build 三 job 的职责边界保持（类型+内容校验 / 单测 / 构建+审计）。
+9. **全量 Git 历史**：跑 `gen:data` / `npm run build` 的 job（ci check/test/build、deploy build）checkout 必须 `fetch-depth: 0`，否则文章 date/updatedAt 的 Git 回退在浅克隆下会偏晚。
 
 ## 常见陷阱
 

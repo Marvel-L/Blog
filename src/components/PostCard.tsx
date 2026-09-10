@@ -5,7 +5,7 @@
  */
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Clock, MessageCircle, Share2, Pin, Sparkles } from 'lucide-react';
+import { Calendar, Clock, MessageCircle, Share2, Pin } from 'lucide-react';
 import type { PostMetadata } from '@/types';
 import { assetUrl } from '@/utils/siteUrl';
 import { preloadPage } from '@/utils/preload';
@@ -48,17 +48,23 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, onShare }) => {
   };
 
   if (featured) {
+    const hasCover = Boolean(post.coverImage);
+
     return (
       <article className="col-span-full w-full" onMouseEnter={() => preloadPage(`/post/${post.id}`)}>
-        <div className="relative overflow-hidden rounded-surface border border-zinc-200 bg-white transition-colors hover:border-zinc-400 focus-within:border-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600 dark:focus-within:border-zinc-500 md:grid md:grid-cols-5">
-          <Link
-            to={`/post/${post.id}`}
-            className="block aspect-[16/9] overflow-hidden bg-zinc-100 dark:bg-zinc-800 md:col-span-3 md:aspect-auto md:min-h-80"
-            aria-label={`阅读文章：${post.title}`}
-          >
-            {post.coverImage ? (
+        <div
+          className={`relative overflow-hidden rounded-surface border border-zinc-200 bg-white transition-colors hover:border-zinc-400 focus-within:border-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600 dark:focus-within:border-zinc-500 ${
+            hasCover ? 'md:grid md:grid-cols-5' : ''
+          }`}
+        >
+          {hasCover && (
+            <Link
+              to={`/post/${post.id}`}
+              className="block aspect-[16/9] overflow-hidden bg-zinc-100 dark:bg-zinc-800 md:col-span-3 md:aspect-auto md:min-h-80"
+              aria-label={`阅读文章：${post.title}`}
+            >
               <ProgressiveImage
-                src={assetUrl(post.coverImage)}
+                src={assetUrl(post.coverImage!)}
                 alt={post.title}
                 loading="eager"
                 fetchPriority="high"
@@ -70,13 +76,9 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, onShare }) => {
                 className="h-full w-full object-cover"
                 effect="fade"
               />
-            ) : (
-              <div className="flex h-full min-h-56 items-center justify-center bg-zinc-100 dark:bg-zinc-800">
-                <Sparkles className="h-12 w-12 text-zinc-300 dark:text-zinc-600" />
-              </div>
-            )}
-          </Link>
-          <div className="flex flex-col p-4 md:col-span-2 md:p-7">
+            </Link>
+          )}
+          <div className={`flex flex-col p-4 md:p-7 ${hasCover ? 'md:col-span-2' : ''}`}>
             <div className="mb-3 flex items-center gap-3 text-[11px] md:mb-4 font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
               <span>{post.category}</span>
               <span aria-hidden="true">/</span>
@@ -132,12 +134,12 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, onShare }) => {
   return (
     <article className="flex h-full min-w-0 flex-col" onMouseEnter={() => preloadPage(`/post/${post.id}`)}>
       <div className="relative flex h-full flex-col overflow-hidden rounded-surface border border-zinc-200 bg-white transition-colors hover:border-zinc-400 focus-within:border-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600 dark:focus-within:border-zinc-500">
-        <Link
-          to={`/post/${post.id}`}
-          className="block aspect-[16/9] overflow-hidden bg-zinc-100 dark:bg-zinc-800 md:aspect-[16/10]"
-          aria-label={`阅读文章：${post.title}`}
-        >
-          {post.coverImage ? (
+        {post.coverImage ? (
+          <Link
+            to={`/post/${post.id}`}
+            className="block aspect-[16/9] overflow-hidden bg-zinc-100 dark:bg-zinc-800 md:aspect-[16/10]"
+            aria-label={`阅读文章：${post.title}`}
+          >
             <ProgressiveImage
               src={assetUrl(post.coverImage)}
               alt={post.title}
@@ -151,12 +153,8 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, onShare }) => {
               className="h-full w-full object-cover"
               effect="fade"
             />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-zinc-300 dark:text-zinc-600">
-              <Sparkles className="h-9 w-9" />
-            </div>
-          )}
-        </Link>
+          </Link>
+        ) : null}
         <div className="flex flex-grow flex-col p-3.5 md:p-5">
           <div className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider md:mb-2 text-zinc-500 dark:text-zinc-400">
             <span>{post.category}</span>

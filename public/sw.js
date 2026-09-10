@@ -1,14 +1,10 @@
-// v10：移除离线收藏功能（收藏页缓存 / 离线文章资源清单 / CACHE_OFFLINE_POST 消息），
-// 并同步收敛 SPA 路由模式（删除已下线的 /sponsor、/favorites 路由）。
-const SW_VERSION = 'dblog-v10';
+// v11：移除站点 logo / favicon / PWA 图标预缓存（资源已从 public 删除）。
+const SW_VERSION = 'dblog-v11';
 const CORE_CACHE = `${SW_VERSION}-core`;
 const PAGE_CACHE = `${SW_VERSION}-pages`;
 const ASSET_CACHE = `${SW_VERSION}-assets`;
 const CORE_ASSET_PATHS = [
   '',
-  'favicon.ico',
-  'pwa-192.png',
-  'pwa-512.png',
   'manifest.webmanifest',
   'offline.html',
   'feed.xml',

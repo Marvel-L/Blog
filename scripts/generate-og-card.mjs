@@ -1,14 +1,9 @@
 /**
  * 生成全站默认社交分享卡片（1200×630）。
  *
- * 需求背景：og:image / twitter:image 的推荐尺寸为 1200×630（1.91:1），
- * 此前默认使用 logo.png（1024×987，近正方形），在微信/Telegram/X 等平台的
- * 分享预览会被裁切。本脚本在构建期基于 public/logo.png 生成品牌化分享卡片，
- * 纯构建期运行（复用已有 sharp 依赖），无任何运行时开销。
- *
- * 设计：纸感渐变背景 + 居中 logo。刻意不叠加文字，
- * 避免引入中文字体文件（CJK 字体在构建期不可用且体积巨大）。
- * 生成逻辑与站点现状（matters 构建脚本）一致：失败即抛错，阻断构建。
+ * 若存在 public/logo.png，则生成「纸感渐变背景 + 居中 logo」的 og-card.png；
+ * 若站点未配置 logo（文件不存在），则跳过生成并清理旧产物，不阻断构建。
+ * 授权依据：用户要求删除站点品牌图并移除引用（2026-09-10）。
  */
 import sharp from 'sharp';
 import path from 'path';
@@ -29,9 +24,18 @@ const CARD_BG_BOTTOM = '#e8e2d6';
 // 视觉权重：卡片中 logo 的近似目标宽度（约 1/3 卡片宽度）。
 const LOGO_TARGET_WIDTH = 400;
 
+const removeStaleCard = () => {
+  if (fs.existsSync(OUTPUT_PATH)) {
+    fs.unlinkSync(OUTPUT_PATH);
+    console.log(`[gen:og-card] removed stale ${path.relative(process.cwd(), OUTPUT_PATH)}`);
+  }
+};
+
 const run = async () => {
   if (!fs.existsSync(LOGO_PATH)) {
-    throw new Error(`generate-og-card: logo not found at ${LOGO_PATH}`);
+    removeStaleCard();
+    console.log('[gen:og-card] skipped: public/logo.png not found');
+    return;
   }
 
   const logo = sharp(LOGO_PATH);

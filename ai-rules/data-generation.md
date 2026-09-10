@@ -7,6 +7,7 @@
 ## 关键文件
 
 - `scripts/generate-site-data.mjs`（约 1100 行）
+- `scripts/lib/git-file-dates.mjs`（文章 date/updatedAt 的 Git 回退与合并）
 - `scripts/post-content-validator.mjs`（内容校验）
 - `scripts/feed-generator.mjs` / `feed-markdown.mjs`
 - `src/services/*`（消费 generated JSON）
@@ -22,12 +23,14 @@
 7. **共享核心**：front matter 剥离（markdown-core.mjs）、标题提取（headings-core.mjs）是 src/scripts 共享模块，改动必须两端一致。
 8. **异常兜底**：uncaughtException/unhandledRejection handler 必须在记录日志后确保进程退出（宽限期强制 process.exit(1)），不得依赖「异常后无挂起异步」的假设 —— 脚本含顶层 await（fetchCommentCounts），异常发生在异步窗口时进程可能带不一致状态继续/挂起。
 9. **评论数匹配口径**：fetch-giscus-comments 的 discussion 标题（页面 URL pathname）匹配必须叠加 BASE_PATH（withBasePath），子路径部署时 `/post/<id>` 匹配不上会导致评论数静默全缺。
+10. **文章日期**：`date` / `updatedAt` 在 front matter 中可选。缺省时由 Git 填充（首次提交日 / 最后改动日），合法手写值优先；无 Git 历史时回退构建日并 warn。不写回 `.md`。跑 gen:data 的 CI checkout 必须 `fetch-depth: 0`，否则浅克隆会让首次提交日偏晚。
 
 ## 常见陷阱
 
 - 修改 front matter 字段解析会影响全部文章数据（日期/分类/tags 等）；
 - 校验器对代码块/行内代码内的伪链接已做屏蔽，新增解析规则要保持该屏蔽（防构建误杀）；
-- 图片引用校验（posts-img 本地路径）与外部图床 URL 的处理口径不要混淆。
+- 图片引用校验（posts-img 本地路径）与外部图床 URL 的处理口径不要混淆；
+- 未提交的新文章本地预览日期可能是「今天」，提交后下次 gen:data 才稳定为 Git 日期。
 
 ## 破例条款
 

@@ -221,10 +221,12 @@ async function drawIcon(
   try {
     image = await resolveIcon(source);
   } catch {
-    if (source === fallbackSource) throw new Error('默认 Logo 加载失败');
+    if (!fallbackSource || source === fallbackSource) {
+      throw new Error(fallbackSource ? '默认 Logo 加载失败' : '图标加载失败，请重新选择图标');
+    }
     try {
       image = await loadCachedImage(fallbackSource);
-      diagnostics?.push('图标加载失败，已回退到站点 Logo');
+      diagnostics?.push(fallbackSource ? '图标加载失败，已回退到站点 Logo' : '图标加载失败');
     } catch {
       throw new Error('图标加载失败，请重新选择图标');
     }

@@ -17,8 +17,8 @@ const DEFAULT_SITE_CONFIG = {
   subtitle: '',
   description: '',
   url: 'http://localhost:3000',
-  logo: '/logo.png',
-  seoImage: '/logo.png',
+  logo: '',
+  seoImage: '',
   author: {
     name: '作者',
     avatar: '',

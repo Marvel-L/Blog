@@ -31,7 +31,11 @@ export const CompactPostCard: React.FC<CompactPostCardProps> = ({ post }) => (
   <Link
     to={`/post/${post.id}`}
     onMouseEnter={() => preloadPage(`/post/${post.id}`)}
-    className="group flex h-24 overflow-hidden rounded-surface border border-zinc-200 bg-white transition-colors hover:border-zinc-500 focus-visible:border-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600 dark:focus-visible:border-zinc-500 sm:block sm:h-auto"
+    className={
+      post.coverImage
+        ? 'group flex h-24 overflow-hidden rounded-surface border border-zinc-200 bg-white transition-colors hover:border-zinc-500 focus-visible:border-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600 dark:focus-visible:border-zinc-500 sm:block sm:h-auto'
+        : 'group block overflow-hidden rounded-surface border border-zinc-200 bg-white transition-colors hover:border-zinc-500 focus-visible:border-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600 dark:focus-visible:border-zinc-500'
+    }
   >
     {post.coverImage ? (
       <ProgressiveImage
@@ -43,11 +47,7 @@ export const CompactPostCard: React.FC<CompactPostCardProps> = ({ post }) => (
         wrapperClassName="aspect-video h-24 w-auto flex-none bg-zinc-100 dark:bg-zinc-800 sm:h-auto sm:w-full sm:aspect-[16/10]"
         className="h-full w-full object-cover"
       />
-    ) : (
-      <div className="flex aspect-video h-24 w-auto flex-none items-center justify-center bg-zinc-100 text-xs text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500 sm:h-auto sm:w-full sm:aspect-[16/10]">
-        无封面
-      </div>
-    )}
+    ) : null}
     <div className="min-w-0 flex-1 overflow-hidden p-2 sm:p-3.5">
       <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
         <span className="truncate">{post.category}</span>

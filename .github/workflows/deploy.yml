@@ -32,6 +32,9 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
+        with:
+          # 全量历史：gen:data 用 Git 首次/末次提交日填充文章 date/updatedAt。
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v5

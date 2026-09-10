@@ -2,15 +2,12 @@
 id: best-pagespeed-insights
 title: D-blog 最佳 Pagespeed Insights 结果
 excerpt: D-blog 最佳 Pagespeed Insights 结果
-date: 2026-08-05
-updatedAt: 2026-08-09
 category: 随笔
 tags:
   - D-blog
   - PageSpeed Insights
   - 网站优化
   - 速度测试
-coverImage: https://img.pldduck.com/20260812115903096.png
 author: 跑路的duck
 featured: true
 featured-top: 1
@@ -29,5 +26,4 @@ draft: false
 
 ## 2026-08-05    
 ![2026-08-05](https://img.pldduck.com/20260812115903099.png)  
-
 

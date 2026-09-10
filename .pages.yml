@@ -18,8 +18,8 @@ content:
           message: URL标识仅支持英文字母、数字、下划线和短横线（中文等字符会使文件名生成失败）
       - { name: title, label: 标题, type: string }
       - { name: excerpt, label: 摘要, type: text }
-      - { name: date, label: 发布日期, type: date }
-      - { name: updatedAt, label: 更新日期, type: date }
+      - { name: date, label: 发布日期（可留空，由 Git 首次提交日自动填充）, type: date }
+      - { name: updatedAt, label: 更新日期（可留空，由 Git 最后改动日自动填充）, type: date }
       - name: category
         label: 分类
         type: select
@@ -137,9 +137,9 @@ content:
       - { name: seoHomeTitle, label: 首页 SEO 标题, type: string }
       - { name: seoHomeDescription, label: 首页 SEO 描述, type: text }
       - { name: description, label: 站点描述, type: text, required: true }
-      - { name: logo, label: Logo 链接, type: string }
-      - { name: logoSmall, label: 小 Logo 路径, type: string }
-      - { name: seoImage, label: 分享图链接, type: string }
+      - { name: logo, label: Logo 链接（可留空）, type: string }
+      - { name: logoSmall, label: 小 Logo 路径（可留空）, type: string }
+      - { name: seoImage, label: 分享图链接（可留空）, type: string }
       - { name: footerText, label: 页脚版权文字, type: string }
       - { name: url, label: 站点 URL, type: string, required: true }
       - name: social

@@ -2105,7 +2105,9 @@ export const Post = () => {
     description: postDescription,
     image: post.coverImage
       ? [absoluteSiteUrl(post.coverImage, siteConfig.url)]
-      : [absoluteSiteUrl(siteConfig.seoImage, siteConfig.url)],
+      : siteConfig.seoImage.trim()
+        ? [absoluteSiteUrl(siteConfig.seoImage, siteConfig.url)]
+        : undefined,
     datePublished: post.date,
     dateModified: post.updatedAt || post.date,
     author: authors.map((author) => {
@@ -2140,10 +2142,14 @@ export const Post = () => {
       '@type': 'Organization',
       name: siteConfig.title,
       url: siteConfig.url,
-      logo: {
-        '@type': 'ImageObject',
-        url: absoluteSiteUrl(siteConfig.logo, siteConfig.url),
-      },
+      ...(siteConfig.logo.trim()
+        ? {
+            logo: {
+              '@type': 'ImageObject',
+              url: absoluteSiteUrl(siteConfig.logo, siteConfig.url),
+            },
+          }
+        : {}),
     },
     keywords: post.tags?.join(', '),
   };

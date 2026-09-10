@@ -79,9 +79,17 @@ describe('PostCard', () => {
     expect(screen.getByText('置顶')).toBeInTheDocument();
   });
 
-  it('无封面图时渲染占位而非图片', () => {
+  it('无封面图时不渲染图片区域与占位', () => {
     renderWithRouter(<PostCard post={makePost({ coverImage: undefined })} {...baseProps} />);
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.getByText('测试文章标题')).toBeInTheDocument();
+  });
+
+  it('无封面的精选卡片仅展示文字内容', () => {
+    renderWithRouter(<PostCard post={makePost({ coverImage: undefined, featured: true })} {...baseProps} featured />);
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.getByText('精选')).toBeInTheDocument();
+    expect(screen.getByText('测试文章标题')).toBeInTheDocument();
   });
 
   it('有封面图时渲染带 alt 的图片', () => {

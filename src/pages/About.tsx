@@ -11,8 +11,7 @@ import { Surface } from '@/components/ui/Surface';
 import { IssueSubscriptionCard } from '@/components/IssueSubscriptionCard';
 
 // 关于页描述：Seo meta 与站点级/ProfilePage schema 共用同一文案，保证一致。
-const aboutPageDescription =
-  '关于跑路的duck：前端开发者，热爱探索 Web 技术，致力于构建极致性能与优秀交互的静态页面体验。';
+const aboutPageDescription = '关于Marvel-L：Golang初级开发。';
 
 const aboutPageSchema = {
   '@context': 'https://schema.org',
@@ -115,7 +114,7 @@ export const About = () => {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            {['React', 'TypeScript', 'Tailwind CSS', 'Vite', 'Node.js', 'Framer Motion'].map((tech) => (
+            {['Golang'].map((tech) => (
               <span
                 key={tech}
                 className="rounded-control border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-xs font-semibold text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-300"
@@ -138,9 +137,7 @@ export const About = () => {
               <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">折腾记录</h2>
             </div>
           </div>
-          <p className="text-sm leading-7 text-zinc-600 dark:text-zinc-400 md:text-base">
-            热衷于探索前端 Web 技术，喜欢构建极致性能和优秀交互的用户界面，目前正致力于开源项目的贡献与个人产品的打磨。
-          </p>
+          <p className="text-sm leading-7 text-zinc-600 dark:text-zinc-400 md:text-base">Golang 初级开发。</p>
         </Surface>
       </div>
 

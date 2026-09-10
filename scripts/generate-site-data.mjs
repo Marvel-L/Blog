@@ -19,6 +19,7 @@ import {
 import { extractMarkdownHeadings } from '../src/utils/headings-core.mjs';
 import { buildRssFeed } from './feed-generator.mjs';
 import { fetchCommentCounts } from './fetch-giscus-comments.mjs';
+import { getGitFileDates, resolvePostDates } from './lib/git-file-dates.mjs';
 
 const logger = createBuildLogger('gen:data');
 logger.start('Generate site data');
@@ -337,11 +338,11 @@ const validatePostFrontmatter = (filename, data, formattedDate, formattedUpdated
   if (typeof data.excerpt !== 'string' || data.excerpt.trim() === '') {
     errors.push('excerpt must be a non-empty string');
   }
-  if (!formattedDate || !validateDateString(formattedDate)) {
-    errors.push('date must use YYYY-MM-DD format');
+  if (formattedDate && !validateDateString(formattedDate)) {
+    errors.push('date must use YYYY-MM-DD format when provided');
   }
   if (formattedUpdatedAt && !validateDateString(formattedUpdatedAt)) {
-    errors.push('updatedAt must use YYYY-MM-DD format');
+    errors.push('updatedAt must use YYYY-MM-DD format when provided');
   }
   if (!Array.isArray(data.tags)) {
     errors.push('tags must be an array');
@@ -414,6 +415,11 @@ const files = fs.readdirSync(POSTS_DIR).filter((file) => {
 // 不能在 map 回调中直接引用它，否则触发 TDZ ReferenceError）。
 const oversizedFileErrors = [];
 
+const REPO_ROOT = path.join(__dirname, '..');
+
+/** 构建日（UTC 日历日）：未提交新文件等无 Git 历史时的 date/updatedAt 回退。 */
+const buildTodayUtc = () => new Date().toISOString().slice(0, 10);
+
 const postRecords = files
   .map((filename) => {
     const filePath = path.join(POSTS_DIR, filename);
@@ -459,10 +465,30 @@ const postRecords = files
     // （frontmatter 中的 author/authors/coverImage 等经 data.* 显式读取）。
     const { draft, updatedAt, ...restData } = data;
     const id = typeof data.id === 'string' ? data.id : '';
-    const formattedDate = formatFrontmatterDate(data.date);
-    const formattedUpdatedAt = formatFrontmatterDate(updatedAt);
+    const frontmatterDate = formatFrontmatterDate(data.date);
+    const frontmatterUpdatedAt = formatFrontmatterDate(updatedAt);
+    // 手写值若非法：校验阶段报错；此处仅把「合法日历日」传入合并，避免脏值覆盖 Git。
+    const safeFrontmatterDate = frontmatterDate && validateDateString(frontmatterDate) ? frontmatterDate : undefined;
+    const safeFrontmatterUpdatedAt =
+      frontmatterUpdatedAt && validateDateString(frontmatterUpdatedAt) ? frontmatterUpdatedAt : undefined;
+    const gitDates = getGitFileDates(filePath, { cwd: REPO_ROOT });
+    const resolvedDates = resolvePostDates({
+      frontmatterDate: safeFrontmatterDate,
+      frontmatterUpdatedAt: safeFrontmatterUpdatedAt,
+      gitCreated: gitDates.created,
+      gitUpdated: gitDates.updated,
+      today: buildTodayUtc(),
+    });
+    if (resolvedDates.dateSource === 'fallback' || resolvedDates.updatedAtSource === 'fallback') {
+      logger.warn(
+        'Post dates fell back to build day (no Git history yet)',
+        `${filename}: date=${resolvedDates.date} updatedAt=${resolvedDates.updatedAt}`,
+      );
+    }
+    const formattedDate = resolvedDates.date;
+    const formattedUpdatedAt = resolvedDates.updatedAt;
     const frontMatterError =
-      parseError || validatePostFrontmatter(filename, data, formattedDate, formattedUpdatedAt, id);
+      parseError || validatePostFrontmatter(filename, data, frontmatterDate, frontmatterUpdatedAt, id);
     const contentStartLine = (() => {
       const lines = fileContent.split(/\r?\n/);
       if (!/^\uFEFF?---\s*$/.test(lines[0] || '')) return 0;

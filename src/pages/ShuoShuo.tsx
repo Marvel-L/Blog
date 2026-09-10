@@ -190,9 +190,7 @@ export const ShuoShuo = () => {
           ShuoShuo · Moments
         </p>
         <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 md:text-5xl">说说</h1>
-        <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-400 md:text-base">
-          这里是一块类似PLDDUCK朋友圈的短动态小天地
-        </p>
+        <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-400 md:text-base">日常吐槽</p>
         {allItems.length > 0 && (
           <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
             共 {allItems.length} 条 · 内容通过 PagesCMS 发布

@@ -30,6 +30,18 @@ interface SeoProps {
 
 const toAbsoluteUrl = (value?: string) => absoluteSiteUrl(value, siteConfig.url, getSiteBasePath());
 
+const hasConfiguredAsset = (value?: string) => Boolean(value && value.trim());
+
+const organizationLogo = () =>
+  hasConfiguredAsset(siteConfig.logo)
+    ? {
+        logo: {
+          '@type': 'ImageObject',
+          url: toAbsoluteUrl(siteConfig.logo),
+        },
+      }
+    : {};
+
 // canonical 只保留影响页面内容的查询参数，丢弃搜索/分页/排序等衍生 UI 状态。
 // 规则：
 // - category / tag / q：内容型筛选参数，保留其 canonical，让筛选页自指而非指向无参版，
@@ -93,10 +105,7 @@ const buildSiteSchemas = (description: string): Array<Record<string, unknown>> =
       '@type': 'Organization',
       name: siteConfig.title,
       url: toAbsoluteUrl('/'),
-      logo: {
-        '@type': 'ImageObject',
-        url: toAbsoluteUrl(siteConfig.logo),
-      },
+      ...organizationLogo(),
     },
     potentialAction: {
       '@type': 'SearchAction',
@@ -113,10 +122,7 @@ const buildSiteSchemas = (description: string): Array<Record<string, unknown>> =
     name: siteConfig.title,
     alternateName: siteConfig.subtitle,
     url: toAbsoluteUrl('/'),
-    logo: {
-      '@type': 'ImageObject',
-      url: toAbsoluteUrl(siteConfig.logo),
-    },
+    ...organizationLogo(),
     email: siteConfig.social.rawEmail,
     sameAs: [siteConfig.social.github],
   },
@@ -177,7 +183,8 @@ export const Seo: React.FC<SeoProps> = ({
     title === siteConfig.title && siteConfig.seoHomeDescription ? siteConfig.seoHomeDescription : description;
   const isSearchVariant = hasSearchParam(resolvedUrl);
   const canonicalUrl = toAbsoluteUrl(buildCanonicalPath(resolvedUrl || '/'));
-  const imageUrl = toAbsoluteUrl(image);
+  const hasShareImage = hasConfiguredAsset(image);
+  const imageUrl = hasShareImage ? toAbsoluteUrl(image) : '';
   const schema = structuredData
     ? ((Array.isArray(structuredData) ? structuredData : [structuredData]).map(withBaseUrls) as Array<
         Record<string, unknown>
@@ -212,11 +219,11 @@ export const Seo: React.FC<SeoProps> = ({
       <meta property="og:type" content={type} />
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={fullDescription} />
-      <meta property="og:image" content={imageUrl} />
-      <meta property="og:image:alt" content={fullTitle} />
+      {hasShareImage && <meta property="og:image" content={imageUrl} />}
+      {hasShareImage && <meta property="og:image:alt" content={fullTitle} />}
       {/* 显式声明分享图尺寸：社交平台抓取时可立即按比例裁剪展示，避免二次探测请求 */}
-      <meta property="og:image:width" content={String(imageWidth)} />
-      <meta property="og:image:height" content={String(imageHeight)} />
+      {hasShareImage && <meta property="og:image:width" content={String(imageWidth)} />}
+      {hasShareImage && <meta property="og:image:height" content={String(imageHeight)} />}
       <meta property="og:url" content={canonicalUrl} />
       {type === 'article' && publishedTime && <meta property="article:published_time" content={publishedTime} />}
       {type === 'article' && modifiedTime && <meta property="article:modified_time" content={modifiedTime} />}
@@ -224,11 +231,11 @@ export const Seo: React.FC<SeoProps> = ({
       {type === 'article' && section && <meta property="article:section" content={section} />}
       {type === 'article' && tags.map((tag) => <meta key={tag} property="article:tag" content={tag} />)}
 
-      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:card" content={hasShareImage ? 'summary_large_image' : 'summary'} />
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={fullDescription} />
-      <meta name="twitter:image" content={imageUrl} />
-      <meta name="twitter:image:alt" content={fullTitle} />
+      {hasShareImage && <meta name="twitter:image" content={imageUrl} />}
+      {hasShareImage && <meta name="twitter:image:alt" content={fullTitle} />}
       <meta name="twitter:url" content={canonicalUrl} />
 
       {schema.length > 0 && (

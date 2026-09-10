@@ -236,7 +236,9 @@ const createStaticPageSchema = ({ path: pagePath, title, description, schemaType
     '@type': schemaType,
     name: title,
     description,
-    image: siteAbsoluteUrl(siteConfig.seoImage),
+    ...(typeof siteConfig.seoImage === 'string' && siteConfig.seoImage.trim()
+      ? { image: siteAbsoluteUrl(siteConfig.seoImage) }
+      : {}),
     url: pageUrl,
     isPartOf: {
       '@type': 'WebSite',

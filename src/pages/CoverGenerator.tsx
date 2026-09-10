@@ -51,7 +51,6 @@ import { BatchCoverDialog } from './cover/BatchCoverDialog';
 import { createBatchZip, type BatchCoverItem } from './cover/coverBatch';
 import { preloadImage } from './cover/coverImageCache';
 import { renderCover } from './cover/coverRenderer';
-import { assetUrl } from '@/utils/siteUrl';
 import { yieldToBrowser } from '@/utils/yieldToBrowser';
 import type { BackgroundFit, CoverRenderOptions, LayoutMode, ShadowConfig, TextAlign } from './cover/coverTypes';
 import {
@@ -64,7 +63,13 @@ import {
   writePreset,
 } from './cover/coverStorage';
 
-const DEFAULT_ICON_SOURCE = assetUrl('/logo.png');
+/** 封面默认图标源；站点无 logo 时留空，用户可上传或从 Iconify 选择。 */
+const DEFAULT_ICON_SOURCE = '';
+const ICONIFY_BROKEN_PLACEHOLDER =
+  'data:image/svg+xml,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="4" fill="%23d4d4d8"/></svg>',
+  );
 const MAX_BATCH_ITEMS = 30;
 const MAX_BATCH_OUTPUT_PIXELS = 64_000_000;
 
@@ -159,9 +164,9 @@ export const CoverGenerator: React.FC = () => {
   const pendingWheelDeltaRef = useRef(0);
   const wheelFrameRef = useRef<number | null>(null);
 
-  // 图标状态
-  const [showIcon, setShowIcon] = useState(true);
-  const [customIcon, setCustomIcon] = useState<string | null>(DEFAULT_ICON_SOURCE);
+  // 图标状态：无站点默认 logo 时默认不显示图标，避免封面渲染依赖缺失资源。
+  const [showIcon, setShowIcon] = useState(Boolean(DEFAULT_ICON_SOURCE));
+  const [customIcon, setCustomIcon] = useState<string | null>(DEFAULT_ICON_SOURCE || null);
   const [iconifyIconName, setIconifyIconName] = useState<string | null>(null);
   const [iconSize, setIconSize] = useState(80);
   const [iconColor, setIconColor] = useState('#ffffff');
@@ -346,8 +351,8 @@ export const CoverGenerator: React.FC = () => {
     setTransparentBackground(false);
     setJpegQuality(92);
     iconLoadGenerationRef.current += 1;
-    setShowIcon(true);
-    setCustomIcon(DEFAULT_ICON_SOURCE);
+    setShowIcon(Boolean(DEFAULT_ICON_SOURCE));
+    setCustomIcon(DEFAULT_ICON_SOURCE || null);
     setIconifyIconName(null);
     if (iconifyDebounceRef.current) window.clearTimeout(iconifyDebounceRef.current);
     iconifyAbortRef.current?.abort();
@@ -546,7 +551,7 @@ export const CoverGenerator: React.FC = () => {
     setTransparentBackground(draft.transparentBackground);
     setJpegQuality(draft.jpegQuality);
     setShowIcon(draft.showIcon);
-    setCustomIcon(draft.customIcon || DEFAULT_ICON_SOURCE);
+    setCustomIcon(draft.customIcon || DEFAULT_ICON_SOURCE || null);
     setIconifyIconName(draft.iconifyIconName);
     setIconSize(draft.iconSize);
     setIconColor(draft.iconColor);
@@ -854,7 +859,9 @@ export const CoverGenerator: React.FC = () => {
   );
 
   useEffect(() => {
-    void preloadImage(DEFAULT_ICON_SOURCE).catch(() => undefined);
+    if (DEFAULT_ICON_SOURCE) {
+      void preloadImage(DEFAULT_ICON_SOURCE).catch(() => undefined);
+    }
     return () => {
       if (iconifyDebounceRef.current) window.clearTimeout(iconifyDebounceRef.current);
       iconifyAbortRef.current?.abort();
@@ -3261,7 +3268,7 @@ export const CoverGenerator: React.FC = () => {
                         <img
                           src={
                             failedIconifyResults.has(icon)
-                              ? DEFAULT_ICON_SOURCE
+                              ? ICONIFY_BROKEN_PLACEHOLDER
                               : `https://api.iconify.design/${icon}.svg`
                           }
                           alt={icon}
@@ -3269,7 +3276,7 @@ export const CoverGenerator: React.FC = () => {
                           onError={(event) => {
                             if (!failedIconifyResults.has(icon)) {
                               setFailedIconifyResults((current) => new Set(current).add(icon));
-                              event.currentTarget.src = DEFAULT_ICON_SOURCE;
+                              event.currentTarget.src = ICONIFY_BROKEN_PLACEHOLDER;
                             }
                           }}
                         />

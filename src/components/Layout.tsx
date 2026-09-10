@@ -25,7 +25,6 @@ import {
   MessageSquareText,
   MessageCircle,
   LayoutGrid,
-  TrainFront,
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { preloadPage } from '@/utils/preload';
@@ -55,7 +54,6 @@ const TEXT = {
   navGuestbook: '留言',
   navShuoShuo: '说说',
   navAbout: '关于',
-  navTravellings: '开往',
   rssFeed: 'RSS 订阅',
 };
 
@@ -81,17 +79,6 @@ const navItems: NavPathItem[] = [
   { path: '/guestbook', label: TEXT.navGuestbook, hint: '留言互动', icon: MessageSquareText },
   { path: '/about', label: TEXT.navAbout, hint: '站点介绍', icon: Info },
 ];
-
-// 开往（travellings）：点击随机跳转到一名成员站点，桌面端置于「关于」与「更多」之间，
-// 移动端收纳进抽屉「更多」面板的「发现」分组。
-const TRAVELLINGS_URL = 'https://www.travellings.cn/go.html';
-const travellingsNavItem: NavHrefItem = {
-  key: 'travellings',
-  label: TEXT.navTravellings,
-  hint: '随机前往成员站点',
-  icon: TrainFront,
-  href: TRAVELLINGS_URL,
-};
 
 const moreNavItems: NavItem[] = [
   {
@@ -147,10 +134,6 @@ const mobileMorePanelGroups: Array<{ label: string; items: NavItem[] }> = [
   {
     label: '订阅与联系',
     items: moreNavItems.filter((item) => ['email', 'github', 'rss', 'issue-subscription'].includes(item.key ?? '')),
-  },
-  {
-    label: '发现',
-    items: [travellingsNavItem],
   },
 ];
 
@@ -793,17 +776,17 @@ const Navbar = ({ onSearchNavigate }: { onSearchNavigate: () => void }) => {
           style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
         >
           <Link to="/" className="group z-50 flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
-            {/* 站标仅 96px，非 LCP 元素：显式 fetchPriority=auto，
-                避免与文章封面/首图竞争 high 优先级拖慢 LCP */}
-            <ProgressiveImage
-              src={assetUrl(siteConfig.logoSmall)}
-              alt={`${siteConfig.title} 站点标志`}
-              fetchPriority="auto"
-              width={96}
-              height={96}
-              wrapperClassName="h-8 w-8 bg-white sm:h-9 sm:w-9"
-              className="h-8 w-8 object-cover sm:h-9 sm:w-9"
-            />
+            {siteConfig.logoSmall.trim() ? (
+              <ProgressiveImage
+                src={assetUrl(siteConfig.logoSmall)}
+                alt={`${siteConfig.title} 站点标志`}
+                fetchPriority="auto"
+                width={96}
+                height={96}
+                wrapperClassName="h-8 w-8 bg-white sm:h-9 sm:w-9"
+                className="h-8 w-8 object-cover sm:h-9 sm:w-9"
+              />
+            ) : null}
             <span className="max-w-[calc(100vw-9.5rem)] truncate font-serif text-lg font-bold tracking-tight text-ink dark:text-white sm:max-w-none sm:text-2xl">
               {siteConfig.title}
             </span>
@@ -838,21 +821,6 @@ const Navbar = ({ onSearchNavigate }: { onSearchNavigate: () => void }) => {
                   </Link>
                 );
               })}
-              <a
-                key={travellingsNavItem.key}
-                href={travellingsNavItem.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`${TEXT.navTravellings}（${travellingsNavItem.hint}）`}
-                className="group relative inline-flex h-10 items-center gap-1 px-2 py-1 text-sm font-semibold tracking-wide text-zinc-700 transition-colors hover:text-ink dark:text-zinc-300 dark:hover:text-white"
-              >
-                <TrainFront size={14} aria-hidden="true" className="relative z-10 shrink-0" />
-                <span className="relative z-10">{travellingsNavItem.label}</span>
-                <span
-                  aria-hidden="true"
-                  className="absolute bottom-[2px] left-2 right-2 h-[2px] origin-center scale-x-0 rounded-none bg-zinc-900 opacity-0 transition-[transform,opacity] duration-[250ms] group-hover:scale-x-100 group-hover:opacity-70 dark:bg-zinc-100"
-                />
-              </a>
               <div
                 className="nav-more-menu relative"
                 onMouseEnter={() => setIsMoreMenuOpen(true)}

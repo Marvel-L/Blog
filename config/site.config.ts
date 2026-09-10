@@ -97,9 +97,11 @@ export interface SiteConfig {
       不改变页面可见文案（首页 Hero 与页脚可见文案仍使用 description）。 */
   seoHomeDescription?: string;
   description: string;
+  /** 站点 Logo（绝对或站点内路径）；空字符串表示不使用 Logo。 */
   logo: string;
+  /** 导航栏小 Logo；空字符串表示导航仅展示文字标题。 */
   logoSmall: string;
-  /** 社交分享卡片（1200×630，1.91:1），构建期生成于 public/og-card.png。 */
+  /** 默认社交分享图；空字符串表示不输出默认 og:image。 */
   seoImage: string;
   footerText: string;
   url: string;

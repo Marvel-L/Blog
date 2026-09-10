@@ -88,7 +88,12 @@ export const ShuoShuoDetail = () => {
 
   const snippet = getTitleSnippet(itemContent, item.date);
   const description = getDescription(itemContent, item.date);
-  const shareImage = item.images && item.images.length > 0 ? item.images[0] : siteConfig.seoImage;
+  const shareImage =
+    item.images && item.images.length > 0
+      ? item.images[0]
+      : siteConfig.seoImage.trim()
+        ? siteConfig.seoImage
+        : undefined;
 
   const handleShare = async (target: ShuoShuoEntry) => {
     const seq = ++shareSeqRef.current;
@@ -113,7 +118,7 @@ export const ShuoShuoDetail = () => {
       '@type': 'SocialMediaPosting',
       headline: snippet,
       description,
-      image: [absoluteSiteUrl(shareImage, siteConfig.url)],
+      ...(shareImage ? { image: [absoluteSiteUrl(shareImage, siteConfig.url)] } : {}),
       datePublished: item.date,
       author: {
         '@type': 'Person',
@@ -133,10 +138,14 @@ export const ShuoShuoDetail = () => {
         '@type': 'Organization',
         name: siteConfig.title,
         url: siteConfig.url,
-        logo: {
-          '@type': 'ImageObject',
-          url: absoluteSiteUrl(siteConfig.logo, siteConfig.url),
-        },
+        ...(siteConfig.logo.trim()
+          ? {
+              logo: {
+                '@type': 'ImageObject',
+                url: absoluteSiteUrl(siteConfig.logo, siteConfig.url),
+              },
+            }
+          : {}),
       },
     },
     {

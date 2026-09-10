@@ -154,7 +154,7 @@ export const Friends = () => {
     name: siteConfig.title,
     description: siteConfig.description,
     url: siteConfig.url,
-    avatar: siteConfig.logo,
+    avatar: siteConfig.logo.trim() || siteConfig.author.avatar,
   };
 
   // 域名解析结果预计算（new URL 解析与 hosts 剥离）：搜索过滤每次击键不再对

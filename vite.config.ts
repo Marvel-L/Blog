@@ -13,7 +13,7 @@ import { normalizeBasePath } from './config/basePath';
  *    （现代浏览器首选）+ woff（旧浏览器兜底），数学公式渲染不受影响；
  * 2. 收集全部 CSS 中仍被 url() 引用的字体文件名，删除不再被引用的 KaTeX
  *    ttf 字体文件（bundle 内不会残留对已删文件的引用，避免 404）。
- * 不触碰 favicon / logo / PWA 图标 / 封面图等其他任何资产。
+ * 不触碰封面图等其他非 KaTeX 资产。
  */
 const trimKatexFonts = (): Plugin => {
   // 匹配 src 列表末尾的 ttf 条目：,url(fonts/xxx.ttf) format("truetype")

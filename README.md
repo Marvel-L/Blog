@@ -112,8 +112,8 @@ D-blog/
 id: my-first-post             # 对应 /post/:id，全站唯一，不可含空白/斜杠
 title: 我的第一篇文章
 excerpt: 文章摘要，用于列表展示和 SEO（必填）
-date: 2026-03-14
-updatedAt: 2026-03-20         # 可选
+date: 2026-03-14              # 可选：缺省由 Git 首次提交日填充
+updatedAt: 2026-03-20         # 可选：缺省由 Git 最后改动日填充
 category: 技术                 # 必须在 content.config.json 白名单内
 tags: [React, Vite]
 coverImage: https://cdn.example.com/cover.png  # 可选，图床链接
