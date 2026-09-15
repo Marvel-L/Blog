@@ -3,7 +3,7 @@
  *
  * 博客内容会随外部站点改版/下线产生死链，且完全可以在构建期检测。
  * 本脚本：
- *   1. 扫描 posts/*.md 中全部 http/https 外链（Markdown 链接 + HTML <a href>，
+ *   1. 扫描 posts/ 下全部 .md（含嵌套目录）中全部 http/https 外链（Markdown 链接 + HTML <a href>，
  *      排除图片与站内锚点）；
  *   2. 逐个请求检查可达性（超时/重定向跟随/网络错误分类）；
  *   3. 汇总失效链接（按文章分组、带行号与状态/原因）；
@@ -35,6 +35,7 @@ import {
   sanitizeUrlForLogs,
 } from './lib/http.mjs';
 import { createActionLogger, formatError, installGlobalErrorHandlers } from './lib/gh-actions-logger.mjs';
+import { listMarkdownFiles } from './lib/list-markdown-files.mjs';
 
 const logger = createActionLogger('link-check');
 
@@ -260,11 +261,7 @@ const main = async () => {
     return 0;
   }
 
-  const files = fs
-    .readdirSync(POSTS_DIR)
-    .filter((file) => file.endsWith('.md'))
-    .filter((file) => fs.statSync(path.join(POSTS_DIR, file)).isFile())
-    .sort();
+  const files = listMarkdownFiles(POSTS_DIR);
 
   logger.startGroup('Scan external links');
   logger.info(`Scan external links in ${files.length} posts`);

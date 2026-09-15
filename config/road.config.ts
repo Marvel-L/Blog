@@ -3,7 +3,7 @@
  *
  * 数据源为同目录 road.config.json —— 本地编辑即可在 /road 展示有向图。
  * graphs：左侧可切换的 Root 视图；nodes：图中节点；parents：入边来源；
- * posts：节点关联的文章 id（对应 posts/*.md 的 front matter id）。
+ * posts：节点关联的文章 id（对应 posts/ 下任意嵌套 .md 的 front matter id）。
  */
 import roadConfigJson from './road.config.json';
 

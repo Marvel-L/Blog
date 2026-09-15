@@ -20,7 +20,7 @@ let postsSearchIndexPromise: Promise<SearchIndexEntry[]> | null = null;
 const SEARCH_CACHE_LIMIT = 80;
 const searchResultsCache = new Map<string, PostSearchResult[]>();
 
-const postFiles = import.meta.glob('../../posts/*.md', { query: '?raw', import: 'default' });
+const postFiles = import.meta.glob('../../posts/**/*.md', { query: '?raw', import: 'default' });
 
 const loadPostsSearchData = async (): Promise<Array<PostMetadata & { searchText?: string }>> => {
   const data = await import('../../generated/posts-search.json');

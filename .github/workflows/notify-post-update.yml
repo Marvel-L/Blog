@@ -62,16 +62,16 @@ jobs:
 
               // 首次推送（before 为全零）：取该 commit 新增的文章文件。
               if (beforeSha === '0000000000000000000000000000000000000000') {
-                return childProcess.execFileSync('git', ['show', '--pretty=', '--name-only', afterSha, '--', 'posts/*.md'], { encoding: 'utf8' }).split(/\r?\n/).map((file) => file.trim()).filter(Boolean);
+                return childProcess.execFileSync('git', ['show', '--pretty=', '--name-only', afterSha, '--', 'posts'], { encoding: 'utf8' }).split(/\r?\n/).map((file) => file.trim()).filter((file) => file.endsWith('.md'));
               }
 
               // 常规 diff；force-push 等场景下 before 可能不在本地历史中，
               // diff 失败时回退为"该 commit 新增的文章文件"，保证通知不丢失。
               try {
-                return childProcess.execFileSync('git', ['diff', '--name-only', '--diff-filter=AM', beforeSha, afterSha, '--', 'posts/*.md'], { encoding: 'utf8' }).split(/\r?\n/).map((file) => file.trim()).filter(Boolean);
+                return childProcess.execFileSync('git', ['diff', '--name-only', '--diff-filter=AM', beforeSha, afterSha, '--', 'posts'], { encoding: 'utf8' }).split(/\r?\n/).map((file) => file.trim()).filter((file) => file.endsWith('.md'));
               } catch (error) {
                 core.warning(`git diff failed (${error.message}); falling back to commit file list.`);
-                return childProcess.execFileSync('git', ['show', '--pretty=', '--name-only', afterSha, '--', 'posts/*.md'], { encoding: 'utf8' }).split(/\r?\n/).map((file) => file.trim()).filter(Boolean);
+                return childProcess.execFileSync('git', ['show', '--pretty=', '--name-only', afterSha, '--', 'posts'], { encoding: 'utf8' }).split(/\r?\n/).map((file) => file.trim()).filter((file) => file.endsWith('.md'));
               }
             }
 

@@ -995,7 +995,7 @@ const normalizeRepoUrl = (repoUrl: string) => {
   return url.replace(/\.git$/i, '');
 };
 
-/** 文章源文件在仓库中的路径：filePath 形如 /posts/xxx.md，去掉前导斜杠并逐段 URL 编码。 */
+/** 文章源文件在仓库中的路径：filePath 形如 /posts/xxx.md 或 /posts/dir/xxx.md，去掉前导斜杠并逐段 URL 编码。 */
 const getSourceFilePath = (filePath: string) =>
   filePath
     .replace(/\\/g, '/')

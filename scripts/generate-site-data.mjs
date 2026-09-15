@@ -20,6 +20,7 @@ import { extractMarkdownHeadings } from '../src/utils/headings-core.mjs';
 import { buildRssFeed } from './feed-generator.mjs';
 import { fetchCommentCounts } from './fetch-giscus-comments.mjs';
 import { getGitFileDates, resolvePostDates } from './lib/git-file-dates.mjs';
+import { listMarkdownFiles } from './lib/list-markdown-files.mjs';
 
 const logger = createBuildLogger('gen:data');
 logger.start('Generate site data');
@@ -402,14 +403,8 @@ const validatePostFrontmatter = (filename, data, formattedDate, formattedUpdated
   return errors.length > 0 ? `Invalid front matter in ${filename}: ${errors.join('; ')}` : undefined;
 };
 
-const files = fs.readdirSync(POSTS_DIR).filter((file) => {
-  if (!file.endsWith('.md')) return false;
-  try {
-    return fs.statSync(path.join(POSTS_DIR, file)).isFile();
-  } catch {
-    return false;
-  }
-});
+// 支持 posts/ 嵌套目录（如 posts/import_select/xxx.md）；相对路径用 posix 正斜杠。
+const files = listMarkdownFiles(POSTS_DIR);
 
 // Phase 3 加固：超限文件错误独立收集（validationErrors 在 map 之后才初始化，
 // 不能在 map 回调中直接引用它，否则触发 TDZ ReferenceError）。
