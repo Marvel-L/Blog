@@ -11,6 +11,7 @@
 - `src/utils/remarkCodeMeta.ts` / `markdown-core.mjs` / `markdownText.ts`
 - `src/components/{TableOfContents, GiscusComments, ShareModal, ReadingProgressBadge, ProgressiveImage, ImageViewer}.tsx`
 - `src/utils/readingProgress.ts`
+- 文章分级闪卡见 [post-rank.md](post-rank.md)（`PostRankFrame` / `FlashCover`，逻辑不堆进本页）
 
 ## 修改规则（必须遵守）
 
@@ -23,6 +24,7 @@
 7. **阅读进度**：进度/恢复逻辑在 `readingProgress.ts`（start/end 阈值、clamp、完成阈值），不得在组件内重写公式。
 8. **无障碍**：`role="application"` 仅限 Mermaid 视口容器（其确实接管键盘）；复制/分享按钮有可访问名称；快捷键有 kbd 提示。
 9. **性能**：`stripMarkdown(post.content)` 结果必须 useMemo 缓存（meta description 与 articleBody 共用）；useMemo 不得放在条件早退之后（Hooks 规则）。
+10. **分级闪卡**：标题区与封面的闪卡、专注阅读只留段位名、正文不被光泽覆盖，均遵守 [post-rank.md](post-rank.md)。不要把闪卡样式内联进 `Post.tsx`。
 
 ## 常见陷阱
 

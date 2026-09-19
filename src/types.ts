@@ -3,6 +3,7 @@
  * 与说说（ShuoShuo）。数据源为构建期生成的 JSON（generated/*），
  * 客户端数据层（services/*）按本文件契约读写。
  */
+import type { PostRank } from '@/utils/postRank';
 export interface PostAuthor {
   name: string;
   avatar?: string;
@@ -37,6 +38,11 @@ export interface PostMetadata {
   commentCount?: number;
   featured?: boolean;
   'featured-top'?: number;
+  /**
+   * 文章分级。缺省为普通展示；仅当值为 content.config.json 的 postRanks 之一时
+   * 列表卡片与阅读页启用对应闪卡。
+   */
+  rank?: PostRank;
   series?: boolean;
   seriesName?: string;
   seriesOrder?: number;

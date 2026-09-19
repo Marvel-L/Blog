@@ -97,4 +97,16 @@ describe('PostCard', () => {
     const img = screen.getByRole('img');
     expect(img).toHaveAttribute('alt', '测试文章标题');
   });
+
+  it('未分级文章不展示段位徽标', () => {
+    renderWithRouter(<PostCard post={makePost()} {...baseProps} />);
+    expect(screen.queryByText('黄金')).not.toBeInTheDocument();
+    expect(document.querySelector('.flash-surface')).toBeNull();
+  });
+
+  it('分级文章展示对应闪卡段位', () => {
+    renderWithRouter(<PostCard post={makePost({ rank: '王者' })} {...baseProps} />);
+    expect(screen.getByText('王者')).toBeInTheDocument();
+    expect(document.querySelector('.flash-rank--king')).toBeInTheDocument();
+  });
 });

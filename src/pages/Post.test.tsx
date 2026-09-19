@@ -90,6 +90,15 @@ describe('Post', () => {
     renderPost();
     expect(await screen.findByText('测试文章标题')).toBeInTheDocument();
     expect(screen.getByText('正文内容段落。')).toBeInTheDocument();
+    expect(screen.queryByText('王者')).not.toBeInTheDocument();
+  });
+
+  it('分级文章在标题区展示段位，正文不被闪面覆盖', async () => {
+    vi.mocked(postsService.getPostById).mockResolvedValue(makePost({ rank: '星耀' }) as never);
+    renderPost();
+    expect(await screen.findByText('星耀')).toBeInTheDocument();
+    expect(document.querySelector('.flash-surface--frame')).toBeInTheDocument();
+    expect(screen.getByText('正文内容段落。')).toBeInTheDocument();
   });
 
   it('渲染代码块工具栏（复制/下载）', async () => {

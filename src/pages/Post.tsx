@@ -42,10 +42,12 @@ import { getRelatedPosts, getSeriesNavigation, type SeriesNavigation } from '@/u
 import { getReadingProgress, getScrollTopForReadingProgress, isReadingComplete } from '@/utils/readingProgress';
 import type { Post as PostType, PostAuthor, PostMetadata } from '../types';
 import { assetUrl, absoluteSiteUrl, routeUrl } from '@/utils/siteUrl';
+import { siblingPostImageUrl } from '@/utils/post-image-src.mjs';
 import { siteConfig } from '@config/site.config';
 import { Seo, buildSiteSchemas } from '../components/Seo';
 import { ProgressiveImage } from '@/components/ProgressiveImage';
 import { CompactPostCard } from '@/components/CompactPostCard';
+import { FlashCover, PostRankFrame } from '@/components/RankFlash';
 import { NotFoundState } from '@/components/NotFoundState';
 import { IssueSubscriptionCard } from '@/components/IssueSubscriptionCard';
 import { ContentStatus, LoadingStatus } from '@/components/ContentStatus';
@@ -1042,6 +1044,7 @@ const createMarkdownComponents = (
   imageDimensions: PostMetadata['imageDimensions'],
   headings: MarkdownHeading[],
   shouldReduceMotion: boolean,
+  postFilePath?: string,
 ): Components => {
   let headingCursor = 0;
   const fallbackHeadingIds = new Map<string, number>();
@@ -1246,7 +1249,14 @@ const createMarkdownComponents = (
       );
     },
     img: ({ src, alt, title, previewSrc, node: _node, ...props }: MarkdownImageProps) => {
-      const resolvedSrc = src ? (isAbsoluteAssetPath(src) ? resolveBrowserAsset(src) : resolveSitePath(src)) : src;
+      const siblingUrl = siblingPostImageUrl(postFilePath, src);
+      const resolvedSrc = siblingUrl
+        ? assetUrl(siblingUrl)
+        : src
+          ? isAbsoluteAssetPath(src)
+            ? resolveBrowserAsset(src)
+            : resolveSitePath(src)
+          : src;
       const previewTarget = previewSrc || resolvedSrc || '';
       const dimensions = resolvedSrc ? findImageDimensions(imageDimensions, resolvedSrc) : undefined;
       // 深色模式图片适配的豁免约定：![alt](url "no-dark") 表示保持原亮度
@@ -2006,6 +2016,7 @@ export const Post = () => {
     post?.imageDimensions,
     headings,
     shouldReduceMotion,
+    post?.filePath,
   );
 
   if (loading) {
@@ -2241,7 +2252,7 @@ export const Post = () => {
           )}
 
           {/* LCP 元素首帧即渲染最终可见状态，不设入场动画（避免 SSR 输出 opacity:0） */}
-          <div>
+          <PostRankFrame rank={post.rank} quiet={isReadingMode}>
             <h1 className="mb-5 break-words text-balance text-[1.875rem] font-bold leading-[1.25] tracking-[-0.01em] text-ink [overflow-wrap:anywhere] dark:text-white md:mb-6 md:text-[2.5rem] lg:text-[2.75rem]">
               {post.title}
             </h1>
@@ -2301,7 +2312,7 @@ export const Post = () => {
                 </button>
               </div>
             )}
-          </div>
+          </PostRankFrame>
         </header>
 
         {post.coverImage && (
@@ -2311,19 +2322,21 @@ export const Post = () => {
             onClick={() => setPreviewImage({ src: resolveBrowserAsset(post.coverImage!)!, alt: post.title })}
             aria-label={`预览文章封面：${post.title}`}
           >
-            <div className="mb-8 aspect-[16/10] cursor-zoom-in overflow-hidden rounded-[6px] sm:aspect-[16/8] md:mb-14 lg:aspect-[21/9]">
-              <ProgressiveImage
-                src={resolveBrowserAsset(post.coverImage)}
-                alt={post.title}
-                loading="eager"
-                fetchPriority="high"
-                width={post.coverWidth}
-                height={post.coverHeight}
-                sizes="(max-width: 767px) 100vw, (max-width: 1279px) 80vw, 1024px"
-                wrapperClassName="h-full w-full"
-                className="h-full w-full object-cover"
-              />
-            </div>
+            <FlashCover rank={post.rank} className="mb-8 md:mb-14">
+              <div className="aspect-[16/10] cursor-zoom-in overflow-hidden rounded-[6px] sm:aspect-[16/8] lg:aspect-[21/9]">
+                <ProgressiveImage
+                  src={resolveBrowserAsset(post.coverImage)}
+                  alt={post.title}
+                  loading="eager"
+                  fetchPriority="high"
+                  width={post.coverWidth}
+                  height={post.coverHeight}
+                  sizes="(max-width: 767px) 100vw, (max-width: 1279px) 80vw, 1024px"
+                  wrapperClassName="h-full w-full"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            </FlashCover>
           </button>
         )}
 

@@ -5,6 +5,7 @@
 import fs from 'fs';
 import path from 'path';
 import { maskFencedCodeBlocks } from '../src/utils/headings-core.mjs';
+import { siblingImageRelative } from '../src/utils/post-image-src.mjs';
 
 const URI_SCHEME_PATTERN = /^[a-z][a-z0-9+.-]*:/i;
 const EXTERNAL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
@@ -255,6 +256,7 @@ export const validatePostContent = (post, context = {}) => {
     staticRoutes = DEFAULT_STATIC_ROUTES,
     // 已发布的说说 id 集合（用于 /shuoshuo/<id> 链接的存在性校验）。
     shuoshuoIds = new Set(),
+    postsRoot = path.resolve('posts'),
 
     lineOffset = 0,
     skipFrontMatter = false,
@@ -321,12 +323,25 @@ export const validatePostContent = (post, context = {}) => {
         errors.push(lineError(filename, image.line + lineOffset, `image target "${image.rawTarget}": ${reason}`));
     } else {
       const resolved = resolveLocalImageTarget(target, { imageRoot });
-      if (!resolved?.exists) {
+      const siblingRelative = resolved?.exists ? undefined : siblingImageRelative(post.filePath || filename, target);
+      const siblingFile = siblingRelative ? path.resolve(postsRoot, siblingRelative) : undefined;
+      const postsRootResolved = path.resolve(postsRoot);
+      const siblingInsidePosts =
+        siblingFile && siblingFile !== postsRootResolved && siblingFile.startsWith(`${postsRootResolved}${path.sep}`);
+      let siblingExists = false;
+      if (siblingInsidePosts) {
+        try {
+          siblingExists = fs.statSync(siblingFile).isFile();
+        } catch {
+          siblingExists = false;
+        }
+      }
+      if (!resolved?.exists && !siblingExists) {
         errors.push(
           lineError(
             filename,
             image.line + lineOffset,
-            `local image "${image.rawTarget}" does not resolve to a file inside posts-img`,
+            `local image "${image.rawTarget}" does not resolve to a file inside posts-img or next to the markdown file`,
           ),
         );
       }

@@ -1,7 +1,58 @@
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import { normalizeBasePath } from './config/basePath';
+
+const POST_IMAGE_TYPES: Record<string, string> = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.avif': 'image/avif',
+};
+
+/** 开发服务器把 /posts-img/ 映射到 posts/ 里和 Markdown 放在一起的图片。 */
+const serveSiblingPostImages = (): Plugin => {
+  const postsRoot = path.resolve(__dirname, 'posts');
+  return {
+    name: 'serve-sibling-post-images',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const raw = req.url?.split('?')[0] ?? '';
+        const base = server.config.base === '/' ? '' : server.config.base.replace(/\/$/, '');
+        let pathname = raw.startsWith(base) ? raw.slice(base.length) : raw;
+        if (!pathname.startsWith('/')) {
+          pathname = `/${pathname}`;
+        }
+        try {
+          pathname = decodeURIComponent(pathname);
+        } catch {
+          next();
+          return;
+        }
+        if (!pathname.startsWith('/posts-img/')) {
+          next();
+          return;
+        }
+        const relative = pathname.slice('/posts-img/'.length);
+        if (!relative || relative.split('/').includes('..')) {
+          next();
+          return;
+        }
+        const filePath = path.resolve(postsRoot, relative);
+        const ext = path.extname(filePath).toLowerCase();
+        if (!filePath.startsWith(`${postsRoot}${path.sep}`) || !POST_IMAGE_TYPES[ext] || !fs.existsSync(filePath)) {
+          next();
+          return;
+        }
+        res.setHeader('Content-Type', POST_IMAGE_TYPES[ext]);
+        fs.createReadStream(filePath).pipe(res);
+      });
+    },
+  };
+};
 
 /**
  * KaTeX 字体冗余裁剪（性能优化）。
@@ -127,7 +178,7 @@ export default defineConfig(({ command, mode }) => {
   const appBase = normalizeBasePath(env.VITE_BASE_PATH);
 
   return {
-    plugins: [react(), injectEntryCssPreload(), trimKatexFonts()],
+    plugins: [react(), serveSiblingPostImages(), injectEntryCssPreload(), trimKatexFonts()],
     base: appBase,
     esbuild:
       command === 'build'

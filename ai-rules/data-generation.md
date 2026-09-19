@@ -24,6 +24,7 @@
 8. **异常兜底**：uncaughtException/unhandledRejection handler 必须在记录日志后确保进程退出（宽限期强制 process.exit(1)），不得依赖「异常后无挂起异步」的假设 —— 脚本含顶层 await（fetchCommentCounts），异常发生在异步窗口时进程可能带不一致状态继续/挂起。
 9. **评论数匹配口径**：fetch-giscus-comments 的 discussion 标题（页面 URL pathname）匹配必须叠加 BASE_PATH（withBasePath），子路径部署时 `/post/<id>` 匹配不上会导致评论数静默全缺。
 10. **文章日期**：`date` / `updatedAt` 在 front matter 中可选。缺省时由 Git 填充（首次提交日 / 最后改动日），合法手写值优先；无 Git 历史时回退构建日并 warn。不写回 `.md`。跑 gen:data 的 CI checkout 必须 `fetch-depth: 0`，否则浅克隆会让首次提交日偏晚。
+11. **文章分级**：`rank` 可选。缺省或空字符串不写入闪卡字段；非空且不在 `content.config.json` 的 `postRanks` 内则 fail-closed。合法值经 `normalizeRank` 显式写入 `posts.json`，不要靠 front matter 白名单原样透传。展示规则见 [post-rank.md](post-rank.md)。
 
 ## 常见陷阱
 

@@ -24,7 +24,12 @@ content:
         label: 分类
         type: select
         options:
-          values: ["教程", "技术", "随笔", "分享", "其他"]
+          values: ["教程", "技术", "随笔", "分享", "重要决策", "其他"]
+      - name: rank
+        label: 分级（留空则普通展示；配置后列表与阅读页启用对应闪卡）
+        type: select
+        options:
+          values: ["青铜", "白银", "黄金", "钻石", "星耀", "王者"]
       - { name: tags, label: 标签, type: string, list: true }
       - { name: coverImage, label: 封面图链接, type: string }
       - { name: author, label: 作者, type: string }

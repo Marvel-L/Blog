@@ -6,6 +6,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ChevronDown, ChevronRight, ArrowUpRight, MessageCircle } from 'lucide-react';
+import { RankBadge } from '@/components/RankFlash';
+import { isPostRank } from '@/utils/postRank';
 import { siteConfig } from '@config/site.config';
 import { getInitialPosts, getPosts } from '@/services/posts';
 import type { PostMetadata } from '../types';
@@ -502,6 +504,12 @@ export const ArchivePage = () => {
                                                 </h2>
                                                 <p className="min-w-0 break-words text-xs text-zinc-500 [overflow-wrap:anywhere] dark:text-zinc-400 md:whitespace-nowrap">
                                                   {post.category}{' '}
+                                                  {isPostRank(post.rank) && (
+                                                    <>
+                                                      <span className="mx-1 text-zinc-300 dark:text-zinc-700">·</span>
+                                                      <RankBadge rank={post.rank} />
+                                                    </>
+                                                  )}
                                                   <span className="mx-1 text-zinc-300 dark:text-zinc-700">·</span>{' '}
                                                   {post.readTime}
                                                   {typeof post.commentCount === 'number' && (

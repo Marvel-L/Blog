@@ -11,6 +11,8 @@ import { assetUrl } from '@/utils/siteUrl';
 import { preloadPage } from '@/utils/preload';
 import { ProgressiveImage } from '@/components/ProgressiveImage';
 import { isPinnedFeaturedPost } from '@/utils/postSelection';
+import { CoverSheen, RankBadge, flashSurfaceProps } from '@/components/RankFlash';
+import { isPostRank } from '@/utils/postRank';
 
 // 组件 props 类型（全仓库仅本文件使用，不导出避免公共 API 承诺）。
 interface PostCardProps {
@@ -41,6 +43,7 @@ const PostCardTags: React.FC<{ tags: string[] }> = ({ tags }) =>
   ) : null;
 
 const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, onShare }) => {
+  const flash = flashSurfaceProps(post.rank, 'card');
   const handleShareClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
@@ -55,12 +58,14 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, onShare }) => {
         <div
           className={`relative overflow-hidden rounded-surface border border-zinc-200 bg-white transition-colors hover:border-zinc-400 focus-within:border-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600 dark:focus-within:border-zinc-500 ${
             hasCover ? 'md:grid md:grid-cols-5' : ''
-          }`}
+          } ${flash.className}`}
+          onPointerMove={flash.onPointerMove}
+          onPointerLeave={flash.onPointerLeave}
         >
           {hasCover && (
             <Link
               to={`/post/${post.id}`}
-              className="block aspect-[16/9] overflow-hidden bg-zinc-100 dark:bg-zinc-800 md:col-span-3 md:aspect-auto md:min-h-80"
+              className="relative block aspect-[16/9] overflow-hidden bg-zinc-100 dark:bg-zinc-800 md:col-span-3 md:aspect-auto md:min-h-80"
               aria-label={`阅读文章：${post.title}`}
             >
               <ProgressiveImage
@@ -76,6 +81,7 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, onShare }) => {
                 className="h-full w-full object-cover"
                 effect="fade"
               />
+              <CoverSheen rank={post.rank} />
             </Link>
           )}
           <div className={`flex flex-col p-4 md:p-7 ${hasCover ? 'md:col-span-2' : ''}`}>
@@ -83,6 +89,7 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, onShare }) => {
               <span>{post.category}</span>
               <span aria-hidden="true">/</span>
               <span>精选</span>
+              {isPostRank(post.rank) && <RankBadge rank={post.rank} />}
               {isPinnedFeaturedPost(post) && (
                 <span className="ml-auto flex items-center gap-1 normal-case tracking-normal text-zinc-600 dark:text-zinc-300">
                   <Pin size={11} />
@@ -133,11 +140,15 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, onShare }) => {
 
   return (
     <article className="flex h-full min-w-0 flex-col" onMouseEnter={() => preloadPage(`/post/${post.id}`)}>
-      <div className="relative flex h-full flex-col overflow-hidden rounded-surface border border-zinc-200 bg-white transition-colors hover:border-zinc-400 focus-within:border-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600 dark:focus-within:border-zinc-500">
+      <div
+        className={`relative flex h-full flex-col overflow-hidden rounded-surface border border-zinc-200 bg-white transition-colors hover:border-zinc-400 focus-within:border-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600 dark:focus-within:border-zinc-500 ${flash.className}`}
+        onPointerMove={flash.onPointerMove}
+        onPointerLeave={flash.onPointerLeave}
+      >
         {post.coverImage ? (
           <Link
             to={`/post/${post.id}`}
-            className="block aspect-[16/9] overflow-hidden bg-zinc-100 dark:bg-zinc-800 md:aspect-[16/10]"
+            className="relative block aspect-[16/9] overflow-hidden bg-zinc-100 dark:bg-zinc-800 md:aspect-[16/10]"
             aria-label={`阅读文章：${post.title}`}
           >
             <ProgressiveImage
@@ -153,11 +164,13 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, onShare }) => {
               className="h-full w-full object-cover"
               effect="fade"
             />
+            <CoverSheen rank={post.rank} />
           </Link>
         ) : null}
         <div className="flex flex-grow flex-col p-3.5 md:p-5">
           <div className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider md:mb-2 text-zinc-500 dark:text-zinc-400">
             <span>{post.category}</span>
+            {isPostRank(post.rank) && <RankBadge rank={post.rank} />}
             {isPinnedFeaturedPost(post) && (
               <span className="ml-auto flex items-center gap-1 normal-case tracking-normal">
                 <Pin size={10} />

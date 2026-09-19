@@ -80,6 +80,7 @@ public/llms.txt
 public/llms-full.txt
 public/og-card.png
 public/generated-images/
+public/posts-img/
 
 # Local tool data
 .claude/

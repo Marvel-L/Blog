@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-站点/构建/内容配置分层：`config/site.config.json`（站点信息，CMS 可编辑）、`config/content.config.json`（分类白名单等）、构建配置（tsconfig/tailwind/postcss/vite）、环境变量（.env.example）。
+站点/构建/内容配置分层：`config/site.config.json`（站点信息，CMS 可编辑）、`config/content.config.json`（分类白名单 `postCategories`、文章分级白名单 `postRanks`）、构建配置（tsconfig/tailwind/postcss/vite）、环境变量（.env.example）。分级闪卡的硬性约束见 [post-rank.md](post-rank.md)。
 
 ## 关键文件
 
@@ -25,6 +25,7 @@
 
 - config/ 根目录（构建配置）与 src/config（已删除）勿混淆；
 - site.config.json 的 author/social/comments 等嵌套结构被多处消费，增删字段需全局检索消费方。
+- `postRanks` 与 `src/utils/postRank.ts` 的 `POST_RANKS` 必须保持一致，不能只改 JSON。
 
 ## 破例条款
 

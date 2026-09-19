@@ -23,6 +23,7 @@
 
 - 搜索索引在 services 层构建（懒加载），修改 `searchPosts` 签名会同时影响 Home/Archive/Tags/Search 四个页面（SearchModal 已移除，搜索入口统一跳转 `/search` 独立页，不再有弹窗形态的调用方）；
 - 无结果页的 SEO title 应保持「搜索：X」语义。
+- 结果卡片复用 `PostCard` / `CompactPostCard`。分级闪卡不在本页重写，见 [post-rank.md](post-rank.md)。
 
 ## 破例条款
 

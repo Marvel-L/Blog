@@ -1,4 +1,5 @@
 {
-  "postCategories": ["教程", "技术", "随笔", "分享", "其他"],
-  "fallbackCategory": "其他"
+  "postCategories": ["教程", "技术", "随笔", "分享", "重要决策", "其他"],
+  "fallbackCategory": "其他",
+  "postRanks": ["青铜", "白银", "黄金", "钻石", "星耀", "王者"]
 }

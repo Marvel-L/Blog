@@ -70,6 +70,34 @@ const FRIENDS_DIR = path.join(__dirname, '../friends');
 const SHUOSHUO_DIR = path.join(__dirname, '../shuoshuo');
 const OUTPUT_JSON_DIR = path.join(__dirname, '../generated');
 const PUBLIC_DIR = path.join(__dirname, '../public');
+const POST_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif']);
+
+/** 把 posts/ 旁的图片复制到 public/posts-img/，生产构建才能当静态资源发出。 */
+const copySiblingPostImages = () => {
+  const destRoot = path.join(PUBLIC_DIR, 'posts-img');
+  if (!fs.existsSync(POSTS_DIR)) {
+    return 0;
+  }
+  let count = 0;
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (!POST_IMAGE_EXT.has(path.extname(entry.name).toLowerCase())) {
+        continue;
+      }
+      const dest = path.join(destRoot, path.relative(POSTS_DIR, full));
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.copyFileSync(full, dest);
+      count += 1;
+    }
+  };
+  walk(POSTS_DIR);
+  return count;
+};
 
 /**
  * 单篇文章文件大小上限（字节）：5 MiB。
@@ -313,6 +341,16 @@ const FALLBACK_CATEGORY =
   typeof contentConfig.fallbackCategory === 'string' && contentConfig.fallbackCategory.trim()
     ? contentConfig.fallbackCategory.trim()
     : POST_CATEGORIES[POST_CATEGORIES.length - 1];
+const POST_RANKS = Array.isArray(contentConfig.postRanks)
+  ? contentConfig.postRanks.filter((item) => typeof item === 'string' && item.trim()).map((item) => item.trim())
+  : [];
+
+const normalizeRank = (value) => {
+  if (typeof value !== 'string') return undefined;
+  const rank = value.trim();
+  if (!rank || !POST_RANKS.includes(rank)) return undefined;
+  return rank;
+};
 
 const normalizeCategory = (value) => {
   if (typeof value !== 'string') {
@@ -374,6 +412,12 @@ const validatePostFrontmatter = (filename, data, formattedDate, formattedUpdated
   }
   if (typeof data.category === 'string' && data.category.trim() && !POST_CATEGORIES.includes(data.category.trim())) {
     errors.push(`category must be one of: ${POST_CATEGORIES.join(', ')}`);
+  }
+  if (data.rank !== undefined && data.rank !== null && !(typeof data.rank === 'string' && data.rank.trim() === '')) {
+    const rank = typeof data.rank === 'string' ? data.rank.trim() : '';
+    if (!POST_RANKS.includes(rank)) {
+      errors.push(`rank must be one of: ${POST_RANKS.join(', ')}`);
+    }
   }
   if (data.featured !== undefined && typeof data.featured !== 'boolean') {
     errors.push('featured must be a boolean when provided');
@@ -534,6 +578,7 @@ const buildPost = (record) => {
   const normalizedAuthors = normalizeAuthors(data.author, data.authors);
   const category = normalizeCategory(data.category);
   const tags = normalizeTagsStrict(data.tags);
+  const rank = normalizeRank(data.rank);
   // coverImage 保留外部协议字符串（图床链接）；本地路径（已废弃）原样透传供校验器拦截。
   const normalizedCoverImage = data.coverImage ? String(data.coverImage) : undefined;
   const isSeries = data.series === true;
@@ -553,6 +598,7 @@ const buildPost = (record) => {
         coverImage: normalizedCoverImage,
         category,
         tags,
+        ...(rank ? { rank } : {}),
         date: formattedDate,
         updatedAt: formattedUpdatedAt,
         authors: normalizedAuthors,
@@ -639,6 +685,7 @@ postRecords.forEach((record) => {
     ...validatePostContent(record, {
       filename: record.filename,
       imageRoot: IMAGE_ROOT,
+      postsRoot: POSTS_DIR,
       allPosts: allPostIndex,
       publishedPosts: publishedPostIndex,
       staticRoutes: DEFAULT_STATIC_ROUTES,
@@ -677,6 +724,11 @@ postRecords.forEach((record) => {
 
 if (validationErrors.length > 0) {
   throw new Error(validationErrors.join('\n'));
+}
+
+const copiedPostImages = copySiblingPostImages();
+if (copiedPostImages > 0) {
+  logger.step('Copied post images', `files=${copiedPostImages} dest=public/posts-img`);
 }
 
 const postsWithSearch = postRecords

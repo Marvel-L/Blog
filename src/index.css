@@ -1564,3 +1564,304 @@ html.dark .mermaid-diagram > svg {
 html.dark .road-canvas-grid {
   background-image: radial-gradient(circle at 1px 1px, rgb(161 161 170 / 0.16) 1px, transparent 0);
 }
+
+/* ===== 文章分级闪卡 =====
+   未写 rank 的文章不挂这些类。光泽只走描边和封面，正文保持实底，避免闪面压低阅读对比度。
+   --flash-x / --flash-y 由指针写入；无指针时缓慢漂移。减少动效时停在静态金属边。 */
+@property --flash-x {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 24%;
+}
+@property --flash-y {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 16%;
+}
+
+@keyframes flash-drift {
+  0%,
+  100% {
+    --flash-x: 18%;
+    --flash-y: 12%;
+  }
+  50% {
+    --flash-x: 84%;
+    --flash-y: 78%;
+  }
+}
+
+.flash-rank--bronze {
+  --flash-edge: #8a5430;
+  --flash-edge-2: #f0c9a0;
+  --flash-foil-1: rgba(196, 122, 62, 0.72);
+  --flash-foil-2: rgba(255, 228, 196, 0.9);
+  --flash-foil-3: rgba(92, 48, 22, 0.55);
+  --flash-badge-from: #5c3318;
+  --flash-badge-via: #e0b07a;
+  --flash-badge-to: #3a2010;
+}
+.flash-rank--silver {
+  --flash-edge: #6b7280;
+  --flash-edge-2: #f8fafc;
+  --flash-foil-1: rgba(148, 163, 184, 0.75);
+  --flash-foil-2: rgba(255, 255, 255, 0.95);
+  --flash-foil-3: rgba(71, 85, 105, 0.55);
+  --flash-badge-from: #3f4754;
+  --flash-badge-via: #e5e7eb;
+  --flash-badge-to: #1f2937;
+}
+.flash-rank--gold {
+  --flash-edge: #a16207;
+  --flash-edge-2: #fde68a;
+  --flash-foil-1: rgba(217, 160, 48, 0.78);
+  --flash-foil-2: rgba(255, 244, 196, 0.95);
+  --flash-foil-3: rgba(120, 78, 8, 0.55);
+  --flash-badge-from: #7a5410;
+  --flash-badge-via: #f6d98a;
+  --flash-badge-to: #4a3008;
+}
+.flash-rank--diamond {
+  --flash-edge: #0284c7;
+  --flash-edge-2: #e0f2fe;
+  --flash-foil-1: rgba(56, 189, 248, 0.72);
+  --flash-foil-2: rgba(255, 255, 255, 0.92);
+  --flash-foil-3: rgba(14, 116, 144, 0.55);
+  --flash-badge-from: #0c4a6e;
+  --flash-badge-via: #7dd3fc;
+  --flash-badge-to: #082f49;
+}
+.flash-rank--star {
+  --flash-edge: #7c3aed;
+  --flash-edge-2: #f5d0fe;
+  --flash-foil-1: rgba(167, 139, 250, 0.75);
+  --flash-foil-2: rgba(255, 255, 255, 0.9);
+  --flash-foil-3: rgba(91, 33, 182, 0.55);
+  --flash-badge-from: #4c1d95;
+  --flash-badge-via: #ddd6fe;
+  --flash-badge-to: #2e1065;
+}
+.flash-rank--king {
+  --flash-edge: #be123c;
+  --flash-edge-2: #fde68a;
+  --flash-foil-1: rgba(244, 63, 94, 0.7);
+  --flash-foil-2: rgba(253, 224, 71, 0.9);
+  --flash-foil-3: rgba(124, 58, 237, 0.55);
+  --flash-badge-from: #9f1239;
+  --flash-badge-via: #fbbf24;
+  --flash-badge-to: #6b21a8;
+}
+
+.flash-rank-badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.6;
+  letter-spacing: 0.12em;
+  text-transform: none;
+  color: #fffaf5;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
+  background: linear-gradient(
+    115deg,
+    var(--flash-badge-from) 0%,
+    var(--flash-badge-from) 36%,
+    var(--flash-badge-via) 50%,
+    var(--flash-badge-to) 64%,
+    var(--flash-badge-to) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 1px 1px rgba(0, 0, 0, 0.18);
+}
+
+.flash-rank-badge--display {
+  padding: 0.15rem 0.7rem;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+}
+
+.flash-surface {
+  --flash-fill: #ffffff;
+  position: relative;
+  isolation: isolate;
+}
+
+html.dark .flash-surface {
+  --flash-fill: #18181b;
+}
+
+.flash-surface--card,
+.flash-surface--frame,
+.flash-surface--cover {
+  animation: flash-drift 8.5s ease-in-out infinite;
+}
+
+.flash-surface--card {
+  border-width: 1.5px;
+  border-color: transparent;
+  background:
+    linear-gradient(var(--flash-fill), var(--flash-fill)) padding-box,
+    linear-gradient(
+        125deg,
+        var(--flash-edge) 0%,
+        var(--flash-edge-2) 24%,
+        var(--flash-foil-2) 48%,
+        var(--flash-edge) 74%,
+        var(--flash-edge-2) 100%
+      )
+      border-box;
+  background-size:
+    auto,
+    240% 240%;
+  background-position:
+    0 0,
+    var(--flash-x) var(--flash-y);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--flash-edge-2) 42%, transparent),
+    0 14px 32px -18px color-mix(in srgb, var(--flash-edge) 75%, transparent);
+}
+
+.flash-rank--king.flash-surface--card {
+  border-width: 1.5px;
+  background:
+    linear-gradient(var(--flash-fill), var(--flash-fill)) padding-box,
+    conic-gradient(from 210deg at var(--flash-x) var(--flash-y), #be123c, #f59e0b, #fde68a, #fb7185, #7c3aed, #be123c)
+      border-box;
+}
+
+.flash-surface--card::before,
+.flash-surface--cover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  padding: 2px;
+  pointer-events: none;
+  background: radial-gradient(220px 80px at var(--flash-x) var(--flash-y), rgba(255, 255, 255, 0.95), transparent 72%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+.flash-surface--frame {
+  border-radius: 12px;
+  padding: 1.5px;
+  background: linear-gradient(120deg, var(--flash-edge), var(--flash-edge-2), var(--flash-foil-2), var(--flash-edge));
+  background-size: 240% 240%;
+  background-position: var(--flash-x) var(--flash-y);
+}
+
+.flash-rank--king.flash-surface--frame,
+.flash-rank--king.flash-surface--cover {
+  background: conic-gradient(
+    from 210deg at var(--flash-x) var(--flash-y),
+    #be123c,
+    #f59e0b,
+    #fde68a,
+    #fb7185,
+    #7c3aed,
+    #be123c
+  );
+}
+
+.flash-frame-body {
+  border-radius: 10.5px;
+  background: #f2f0e9;
+  padding: 1.25rem 1rem 1rem;
+}
+
+@media (min-width: 768px) {
+  .flash-frame-body {
+    padding: 1.6rem 1.5rem 1.2rem;
+  }
+}
+
+html.dark .flash-frame-body {
+  background: #0a0a0a;
+}
+
+.flash-surface--cover {
+  border-radius: 8px;
+  padding: 1.5px;
+  background: linear-gradient(125deg, var(--flash-edge), var(--flash-edge-2), var(--flash-foil-2), var(--flash-edge));
+  background-size: 240% 240%;
+  background-position: var(--flash-x) var(--flash-y);
+}
+
+.flash-cover-inner {
+  overflow: hidden;
+  border-radius: 6.5px;
+}
+
+.flash-cover-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 16%,
+    var(--flash-foil-1) 36%,
+    var(--flash-foil-2) 50%,
+    var(--flash-foil-3) 64%,
+    transparent 84%
+  );
+  background-size: 220% 220%;
+  background-position: var(--flash-x) var(--flash-y);
+  mix-blend-mode: screen;
+  opacity: 0.55;
+}
+
+.flash-rank--star .flash-cover-sheen {
+  background-image:
+    radial-gradient(circle at 18% 28%, #fff 0 1px, transparent 1.6px),
+    radial-gradient(circle at 72% 22%, #fff 0 1px, transparent 1.6px),
+    radial-gradient(circle at 64% 70%, #fff 0 1.2px, transparent 1.8px),
+    linear-gradient(
+      115deg,
+      transparent 16%,
+      var(--flash-foil-1) 36%,
+      var(--flash-foil-2) 50%,
+      var(--flash-foil-3) 64%,
+      transparent 84%
+    );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flash-surface--card,
+  .flash-surface--frame,
+  .flash-surface--cover {
+    animation: none;
+  }
+}
+
+@media print {
+  .flash-surface--card,
+  .flash-surface--frame,
+  .flash-surface--cover {
+    animation: none;
+    background: none;
+    box-shadow: none;
+  }
+
+  .flash-surface--card::before,
+  .flash-surface--cover::before,
+  .flash-cover-sheen {
+    display: none;
+  }
+
+  .flash-frame-body {
+    padding: 0;
+    background: transparent;
+  }
+}

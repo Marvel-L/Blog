@@ -120,6 +120,7 @@ coverImage: https://cdn.example.com/cover.png  # 可选，图床链接
 author: 跑路的duck             # 可选，支持对象形式
 featured: false               # 首页精选展示
 featured-top: 1              # 精选置顶排序（仅 featured: true 时生效）
+rank: 黄金                    # 可选分级：青铜 / 白银 / 黄金 / 钻石 / 星耀 / 王者；留空则普通展示
 series: false                # 是否属于文章系列（series-name / series-order 配套）
 draft: false                  # 草稿不会发布
 ---
@@ -192,6 +193,7 @@ images:
 
 - **站点配置**：`config/site.config.json` — 标题、描述、URL、社交链接、作者信息、备案号等，可在 PagesCMS「站点配置」中编辑
 - **文章分类白名单**：`config/content.config.json` 的 `postCategories` 数组
+- **文章分级**：同文件 `postRanks`（青铜、白银、黄金、钻石、星耀、王者）。文章 front matter 写 `rank` 后，首页卡片、归档与阅读页启用对应闪卡；不写则保持默认样式
 - **环境变量**：`VITE_SITE_URL`（站点公开访问地址）、`VITE_BASE_PATH`（子路径部署时使用，留空为根路径），见 `.env.example`
 
 ## 部署

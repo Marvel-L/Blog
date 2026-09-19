@@ -8,6 +8,7 @@
 
 - `src/pages/Home.tsx`（约 780 行）
 - `src/components/PostCard.tsx`（首页与搜索共用卡片，已 React.memo）
+- 文章分级闪卡见 [post-rank.md](post-rank.md)（`PostCard` / `CompactPostCard` 只消费 `rank`，不在页面内重写光泽）
 - `src/hooks/usePostSearch.ts`（搜索 hook：防抖 + requestId 竞态 + 空查询兜底）
 - `src/utils/postSelection.ts` / `postSorting.ts` / `homeQuery.ts`（精选/排序/URL 查询状态）
 
@@ -21,6 +22,7 @@
 6. **动画**：framer-motion 变体（fadeInUp/staggerContainer）仅做入场；尊重 `prefers-reduced-motion`（`shouldReduceMotion` 传透）；SSR 输出不得为 opacity:0 的内容。
 7. **性能**：PostCard 保持 memo；不要引入整页重渲染的依赖。
 8. **分享**：分享 URL 的 `/post/<id>` 路径用裸 `post.id`（构建期 `validateId` 已校验 URL 安全，与 SSG/sitemap/canonical 口径一致；encodeURIComponent 反而会与产物路径不一致）。
+9. **分级闪卡**：有 `rank` 时走 `RankFlash`，指针不得 `setState`（否则破坏 PostCard memo）。未配置 `rank` 的卡片保持现有普通样式。细节见 [post-rank.md](post-rank.md)。
 
 ## 常见陷阱
 

@@ -17,6 +17,7 @@
 4. **SSG 确定性**：首帧由 `getInitialPosts()` 分组渲染，不得依赖客户端时间。
 5. **无效日期**：`buildArchiveGroups` 对非法日期承诺不抛错（月份回退 1、未知年份排最后），不得移除该容错。
 6. **动画**：年份/月份展开折叠动画尊重 reducedMotion。
+7. **分级**：有 `rank` 时只在元信息行放行内徽标（`RankBadge`），不要把时间线整行改成闪卡。规则见 [post-rank.md](post-rank.md)。
 
 ## 常见陷阱
 
