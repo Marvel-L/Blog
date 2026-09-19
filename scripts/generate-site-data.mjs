@@ -19,6 +19,7 @@ import {
 import { extractMarkdownHeadings } from '../src/utils/headings-core.mjs';
 import { buildRssFeed } from './feed-generator.mjs';
 import { fetchCommentCounts } from './fetch-giscus-comments.mjs';
+import { siblingContentImageUrl, siblingImageRelative } from '../src/utils/post-image-src.mjs';
 import { getGitFileDates, resolvePostDates } from './lib/git-file-dates.mjs';
 import { listMarkdownFiles } from './lib/list-markdown-files.mjs';
 
@@ -72,10 +73,10 @@ const OUTPUT_JSON_DIR = path.join(__dirname, '../generated');
 const PUBLIC_DIR = path.join(__dirname, '../public');
 const POST_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif']);
 
-/** 把 posts/ 旁的图片复制到 public/posts-img/，生产构建才能当静态资源发出。 */
-const copySiblingPostImages = () => {
-  const destRoot = path.join(PUBLIC_DIR, 'posts-img');
-  if (!fs.existsSync(POSTS_DIR)) {
+/** 把内容目录旁的图片复制到 public/<publicSubdir>/，生产构建才能当静态资源发出。 */
+const copySiblingImages = (sourceDir, publicSubdir) => {
+  const destRoot = path.join(PUBLIC_DIR, publicSubdir);
+  if (!fs.existsSync(sourceDir)) {
     return 0;
   }
   let count = 0;
@@ -89,13 +90,13 @@ const copySiblingPostImages = () => {
       if (!POST_IMAGE_EXT.has(path.extname(entry.name).toLowerCase())) {
         continue;
       }
-      const dest = path.join(destRoot, path.relative(POSTS_DIR, full));
+      const dest = path.join(destRoot, path.relative(sourceDir, full));
       fs.mkdirSync(path.dirname(dest), { recursive: true });
       fs.copyFileSync(full, dest);
       count += 1;
     }
   };
-  walk(POSTS_DIR);
+  walk(sourceDir);
   return count;
 };
 
@@ -612,15 +613,52 @@ const buildPost = (record) => {
       };
 };
 
-// ── 说说（短动态）解析：shuoshuo/*.md，frontmatter 提供 id/date/images，正文即动态内容 ──
-// 与文章同级的质量门槛：id/date 缺失或重复直接 fail-closed，避免脏数据进入产物。
+// ── 说说（短动态）解析：shuoshuo/**/*.md，可嵌套；frontmatter 提供 id/images ──
+// date 可选，缺省由 Git 首次提交日填充（与文章同一套 resolvePostDates）。
+// images 可写图床链接，或与该 Markdown 同目录的本地图片（如 img.png），改写成 /shuoshuo-img/...。
+// id 缺失、非法手写 date、本地图片缺失、id 重复直接 fail-closed。
 // 提前到文章内容校验之前：文章正文里的 /shuoshuo/<id> 链接需要校验目标说说存在。
-const shuoshuoFiles = fs.existsSync(SHUOSHUO_DIR)
-  ? fs.readdirSync(SHUOSHUO_DIR).filter((file) => file.endsWith('.md'))
-  : [];
+const SHUOSHUO_IMAGE_OPTIONS = { contentDir: 'shuoshuo', publicPrefix: '/shuoshuo-img' };
+
+const resolveShuoShuoImage = (siteFilePath, raw, filename, index) => {
+  if (/^https?:\/\//i.test(raw)) {
+    return raw;
+  }
+
+  const url = siblingContentImageUrl(siteFilePath, raw, SHUOSHUO_IMAGE_OPTIONS);
+  const relative = siblingImageRelative(siteFilePath, raw, SHUOSHUO_IMAGE_OPTIONS);
+  if (!url || !relative) {
+    validationErrors.push(
+      `Invalid front matter in shuoshuo/${filename}: images[${index}] "${raw}" must be an HTTP(S) URL or a local image next to the markdown`,
+    );
+    return undefined;
+  }
+
+  const absolute = path.resolve(SHUOSHUO_DIR, ...relative.split('/'));
+  const root = `${path.resolve(SHUOSHUO_DIR)}${path.sep}`;
+  let exists = false;
+  if (absolute.startsWith(root)) {
+    try {
+      exists = fs.statSync(absolute).isFile();
+    } catch {
+      exists = false;
+    }
+  }
+  if (!exists) {
+    validationErrors.push(
+      `Invalid front matter in shuoshuo/${filename}: images[${index}] "${raw}" does not exist next to the markdown`,
+    );
+    return undefined;
+  }
+
+  return url;
+};
+
+const shuoshuoFiles = listMarkdownFiles(SHUOSHUO_DIR);
 
 const shuoshuoRecords = shuoshuoFiles.map((filename) => {
-  const filePath = path.join(SHUOSHUO_DIR, filename);
+  const filePath = path.resolve(SHUOSHUO_DIR, ...filename.split('/'));
+  const siteFilePath = `/shuoshuo/${filename}`;
   let data = {};
   let content = '';
 
@@ -634,8 +672,27 @@ const shuoshuoRecords = shuoshuoFiles.map((filename) => {
   }
 
   const id = typeof data.id === 'string' ? data.id.trim() : '';
-  const formattedDate = formatFrontmatterDate(data.date);
-  const images = Array.isArray(data.images) ? data.images.map((value) => String(value).trim()).filter(Boolean) : [];
+  const rawImages = Array.isArray(data.images) ? data.images.map((value) => String(value).trim()).filter(Boolean) : [];
+  const images = rawImages
+    .map((raw, index) => resolveShuoShuoImage(siteFilePath, raw, filename, index))
+    .filter(Boolean);
+  // date 可选：合法手写优先，缺省用 Git 首次提交日，无历史时回退构建日。不写回 .md。
+  const frontmatterDate = formatFrontmatterDate(data.date);
+  const safeFrontmatterDate = frontmatterDate && validateDateString(frontmatterDate) ? frontmatterDate : undefined;
+  const gitDates = getGitFileDates(filePath, { cwd: REPO_ROOT });
+  const resolvedDates = resolvePostDates({
+    frontmatterDate: safeFrontmatterDate,
+    gitCreated: gitDates.created,
+    gitUpdated: gitDates.updated,
+    today: buildTodayUtc(),
+  });
+  if (!safeFrontmatterDate && resolvedDates.dateSource === 'fallback') {
+    logger.warn(
+      'ShuoShuo date fell back to build day (no Git history yet)',
+      `shuoshuo/${filename}: date=${resolvedDates.date}`,
+    );
+  }
+  const formattedDate = resolvedDates.date;
 
   if (!id) {
     validationErrors.push(`Invalid front matter in shuoshuo/${filename}: id must be a non-empty string`);
@@ -644,8 +701,10 @@ const shuoshuoRecords = shuoshuoFiles.map((filename) => {
       `Invalid front matter in shuoshuo/${filename}: id "${id}" contains characters that are unsafe in a URL`,
     );
   }
-  if (!formattedDate || !validateDateString(formattedDate)) {
-    validationErrors.push(`Invalid front matter in shuoshuo/${filename}: date must use YYYY-MM-DD format`);
+  if (data.date != null && String(data.date).trim() !== '' && !safeFrontmatterDate) {
+    validationErrors.push(
+      `Invalid front matter in shuoshuo/${filename}: date must use YYYY-MM-DD format when provided`,
+    );
   }
 
   return {
@@ -654,7 +713,7 @@ const shuoshuoRecords = shuoshuoFiles.map((filename) => {
     date: formattedDate,
     images,
     content: content.trim(),
-    filePath: `/shuoshuo/${filename}`,
+    filePath: siteFilePath,
   };
 });
 
@@ -726,9 +785,13 @@ if (validationErrors.length > 0) {
   throw new Error(validationErrors.join('\n'));
 }
 
-const copiedPostImages = copySiblingPostImages();
+const copiedPostImages = copySiblingImages(POSTS_DIR, 'posts-img');
 if (copiedPostImages > 0) {
   logger.step('Copied post images', `files=${copiedPostImages} dest=public/posts-img`);
+}
+const copiedShuoShuoImages = copySiblingImages(SHUOSHUO_DIR, 'shuoshuo-img');
+if (copiedShuoShuoImages > 0) {
+  logger.step('Copied shuoshuo images', `files=${copiedShuoShuoImages} dest=public/shuoshuo-img`);
 }
 
 const postsWithSearch = postRecords

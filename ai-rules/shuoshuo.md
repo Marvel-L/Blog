@@ -17,6 +17,8 @@
 3. **分享竞态**：分享弹窗的复制结果必须用 seq/generation 防护（快速关闭重开时旧弹窗迟到结果不得覆盖新弹窗的 autoCopied）。
 4. **定位高亮**：`?id=` 定位 + 高亮 + 定时清除的既有实现不得移除；不存在 id 时按普通列表显示。
 5. **无障碍**：分享/永久链接按钮有 aria-label（用预计算 snippet）；图片预览走 ImageViewer。
+6. **日期**：front matter 的 `date` 可选。缺省由 Git 首次提交日填充（`scripts/lib/git-file-dates.mjs` 的 `resolvePostDates`），合法手写值优先；无 Git 历史时回退构建日并 warn。不得把解析出的日期写回 `.md`。非法手写日期必须 fail-closed。
+7. **嵌套与配图**：`shuoshuo/` 下任意层级的 `.md` 都要收录（`listMarkdownFiles`）。`images` 里的相对路径按该文件所在目录解析为 `/shuoshuo-img/...`，文件必须存在，否则 fail-closed；`http(s)` 链接原样保留。不得把解析结果写回 `.md`。公开 URL 仍是 `/shuoshuo/<id>`，不使用文件路径。
 
 ## 常见陷阱
 

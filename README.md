@@ -139,14 +139,15 @@ draft: false                  # 草稿不会发布
 
 ### 说说
 
-`/shuoshuo` 是类似朋友圈的短动态页，内容存放在 `shuoshuo/*.md`（无需标题），可选 `images` frontmatter 字段（图片链接数组）以九宫格展示配图。每条说说生成独立静态页 `/shuoshuo/<id>`，完整 SSR 正文与 SEO 标签，收录进 `sitemap-shuoshuo.xml` 与 `llms.txt`；旧的 `?id=` 定位链接仍兼容。
+`/shuoshuo` 是类似朋友圈的短动态页，内容存放在 `shuoshuo/`（可嵌套子目录，例如 `shuoshuo/26-09-19/26-09-19.md`，无需标题）。`images` 可选：图床链接，或与该 Markdown 同目录的本地图片（如 `img.png`），构建时改写成 `/shuoshuo-img/...` 并以九宫格展示。`date` 不必手填：缺省由 Git 首次提交日填充，合法手写值优先，无 Git 历史时回退构建日（不写回 `.md`）。每条说说生成独立静态页 `/shuoshuo/<id>`，完整 SSR 正文与 SEO 标签，收录进 `sitemap-shuoshuo.xml` 与 `llms.txt`；旧的 `?id=` 定位链接仍兼容。
 
 ```yaml
 ---
 id: my-first-shuoshuo        # 全站唯一
-date: 2026-08-14
+date: 2026-08-14             # 可选：缺省由 Git 首次提交日填充
 images:
   - https://cdn.example.com/photo-1.png
+  - img.png                  # 与本文件同目录的本地图片
 ---
 今天也是元气满满的一天 🎉
 ```

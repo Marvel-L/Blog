@@ -7,7 +7,7 @@
 ## 关键文件
 
 - `scripts/generate-site-data.mjs`（约 1100 行）
-- `scripts/lib/git-file-dates.mjs`（文章 date/updatedAt 的 Git 回退与合并）
+- `scripts/lib/git-file-dates.mjs`（文章 date/updatedAt、说说 date 的 Git 回退与合并）
 - `scripts/post-content-validator.mjs`（内容校验）
 - `scripts/feed-generator.mjs` / `feed-markdown.mjs`
 - `src/services/*`（消费 generated JSON）
@@ -25,13 +25,15 @@
 9. **评论数匹配口径**：fetch-giscus-comments 的 discussion 标题（页面 URL pathname）匹配必须叠加 BASE_PATH（withBasePath），子路径部署时 `/post/<id>` 匹配不上会导致评论数静默全缺。
 10. **文章日期**：`date` / `updatedAt` 在 front matter 中可选。缺省时由 Git 填充（首次提交日 / 最后改动日），合法手写值优先；无 Git 历史时回退构建日并 warn。不写回 `.md`。跑 gen:data 的 CI checkout 必须 `fetch-depth: 0`，否则浅克隆会让首次提交日偏晚。
 11. **文章分级**：`rank` 可选。缺省或空字符串不写入闪卡字段；非空且不在 `content.config.json` 的 `postRanks` 内则 fail-closed。合法值经 `normalizeRank` 显式写入 `posts.json`，不要靠 front matter 白名单原样透传。展示规则见 [post-rank.md](post-rank.md)。
+12. **说说日期**：`shuoshuo/*.md` 的 `date` 可选，走与文章相同的 `resolvePostDates`（合法手写 > Git 首次提交日 > 构建日 warn）。非法手写值 fail-closed。不写回 `.md`。
+13. **说说目录与配图**：递归收录 `shuoshuo/` 下全部 `.md`。`images` 相对路径解析到该文件旁的本地图片并改写为 `/shuoshuo-img/...`（复制到 `public/shuoshuo-img/`）；缺失或越界 fail-closed。图床 `http(s)` 链接不改写。
 
 ## 常见陷阱
 
 - 修改 front matter 字段解析会影响全部文章数据（日期/分类/tags 等）；
 - 校验器对代码块/行内代码内的伪链接已做屏蔽，新增解析规则要保持该屏蔽（防构建误杀）；
 - 图片引用校验（posts-img 本地路径）与外部图床 URL 的处理口径不要混淆；
-- 未提交的新文章本地预览日期可能是「今天」，提交后下次 gen:data 才稳定为 Git 日期。
+- 未提交的新文章/说说本地预览日期可能是「今天」，提交后下次 gen:data 才稳定为 Git 日期。
 
 ## 破例条款
 

@@ -53,6 +53,7 @@ content:
     path: shuoshuo
     format: yaml-frontmatter
     filename: "{fields.id}.md"
+    subfolders: true
     view:
       primary: date
       sort: date
@@ -65,9 +66,9 @@ content:
         pattern:
           regex: "^[A-Za-z0-9_-]+$"
           message: URL标识仅支持英文字母、数字、下划线和短横线（中文等字符会使文件名生成失败）
-      - { name: date, label: 发布时间, type: date, required: true }
+      - { name: date, label: 发布时间（可选，留空则用 Git 首次提交日）, type: date }
       - name: images
-        label: 图片链接（可选，九宫格展示）
+        label: 配图（可选，九宫格；图床链接，或与 Markdown 同目录的本地图片，如 img.png）
         type: string
         list: true
       - name: body

@@ -15,6 +15,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { AppShell } from './App';
 import { SsgRouteContext, buildSsgRouteData, type SsgRouteData } from './ssr/routeData';
 import { Post } from './types';
+import { getRouterBasename } from './utils/siteUrl';
 
 const RENDER_TIMEOUT_MS = 30000;
 
@@ -78,11 +79,16 @@ export const renderApp = async (
 ): Promise<{ html: string; head: string; routeData: SsgRouteData | undefined }> => {
   const routeData = buildSsgRouteData(options.posts ?? [], url);
   const helmetContext = {};
+  // 客户端 Router 用 getRouterBasename()（生产为 /Blog）。SSG 若写死 "/"，
+  // 预渲染出来的 <a href> 会落到域名根路径，GitHub Pages 项目站点击即 404。
+  // buildSsgRouteData 仍用站内路径（/post/:id），不带 basename。
+  const basename = getRouterBasename();
+  const location = basename === '/' ? url : `${basename}${url.startsWith('/') ? url : `/${url}`}`;
 
   const rendered = await renderTreeToString(
     <HelmetProvider context={helmetContext}>
       <SsgRouteContext.Provider value={routeData}>
-        <StaticRouter location={url} basename="/">
+        <StaticRouter location={location} basename={basename}>
           <html>
             <head />
             <body>

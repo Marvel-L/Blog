@@ -27,6 +27,7 @@
 - SSR 端 framer-motion 的 initial/animate 组合：SSR 输出应为可见态（animate 态），禁止把内容渲染成 opacity:0；
 - ssr-entry 的渲染超时（30s）防止懒加载 chunk 永不 resolve 导致构建挂起；
 - 修改 ssg.mjs 的 HTML 注入顺序会影响水合正确性（routeData script 必须在 root div 前）。
+- `StaticRouter` 的 basename 必须与客户端 `getRouterBasename()` 一致，location 要带上该前缀。写死 `"/"` 时，子路径部署（`/Blog`）的预渲染链接会指向域名根，点击 404。
 
 ## 破例条款
 

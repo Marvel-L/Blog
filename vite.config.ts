@@ -13,11 +13,11 @@ const POST_IMAGE_TYPES: Record<string, string> = {
   '.avif': 'image/avif',
 };
 
-/** 开发服务器把 /posts-img/ 映射到 posts/ 里和 Markdown 放在一起的图片。 */
-const serveSiblingPostImages = (): Plugin => {
-  const postsRoot = path.resolve(__dirname, 'posts');
+/** 开发服务器把 /posts-img/、/shuoshuo-img/ 映射到对应目录里和 Markdown 放在一起的图片。 */
+const serveSiblingImages = (urlPrefix: `/${string}/`, contentDir: string): Plugin => {
+  const contentRoot = path.resolve(__dirname, contentDir);
   return {
-    name: 'serve-sibling-post-images',
+    name: `serve-sibling-images-${contentDir}`,
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const raw = req.url?.split('?')[0] ?? '';
@@ -32,18 +32,18 @@ const serveSiblingPostImages = (): Plugin => {
           next();
           return;
         }
-        if (!pathname.startsWith('/posts-img/')) {
+        if (!pathname.startsWith(urlPrefix)) {
           next();
           return;
         }
-        const relative = pathname.slice('/posts-img/'.length);
+        const relative = pathname.slice(urlPrefix.length);
         if (!relative || relative.split('/').includes('..')) {
           next();
           return;
         }
-        const filePath = path.resolve(postsRoot, relative);
+        const filePath = path.resolve(contentRoot, relative);
         const ext = path.extname(filePath).toLowerCase();
-        if (!filePath.startsWith(`${postsRoot}${path.sep}`) || !POST_IMAGE_TYPES[ext] || !fs.existsSync(filePath)) {
+        if (!filePath.startsWith(`${contentRoot}${path.sep}`) || !POST_IMAGE_TYPES[ext] || !fs.existsSync(filePath)) {
           next();
           return;
         }
@@ -178,7 +178,13 @@ export default defineConfig(({ command, mode }) => {
   const appBase = normalizeBasePath(env.VITE_BASE_PATH);
 
   return {
-    plugins: [react(), serveSiblingPostImages(), injectEntryCssPreload(), trimKatexFonts()],
+    plugins: [
+      react(),
+      serveSiblingImages('/posts-img/', 'posts'),
+      serveSiblingImages('/shuoshuo-img/', 'shuoshuo'),
+      injectEntryCssPreload(),
+      trimKatexFonts(),
+    ],
     base: appBase,
     esbuild:
       command === 'build'
