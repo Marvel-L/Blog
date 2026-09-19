@@ -93,6 +93,18 @@ describe('Post', () => {
     expect(screen.queryByText('王者')).not.toBeInTheDocument();
   });
 
+  it('把正文旁的相对图片改写到 /posts-img', async () => {
+    vi.mocked(postsService.getPostById).mockResolvedValue(
+      makePost({
+        filePath: '/posts/life/choose/北京工作切换.md',
+        content: '合照\n\n![my_baby_and_me.jpg](my_baby_and_me.jpg)',
+      }) as never,
+    );
+    renderPost();
+    const img = await screen.findByRole('img', { name: 'my_baby_and_me.jpg' });
+    expect(img).toHaveAttribute('src', '/posts-img/life/choose/my_baby_and_me.jpg');
+  });
+
   it('分级文章在标题区展示段位，正文不被闪面覆盖', async () => {
     vi.mocked(postsService.getPostById).mockResolvedValue(makePost({ rank: '星耀' }) as never);
     renderPost();

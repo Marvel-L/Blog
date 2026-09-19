@@ -105,6 +105,13 @@ describe('Layout', () => {
     expect(screen.getByText('页面内容')).toBeInTheDocument();
   });
 
+  it('氛围粒子层低于正文，避免花瓣盖住文章图片', () => {
+    renderLayout();
+    const canvas = document.querySelector('canvas');
+    expect(canvas).toBeTruthy();
+    expect(canvas).toHaveClass('z-particle');
+  });
+
   it('不再渲染反馈侧签', () => {
     renderLayout();
     expect(screen.queryByTestId('mock-feedback-dock')).not.toBeInTheDocument();

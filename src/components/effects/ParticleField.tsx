@@ -1,6 +1,8 @@
 /**
  * 全屏氛围粒子层（Canvas）：小雨 / 大雨 / 樱花 / 萤火虫。
  * - pointer-events: none，不拦截点击
+ * - z-particle（-1）：与纸色底同层、DOM 在 Background 之后所以花瓣可见，
+ *   又低于正文（main/footer 为 auto/正 z），避免花瓣盖住文章图片
  * - 尊重 prefers-reduced-motion：静态稀疏粒子，不跑 rAF
  * - 页面隐藏时暂停循环，降低后台耗电
  */
@@ -313,6 +315,6 @@ export const ParticleField: FC<ParticleFieldProps> = ({ effect, enabled = true }
   }
 
   return (
-    <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-[1] h-full w-full" aria-hidden="true" />
+    <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-particle h-full w-full" aria-hidden="true" />
   );
 };

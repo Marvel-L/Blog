@@ -2,13 +2,14 @@
  * 说说条目：正文、九宫格图片（可预览）、日期与分享入口。
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Link2, Share2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { siteConfig } from '@config/site.config';
 import { assetUrl } from '@/utils/siteUrl';
+import { SHUOSHUO_IMAGE_OPTIONS, siblingContentImageUrl } from '@/utils/post-image-src.mjs';
 import type { ShuoShuo as ShuoShuoEntry } from '../types';
 import { ProgressiveImage } from '@/components/ProgressiveImage';
 import { formatDate } from '@/utils/date';
@@ -83,6 +84,36 @@ export const ShuoShuoItem: React.FC<ShuoShuoItemProps> = ({
   // 分享/永久链接的 aria-label 共用同一段文本，只计算一次。
   const snippet = shareSnippet ?? (stripMarkdown(item.content).slice(0, 24) || item.date);
 
+  const markdownComponents = useMemo(
+    () => ({
+      img: ({ src, alt, node: _node, ...props }: React.ImgHTMLAttributes<HTMLImageElement> & { node?: unknown }) => {
+        const siblingUrl = siblingContentImageUrl(item.filePath, src, SHUOSHUO_IMAGE_OPTIONS);
+        const resolvedSrc = siblingUrl
+          ? assetUrl(siblingUrl)
+          : src && (/^[a-z][a-z\d+.-]*:/i.test(src) || src.startsWith('/'))
+            ? assetUrl(src)
+            : undefined;
+        return (
+          <button
+            type="button"
+            onClick={() => resolvedSrc && onPreview(resolvedSrc, alt)}
+            className="my-2 block w-full overflow-hidden rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-zinc-100"
+            aria-label={alt ? `预览图片：${alt}` : '预览图片'}
+          >
+            <ProgressiveImage
+              {...props}
+              src={resolvedSrc}
+              alt={alt || ''}
+              loading="lazy"
+              className="h-auto w-full rounded-control"
+            />
+          </button>
+        );
+      },
+    }),
+    [item.filePath, onPreview],
+  );
+
   return (
     <li id={`shuoshuo-${item.id}`} data-shuoshuo-id={item.id} className="relative flex gap-4 scroll-mt-24 sm:gap-5">
       {/* 头像：左列固定，朋友圈式布局 */}
@@ -109,7 +140,9 @@ export const ShuoShuoItem: React.FC<ShuoShuoItemProps> = ({
         >
           {item.content && (
             <div className="prose prose-stone max-w-none dark:prose-invert prose-p:my-1.5 prose-p:leading-7 prose-li:my-0.5 prose-blockquote:my-2 prose-blockquote:border-l-zinc-400 prose-blockquote:bg-zinc-100/70 prose-blockquote:px-3 prose-blockquote:py-1 prose-blockquote:not-italic prose-img:my-1.5 dark:prose-blockquote:border-l-zinc-500 dark:prose-blockquote:bg-zinc-900">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.content}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                {item.content}
+              </ReactMarkdown>
             </div>
           )}
 

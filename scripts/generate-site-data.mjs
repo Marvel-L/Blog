@@ -19,7 +19,7 @@ import {
 import { extractMarkdownHeadings } from '../src/utils/headings-core.mjs';
 import { buildRssFeed } from './feed-generator.mjs';
 import { fetchCommentCounts } from './fetch-giscus-comments.mjs';
-import { siblingContentImageUrl, siblingImageRelative } from '../src/utils/post-image-src.mjs';
+import { SHUOSHUO_IMAGE_OPTIONS, siblingContentImageUrl, siblingImageRelative } from '../src/utils/post-image-src.mjs';
 import { getGitFileDates, resolvePostDates } from './lib/git-file-dates.mjs';
 import { listMarkdownFiles } from './lib/list-markdown-files.mjs';
 
@@ -618,8 +618,6 @@ const buildPost = (record) => {
 // images 可写图床链接，或与该 Markdown 同目录的本地图片（如 img.png），改写成 /shuoshuo-img/...。
 // id 缺失、非法手写 date、本地图片缺失、id 重复直接 fail-closed。
 // 提前到文章内容校验之前：文章正文里的 /shuoshuo/<id> 链接需要校验目标说说存在。
-const SHUOSHUO_IMAGE_OPTIONS = { contentDir: 'shuoshuo', publicPrefix: '/shuoshuo-img' };
-
 const resolveShuoShuoImage = (siteFilePath, raw, filename, index) => {
   if (/^https?:\/\//i.test(raw)) {
     return raw;

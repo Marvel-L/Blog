@@ -78,6 +78,9 @@ export default {
         media: '8px',
       },
       zIndex: {
+        // 氛围粒子：与纸色底同层偏上（DOM 在 Background 之后），且必须低于正文。
+        // 曾用 z-[1] 会盖住文章图片（花瓣叠在合照上）。
+        particle: '-1',
         floating: '40',
         nav: '50',
         'nav-panel': '85',

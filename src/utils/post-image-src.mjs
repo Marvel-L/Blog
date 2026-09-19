@@ -18,6 +18,12 @@ const resolveImageLayout = (options = {}) => {
   return { contentDir, publicPrefix };
 };
 
+/** 说说旁图片：contentDir=shuoshuo、publicPrefix=/shuoshuo-img。 */
+export const SHUOSHUO_IMAGE_OPTIONS = Object.freeze({
+  contentDir: 'shuoshuo',
+  publicPrefix: '/shuoshuo-img',
+});
+
 /** 站点路径（/posts/a/b.md）或磁盘路径（.../posts/a/b.md）都收成 /posts/... */
 export const toSiteContentPath = (filePath, contentDir = 'posts') => {
   const normalized = String(filePath ?? '').replace(/\\/g, '/');

@@ -86,4 +86,20 @@ describe('ShuoShuoItem', () => {
     renderItem({ item: makeItem() });
     expect(screen.queryByRole('button', { name: /查看图片/ })).not.toBeInTheDocument();
   });
+
+  it('正文相对路径图片改写到 /shuoshuo-img 并可预览', async () => {
+    const user = userEvent.setup();
+    const onPreview = vi.fn();
+    renderItem({
+      item: makeItem({
+        filePath: '/shuoshuo/26-09-19/26-09-19.md',
+        content: '午饭后\n\n![after_lunch.jpg](after_lunch.jpg)',
+      }),
+      onPreview,
+    });
+    const img = screen.getByRole('img', { name: 'after_lunch.jpg' });
+    expect(img).toHaveAttribute('src', '/shuoshuo-img/26-09-19/after_lunch.jpg');
+    await user.click(screen.getByRole('button', { name: '预览图片：after_lunch.jpg' }));
+    expect(onPreview).toHaveBeenCalledWith('/shuoshuo-img/26-09-19/after_lunch.jpg', 'after_lunch.jpg');
+  });
 });

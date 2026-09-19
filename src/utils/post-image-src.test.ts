@@ -1,11 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { siblingContentImageUrl, siblingImageRelative, siblingPostImageUrl } from './post-image-src.mjs';
+import {
+  siblingContentImageUrl,
+  siblingImageRelative,
+  siblingPostImageUrl,
+  SHUOSHUO_IMAGE_OPTIONS,
+} from './post-image-src.mjs';
 
 describe('siblingPostImageUrl', () => {
   const filePath = '/posts/life/choose/北京工作切换.md';
 
   it('把文章旁边的相对图片改写到 /posts-img', () => {
     expect(siblingPostImageUrl(filePath, 'bei_jing.jpg')).toBe('/posts-img/life/choose/bei_jing.jpg');
+    expect(siblingPostImageUrl(filePath, 'my_baby_and_me.jpg')).toBe('/posts-img/life/choose/my_baby_and_me.jpg');
     expect(siblingPostImageUrl(filePath, './my_baby_and_me.jpg')).toBe('/posts-img/life/choose/my_baby_and_me.jpg');
   });
 
@@ -29,11 +35,12 @@ describe('siblingPostImageUrl', () => {
 
 describe('siblingContentImageUrl — 说说', () => {
   const filePath = '/shuoshuo/26-09-19/26-09-19.md';
-  const options = { contentDir: 'shuoshuo', publicPrefix: '/shuoshuo-img' };
+  const options = SHUOSHUO_IMAGE_OPTIONS;
 
   it('把说说旁边的相对图片改写到 /shuoshuo-img', () => {
     expect(siblingContentImageUrl(filePath, 'img.png', options)).toBe('/shuoshuo-img/26-09-19/img.png');
     expect(siblingContentImageUrl(filePath, './img.png', options)).toBe('/shuoshuo-img/26-09-19/img.png');
+    expect(siblingContentImageUrl(filePath, 'after_lunch.jpg', options)).toBe('/shuoshuo-img/26-09-19/after_lunch.jpg');
     expect(siblingImageRelative(filePath, 'img.png', options)).toBe('26-09-19/img.png');
   });
 
