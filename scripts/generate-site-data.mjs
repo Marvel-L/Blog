@@ -373,7 +373,7 @@ const validatePostFrontmatter = (filename, data, formattedDate, formattedUpdated
     errors.push(`id "${id}" contains characters that are unsafe in a post URL`);
   }
   if (typeof data.category === 'string' && data.category.trim() && !POST_CATEGORIES.includes(data.category.trim())) {
-    errors.push(`category must be one of: ${POST_CATEGORIES.join(', ')}`);
+    errors.push(`category "${data.category.trim()}" must be one of: ${POST_CATEGORIES.join(', ')}`);
   }
   if (data.featured !== undefined && typeof data.featured !== 'boolean') {
     errors.push('featured must be a boolean when provided');

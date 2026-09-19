@@ -31,6 +31,16 @@ const collections = [
   { name: 'shuoshuo', filenameTemplate: '{fields.id}.md', slugField: 'id' },
 ];
 
+describe('PagesCMS posts 分类与 content.config 白名单同步', () => {
+  it('category select options 与 postCategories 一致', () => {
+    const contentConfig = JSON.parse(readFileSync(path.join(repoRoot, 'config/content.config.json'), 'utf8'));
+    const postsCollection = pagesConfig.content.find((item) => item.name === 'posts');
+    const categoryField = postsCollection?.fields.find((f) => f.name === 'category');
+    expect(categoryField?.type).toBe('select');
+    expect(categoryField?.options?.values).toEqual(contentConfig.postCategories);
+  });
+});
+
 describe('PagesCMS 集合：filename 模板与 slug 字段约束（回归：Invalid extension ""）', () => {
   for (const { name, filenameTemplate, slugField } of collections) {
     const collection = pagesConfig.content.find((item) => item.name === name);
