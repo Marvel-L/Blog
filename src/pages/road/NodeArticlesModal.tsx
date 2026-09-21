@@ -7,7 +7,7 @@ import { X } from 'lucide-react';
 import { useModalOverlay } from '@/hooks/useModalOverlay';
 import { CompactPostCard } from '@/components/CompactPostCard';
 import type { RoadNodeConfig } from '@config/road.config';
-import { resolveNodePosts } from '@/services/road';
+import { resolveNodeArticles } from '@/services/road';
 import { preloadPage } from '@/utils/preload';
 
 interface NodeArticlesModalProps {
@@ -31,7 +31,7 @@ export const NodeArticlesModal: React.FC<NodeArticlesModalProps> = ({ node, onCl
     return null;
   }
 
-  const articles = resolveNodePosts(node);
+  const { articles, tags, categories } = resolveNodeArticles(node);
 
   return (
     <div
@@ -66,6 +66,26 @@ export const NodeArticlesModal: React.FC<NodeArticlesModalProps> = ({ node, onCl
         </div>
 
         <div className="overflow-y-auto px-4 py-3">
+          {tags.length > 0 || categories.length > 0 ? (
+            <ul className="mb-3 flex flex-wrap gap-1.5" aria-label="关联标签与分类">
+              {categories.map((category) => (
+                <li
+                  key={`category-${category}`}
+                  className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                >
+                  {category}
+                </li>
+              ))}
+              {tags.map((tag) => (
+                <li
+                  key={`tag-${tag}`}
+                  className="rounded-full border border-zinc-200 px-2 py-0.5 text-[11px] text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
+                >
+                  #{tag}
+                </li>
+              ))}
+            </ul>
+          ) : null}
           {articles.length === 0 ? (
             <p className="py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">暂无关联文章</p>
           ) : (

@@ -1,12 +1,12 @@
 /**
  * Road 页：全画布沉浸式有向图；左侧 Root、底部 Paths 为浮层，无页面大标题。
  */
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useState } from 'react';
 import { siteConfig } from '@config/site.config';
 import { Seo, buildSiteSchemas } from '@/components/Seo';
 import { absoluteSiteUrl } from '@/utils/siteUrl';
-import { getRoadGraphs, formatPathLabels } from '@/services/road';
-import { enumeratePaths } from '@/pages/road/layout';
+import { formatPathLabels, getRoadGraphs, readActiveRoadGraphId, writeActiveRoadGraphId } from '@/services/road';
+import { enumeratePaths, resolveGraphRootId } from '@/pages/road/layout';
 import { RoadGraph } from '@/pages/road/RoadGraph';
 import { NodeArticlesModal } from '@/pages/road/NodeArticlesModal';
 import type { RoadNodeConfig } from '@config/road.config';
@@ -19,9 +19,16 @@ export const Road = () => {
   const [selectedNode, setSelectedNode] = useState<RoadNodeConfig | null>(null);
   const [activePathIndex, setActivePathIndex] = useState<number | null>(null);
 
+  useLayoutEffect(() => {
+    const saved = readActiveRoadGraphId(graphs);
+    if (saved) {
+      setActiveGraphId(saved);
+    }
+  }, [graphs]);
+
   const activeGraph = graphs.find((graph) => graph.id === activeGraphId) ?? graphs[0];
   const nodes = activeGraph?.nodes ?? [];
-  const rootId = activeGraph?.id ?? '';
+  const rootId = activeGraph ? resolveGraphRootId(nodes, activeGraph.id) : '';
 
   const paths = useMemo(() => (rootId ? enumeratePaths(nodes, rootId) : []), [nodes, rootId]);
   const highlightedPath = activePathIndex !== null && paths[activePathIndex] ? paths[activePathIndex] : null;
@@ -42,6 +49,7 @@ export const Road = () => {
 
   const handleSelectGraph = (graphId: string) => {
     setActiveGraphId(graphId);
+    writeActiveRoadGraphId(graphId);
     setActivePathIndex(null);
     setSelectedNode(null);
   };

@@ -4,6 +4,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RoadNodeConfig } from '@config/road.config';
+import { resolveNodeArticles } from '@/services/road';
 import { layoutRoadGraph, ROAD_NODE_HEIGHT, ROAD_NODE_WIDTH, type RoadLayoutEdge } from './layout';
 
 interface RoadGraphProps {
@@ -214,7 +215,7 @@ export const RoadGraph: React.FC<RoadGraphProps> = ({
         {layout.nodes.map((node) => {
           const selected = selectedNodeId === node.id;
           const onPath = Boolean(highlightedPath?.includes(node.id));
-          const postCount = node.posts?.length ?? 0;
+          const postCount = resolveNodeArticles(node).articles.filter((article) => article.post).length;
           return (
             <button
               key={node.id}

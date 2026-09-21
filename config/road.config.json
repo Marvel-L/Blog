@@ -1,35 +1,92 @@
 {
+  "note": "节点用 tags、category 收录文章，命中任一标签或分类即展示。省略 tags 或 category 时，按已写的另一项找出相关文章（两项都省略则按节点 id 与 title），再自动补上这些文章的全部标签和分类。posts 用来手动挂上单篇文章，填写该文 front matter 的 id，会与标签、分类结果合并。parents 省略表示这张图的根节点。",
   "graphs": [
     {
       "id": "golang",
       "title": "Golang",
-      "description": "Go 语言核心概念与并发实践路线",
       "nodes": [
         {
           "id": "golang",
           "title": "Golang",
-          "description": "Go 语言根基与语言特性",
-          "posts": [""]
+          "posts": [],
+          "tags": [""],
+          "category": [""]
         },
         {
           "id": "channel",
           "title": "Channel",
-          "description": "channel 的底层实现与常见用法",
           "parents": ["golang"],
           "posts": []
         },
         {
           "id": "goroutine",
           "title": "Goroutine",
-          "description": "协程模型、调度与生命周期",
           "parents": ["golang"],
           "posts": []
         },
         {
           "id": "pool",
           "title": "协程池实战",
-          "description": "结合 Channel 与 Goroutine 落地协程池",
           "parents": ["channel", "goroutine"],
+          "posts": []
+        }
+      ]
+    },
+    {
+      "id": "程序员",
+      "title": "程序员",
+      "nodes": [
+        {
+          "id": "程序员的一生",
+          "title": "程序员的一生",
+          "posts": []
+        },
+        {
+          "id": "算法",
+          "title": "算法",
+          "parents": ["程序员的一生"],
+          "posts": []
+        },
+        {
+          "id": "数据结构",
+          "title": "数据结构",
+          "parents": ["算法"],
+          "posts": []
+        },
+        {
+          "id": "DP",
+          "title": "DP",
+          "parents": ["算法"],
+          "posts": []
+        },
+        {
+          "id": "编程语言",
+          "title": "编程语言",
+          "parents": ["程序员的一生"],
+          "posts": []
+        },
+        {
+          "id": "Go",
+          "title": "Go",
+          "parents": ["编程语言"],
+          "posts": []
+        },
+        {
+          "id": "中间件",
+          "title": "中间件",
+          "parents": ["程序员的一生"],
+          "posts": []
+        },
+        {
+          "id": "Mysql",
+          "title": "Mysql",
+          "parents": ["中间件"],
+          "posts": []
+        },
+        {
+          "id": "Redis",
+          "title": "Redis",
+          "parents": ["中间件"],
           "posts": []
         }
       ]

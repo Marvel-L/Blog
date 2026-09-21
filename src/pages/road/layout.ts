@@ -33,14 +33,29 @@ const H_GAP = 80;
 const V_GAP = 88;
 const PADDING = 40;
 
+/**
+ * 解析真正用于分层的根节点。
+ * 左侧 Root 的 id 可以和节点 id 不同（例如视图叫「程序员」、根节点叫「程序员的一生」）。
+ * 优先采用与 preferredId 同名的节点；否则取没有入边的节点。
+ */
+export const resolveGraphRootId = (nodes: RoadNodeConfig[], preferredId: string): string => {
+  if (nodes.some((node) => node.id === preferredId)) {
+    return preferredId;
+  }
+  const ids = new Set(nodes.map((node) => node.id));
+  const roots = nodes.filter((node) => !(node.parents ?? []).some((parentId) => ids.has(parentId)));
+  return roots[0]?.id ?? preferredId;
+};
+
 /** 从根出发按拓扑分层；无法到达的节点追加到末层。 */
 export const computeLevels = (nodes: RoadNodeConfig[], rootId: string): Map<string, number> => {
+  const resolvedRootId = resolveGraphRootId(nodes, rootId);
   const levels = new Map<string, number>();
   const queue: string[] = [];
 
-  if (nodes.some((node) => node.id === rootId)) {
-    levels.set(rootId, 0);
-    queue.push(rootId);
+  if (nodes.some((node) => node.id === resolvedRootId)) {
+    levels.set(resolvedRootId, 0);
+    queue.push(resolvedRootId);
   }
 
   while (queue.length > 0) {
@@ -100,8 +115,9 @@ export const enumeratePaths = (nodes: RoadNodeConfig[], rootId: string): string[
     }
   };
 
-  if (nodes.some((node) => node.id === rootId)) {
-    walk(rootId, []);
+  const resolvedRootId = resolveGraphRootId(nodes, rootId);
+  if (nodes.some((node) => node.id === resolvedRootId)) {
+    walk(resolvedRootId, []);
   }
   return paths;
 };
