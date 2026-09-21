@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { remarkCommonPlugins } from '@/utils/markdownPlugins';
 import { siteConfig } from '@config/site.config';
 import { Seo, buildSiteSchemas } from '@/components/Seo';
 import { ProgressiveImage } from '@/components/ProgressiveImage';
@@ -361,7 +361,7 @@ const CardBody = ({ item, deckTitle }: { item: AccumulateItem; deckTitle: string
       </h2>
       {item.content ? (
         <div className="prose prose-stone mx-auto mt-4 max-w-xl text-left dark:prose-invert prose-p:my-2 prose-p:text-sm prose-p:leading-7 sm:prose-p:text-base">
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+          <ReactMarkdown remarkPlugins={remarkCommonPlugins} components={markdownComponents}>
             {item.content}
           </ReactMarkdown>
         </div>

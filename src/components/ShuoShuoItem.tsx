@@ -6,7 +6,7 @@ import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Link2, Share2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { remarkCommonPlugins } from '@/utils/markdownPlugins';
 import { siteConfig } from '@config/site.config';
 import { assetUrl } from '@/utils/siteUrl';
 import { SHUOSHUO_IMAGE_OPTIONS, siblingContentImageUrl } from '@/utils/post-image-src.mjs';
@@ -67,7 +67,7 @@ interface ShuoShuoItemProps {
   showDetailLink?: boolean;
   /**
    * 预计算的分享摘要（stripMarkdown 结果）：列表页由 ShuoShuo.tsx 的
-   * strippedContents 缓存传入，避免每次击键重渲染对每条说说重跑 14 步正则链。
+   * strippedContents 缓存传入，避免每次击键重渲染对每条说说重跑剥离正则。
    * 未传时回退组件内计算（详情页单条场景无成本顾虑）。
    */
   shareSnippet?: string;
@@ -140,7 +140,7 @@ export const ShuoShuoItem: React.FC<ShuoShuoItemProps> = ({
         >
           {item.content && (
             <div className="prose prose-stone max-w-none dark:prose-invert prose-p:my-1.5 prose-p:leading-7 prose-li:my-0.5 prose-blockquote:my-2 prose-blockquote:border-l-zinc-400 prose-blockquote:bg-zinc-100/70 prose-blockquote:px-3 prose-blockquote:py-1 prose-blockquote:not-italic prose-img:my-1.5 dark:prose-blockquote:border-l-zinc-500 dark:prose-blockquote:bg-zinc-900">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+              <ReactMarkdown remarkPlugins={remarkCommonPlugins} components={markdownComponents}>
                 {item.content}
               </ReactMarkdown>
             </div>

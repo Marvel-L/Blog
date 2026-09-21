@@ -6,9 +6,8 @@ import React, { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import DOMPurify from 'dompurify';
-import { remarkCodeMeta } from '@/utils/remarkCodeMeta';
+import { remarkPostBasePlugins } from '@/utils/markdownPlugins';
 
 import {
   ArrowLeft,
@@ -1344,7 +1343,7 @@ export const Post = () => {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [previewImage, setPreviewImage] = useState<{ src: string; alt?: string } | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
-  const [remarkPlugins, setRemarkPlugins] = useState<MarkdownPlugin[]>([remarkGfm, remarkCodeMeta]);
+  const [remarkPlugins, setRemarkPlugins] = useState<MarkdownPlugin[]>([...remarkPostBasePlugins]);
   const [rehypePlugins, setRehypePlugins] = useState<MarkdownPlugin[]>([]);
   const [mermaidRenderer, setMermaidRenderer] = useState<MermaidRenderer | null>(null);
   const [mermaidTheme, setMermaidTheme] = useState<'light' | 'dark'>('light');
@@ -1460,7 +1459,7 @@ export const Post = () => {
 
   useEffect(() => {
     if (!post?.content) {
-      setRemarkPlugins([remarkGfm, remarkCodeMeta]);
+      setRemarkPlugins([...remarkPostBasePlugins]);
       setRehypePlugins([]);
       setMermaidRenderer(null);
       return;
@@ -1472,7 +1471,7 @@ export const Post = () => {
       // 保持 remarkCodeMeta 常驻：pre 渲染依赖它透传代码块 data-meta
       // （title="..." 文件名等），异步增强加载时若被移除，文件名展示与
       // 下载命名会失效。
-      const nextRemarkPlugins: MarkdownPlugin[] = [remarkGfm, remarkCodeMeta];
+      const nextRemarkPlugins: MarkdownPlugin[] = [...remarkPostBasePlugins];
       const nextRehypePlugins: MarkdownPlugin[] = [];
       let nextMermaidRenderer: MermaidRenderer | null = null;
       const tasks: Promise<void>[] = [];
@@ -1528,7 +1527,7 @@ export const Post = () => {
         if (!cancelled) {
           console.error('Markdown 增强组件加载失败:', error);
           // 失败回退同样保持 remarkCodeMeta 常驻，避免代码块 data-meta 丢失。
-          setRemarkPlugins([remarkGfm, remarkCodeMeta]);
+          setRemarkPlugins([...remarkPostBasePlugins]);
           setRehypePlugins([]);
           setMermaidRenderer(null);
         }

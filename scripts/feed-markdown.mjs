@@ -1,10 +1,12 @@
 /**
- * Markdown → RSS 正文 HTML 转换：unified 管道（GFM + 图片路径处理 + 代码围栏净化），供 feed-generator 使用。
+ * Markdown → RSS 正文 HTML 转换：unified 管道（GFM + Typora 下划线/高亮 +
+ * 图片路径处理 + 代码围栏净化），供 feed-generator 使用。
  */
 
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
+import { remarkTyporaMarks } from '../src/utils/remark-typora-marks-core.mjs';
 import remarkMath from 'remark-math';
 import remarkRehype from 'remark-rehype';
 import rehypeKatex from 'rehype-katex';
@@ -130,6 +132,7 @@ const createProcessor = (options) =>
   unified()
     .use(remarkParse)
     .use(remarkGfm)
+    .use(remarkTyporaMarks)
     .use(remarkMath)
     .use(remarkRehype)
     .use(rehypeKatex)

@@ -24,6 +24,11 @@ describe('stripInlineMarkdown', () => {
     expect(stripInlineMarkdown('**粗体** __粗体__ *斜体* _斜体_ ~~删除~~')).toBe('粗体 粗体 斜体 斜体 删除');
   });
 
+  it('剥离 Typora 下划线/高亮且保留 C++', () => {
+    expect(stripInlineMarkdown('++下划线++ 与 ==高亮==')).toBe('下划线 与 高亮');
+    expect(stripInlineMarkdown('C++ 笔记')).toBe('C++ 笔记');
+  });
+
   it('剥离 HTML 标签', () => {
     expect(stripInlineMarkdown('<span>内联</span>')).toBe('内联');
   });

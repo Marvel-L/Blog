@@ -179,6 +179,23 @@ export default {
             },
             strong: { color: theme('colors.ink'), fontWeight: '700' },
 
+            // Typora：++下划线++ → ins；==黄色高亮== → mark。
+            ins: {
+              textDecoration: 'underline',
+              textDecorationThickness: '0.08em',
+              textUnderlineOffset: '0.18em',
+              textDecorationColor: '#78716c',
+              fontStyle: 'normal',
+            },
+            mark: {
+              backgroundColor: '#ffe58a',
+              color: 'inherit',
+              padding: '0.08em 0.28em',
+              borderRadius: '0.2em',
+              boxDecorationBreak: 'clone',
+              WebkitBoxDecorationBreak: 'clone',
+            },
+
             // GitHub 引用：无背景、灰左框、弱化文字色。
             blockquote: {
               fontFamily: theme('fontFamily.sans').join(', '),
@@ -284,6 +301,14 @@ export default {
             h3: { color: '#fafafa' },
             h4: { color: '#fafafa' },
             strong: { color: '#fafafa', fontWeight: '700' },
+
+            ins: {
+              textDecorationColor: '#a1a1aa',
+            },
+            mark: {
+              backgroundColor: 'rgba(250, 204, 21, 0.32)',
+              color: '#fefce8',
+            },
 
             blockquote: {
               color: '#8b949e',

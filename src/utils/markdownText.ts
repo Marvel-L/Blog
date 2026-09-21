@@ -28,6 +28,9 @@ export const stripMarkdown = (markdown: string): string => {
     .replace(/\*([^*]+)\*/g, '$1')
     // 删除线/脚注等残余标记
     .replace(/~~([^~]*)~~/g, '$1')
+    // Typora 下划线/高亮（成对剥离，避免误伤 C++ / a == b）
+    .replace(/\+\+(.+?)\+\+/g, '$1')
+    .replace(/==(.+?)==/g, '$1')
     // HTML 标签（原始 markdown 里的内嵌标签）
     .replace(/<[^>]*>/g, ' ')
     // 多余空白归一化

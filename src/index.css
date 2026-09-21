@@ -1305,10 +1305,22 @@ html.dark .mermaid-diagram > svg {
   .post-prose li,
   .post-prose strong,
   .post-prose em,
+  .post-prose ins,
   .post-prose h2,
   .post-prose h3,
   .post-prose h4 {
     color: #000 !important;
+  }
+
+  .post-prose ins {
+    text-decoration: underline !important;
+  }
+
+  .post-prose mark {
+    background: #ffe58a !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .post-prose a {

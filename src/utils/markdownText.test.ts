@@ -36,6 +36,11 @@ describe('stripMarkdown', () => {
     expect(stripMarkdown('~~已删除~~ 保留')).toBe('已删除 保留');
   });
 
+  it('Typora 下划线/高亮成对剥离且不误伤 C++', () => {
+    expect(stripMarkdown('++下划线++ 与 ==高亮==')).toBe('下划线 与 高亮');
+    expect(stripMarkdown('熟悉 C++ 与 a == b')).toBe('熟悉 C++ 与 a == b');
+  });
+
   it('HTML 标签替换为空白', () => {
     expect(stripMarkdown('文本 <span>内嵌</span> 标签')).toBe('文本 内嵌 标签');
   });
