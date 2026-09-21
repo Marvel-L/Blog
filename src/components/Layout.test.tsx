@@ -60,6 +60,22 @@ describe('Layout', () => {
     document.body.style.overflow = '';
   });
 
+  it('积累页把氛围粒子抬到阅读区之上', () => {
+    render(
+      <MemoryRouter initialEntries={['/accumulate']}>
+        <Layout>
+          <div>页面内容</div>
+        </Layout>
+      </MemoryRouter>,
+    );
+    expect(document.querySelector('.site-shell')).toHaveAttribute('data-particle-front', 'true');
+  });
+
+  it('其它页面不抬高氛围粒子', () => {
+    renderLayout();
+    expect(document.querySelector('.site-shell')).not.toHaveAttribute('data-particle-front');
+  });
+
   it('渲染导航栏主导航项（桌面端可见）', () => {
     renderLayout();
     // 顶栏导航 + 移动端底部标签栏各是一个 nav
@@ -67,6 +83,7 @@ describe('Layout', () => {
     expect(screen.getByRole('link', { name: /文章/ })).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: /归档/ }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole('link', { name: /标签/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '积累' })).toBeInTheDocument();
   });
 
   it('渲染主题切换按钮（桌面端与移动端顶栏各一个）', () => {

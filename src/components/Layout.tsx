@@ -26,6 +26,7 @@ import {
   MessageCircle,
   LayoutGrid,
   Map as MapIcon,
+  Library,
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { preloadPage } from '@/utils/preload';
@@ -66,6 +67,7 @@ const TEXT = {
   navShuoShuo: '说说',
   navAbout: '关于',
   navRoad: 'Road',
+  navAccumulate: '积累',
   rssFeed: 'RSS 订阅',
 };
 
@@ -90,6 +92,7 @@ const navItems: NavPathItem[] = [
   { path: '/friends', label: TEXT.navFriends, hint: '友情链接', icon: Users },
   { path: '/guestbook', label: TEXT.navGuestbook, hint: '留言互动', icon: MessageSquareText },
   { path: '/road', label: TEXT.navRoad, hint: '学习路线图', icon: MapIcon },
+  { path: '/accumulate', label: TEXT.navAccumulate, hint: '卡片式积累', icon: Library },
   { path: '/about', label: TEXT.navAbout, hint: '站点介绍', icon: Info },
 ];
 
@@ -1335,6 +1338,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
     <div
       className={`site-shell relative flex min-h-screen flex-col ${isReadingMode ? 'reading-mode-shell' : ''}`}
       data-reading-mode={isReadingMode ? 'true' : undefined}
+      data-particle-front={location.pathname === '/accumulate' ? 'true' : undefined}
     >
       <Background />
       {!isReadingMode && <ParticleField effect={particleEffect} />}

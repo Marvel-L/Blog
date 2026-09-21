@@ -69,6 +69,7 @@ const POSTS_DIR = path.join(__dirname, '../posts');
 const IMAGE_ROOT = path.join(__dirname, '../posts-img');
 const FRIENDS_DIR = path.join(__dirname, '../friends');
 const SHUOSHUO_DIR = path.join(__dirname, '../shuoshuo');
+const SUMMARY_DIR = path.join(__dirname, '../Summary');
 const OUTPUT_JSON_DIR = path.join(__dirname, '../generated');
 const PUBLIC_DIR = path.join(__dirname, '../public');
 const POST_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif']);
@@ -791,6 +792,10 @@ const copiedShuoShuoImages = copySiblingImages(SHUOSHUO_DIR, 'shuoshuo-img');
 if (copiedShuoShuoImages > 0) {
   logger.step('Copied shuoshuo images', `files=${copiedShuoShuoImages} dest=public/shuoshuo-img`);
 }
+const copiedSummaryImages = copySiblingImages(SUMMARY_DIR, 'summary-img');
+if (copiedSummaryImages > 0) {
+  logger.step('Copied summary images', `files=${copiedSummaryImages} dest=public/summary-img`);
+}
 
 const postsWithSearch = postRecords
   .map(buildPost)
@@ -912,6 +917,7 @@ const generateSitemap = () => {
     { path: 'guestbook', changefreq: 'weekly', priority: '0.5', lastmod: latestPostDate },
     { path: 'about', changefreq: 'monthly', priority: '0.7', lastmod: latestPostDate },
     { path: 'road', changefreq: 'weekly', priority: '0.7', lastmod: latestPostDate },
+    { path: 'accumulate', changefreq: 'weekly', priority: '0.6', lastmod: latestPostDate },
     { path: 'cover', changefreq: 'monthly', priority: '0.5', lastmod: latestPostDate },
     { path: 'watermark', changefreq: 'monthly', priority: '0.5', lastmod: latestPostDate },
     { path: 'search', changefreq: 'monthly', priority: '0.5', lastmod: latestPostDate },
@@ -1153,6 +1159,8 @@ const generateLlmsTxt = () => {
     `- [统计](${siteAbsoluteUrl('/stats')})`,
     `- [友链](${siteAbsoluteUrl('/friends')})`,
     `- [说说](${siteAbsoluteUrl('/shuoshuo')})`,
+    `- [Road](${siteAbsoluteUrl('/road')})`,
+    `- [积累](${siteAbsoluteUrl('/accumulate')})`,
     `- [关于](${siteAbsoluteUrl('/about')})`,
     `- [RSS 订阅](${siteAbsoluteUrl('/feed.xml')})`,
     '',

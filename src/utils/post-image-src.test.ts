@@ -4,6 +4,7 @@ import {
   siblingImageRelative,
   siblingPostImageUrl,
   SHUOSHUO_IMAGE_OPTIONS,
+  SUMMARY_IMAGE_OPTIONS,
 } from './post-image-src.mjs';
 
 describe('siblingPostImageUrl', () => {
@@ -47,5 +48,13 @@ describe('siblingContentImageUrl — 说说', () => {
   it('外链和跳出 shuoshuo 的路径不改写', () => {
     expect(siblingContentImageUrl(filePath, 'https://cdn.example.com/a.jpg', options)).toBeUndefined();
     expect(siblingContentImageUrl(filePath, '../../../secret.png', options)).toBeUndefined();
+  });
+});
+
+describe('siblingContentImageUrl — 积累', () => {
+  it('把 Summary 旁边的相对图片改写到 /summary-img', () => {
+    expect(siblingContentImageUrl('/Summary/名人名言/01-不积跬步.md', './pic.png', SUMMARY_IMAGE_OPTIONS)).toBe(
+      '/summary-img/%E5%90%8D%E4%BA%BA%E5%90%8D%E8%A8%80/pic.png',
+    );
   });
 });

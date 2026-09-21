@@ -13,7 +13,7 @@ const POST_IMAGE_TYPES: Record<string, string> = {
   '.avif': 'image/avif',
 };
 
-/** 开发服务器把 /posts-img/、/shuoshuo-img/ 映射到对应目录里和 Markdown 放在一起的图片。 */
+/** 开发服务器把 /posts-img/、/shuoshuo-img/、/summary-img/ 映射到对应目录里和 Markdown 放在一起的图片。 */
 const serveSiblingImages = (urlPrefix: `/${string}/`, contentDir: string): Plugin => {
   const contentRoot = path.resolve(__dirname, contentDir);
   return {
@@ -182,6 +182,7 @@ export default defineConfig(({ command, mode }) => {
       react(),
       serveSiblingImages('/posts-img/', 'posts'),
       serveSiblingImages('/shuoshuo-img/', 'shuoshuo'),
+      serveSiblingImages('/summary-img/', 'Summary'),
       injectEntryCssPreload(),
       trimKatexFonts(),
     ],

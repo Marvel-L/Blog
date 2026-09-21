@@ -24,6 +24,12 @@ export const SHUOSHUO_IMAGE_OPTIONS = Object.freeze({
   publicPrefix: '/shuoshuo-img',
 });
 
+/** 积累旁图片：contentDir=Summary、publicPrefix=/summary-img。 */
+export const SUMMARY_IMAGE_OPTIONS = Object.freeze({
+  contentDir: 'Summary',
+  publicPrefix: '/summary-img',
+});
+
 /** 站点路径（/posts/a/b.md）或磁盘路径（.../posts/a/b.md）都收成 /posts/... */
 export const toSiteContentPath = (filePath, contentDir = 'posts') => {
   const normalized = String(filePath ?? '').replace(/\\/g, '/');

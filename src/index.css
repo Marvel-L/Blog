@@ -52,6 +52,12 @@
   }
 }
 
+/* 积累页：粒子盖在阅读区之上（仍低于导航 z-nav=50 与返回顶部 z-floating=40），
+   其它页面保持 z-particle（-1），避免花瓣盖住文章图片。 */
+.site-shell[data-particle-front='true'] > canvas {
+  z-index: 30;
+}
+
 @layer base {
   html {
     /* 滚动行为统一由 JS 显式控制（behavior: smooth/auto），不做全局平滑，

@@ -27,6 +27,7 @@ const CoverGenerator = lazy(pageLoaders['/cover']);
 const Watermark = lazy(pageLoaders['/watermark']);
 const SearchPage = lazy(pageLoaders['/search']);
 const RoadPage = lazy(pageLoaders['/road']);
+const AccumulatePage = lazy(pageLoaders['/accumulate']);
 const NotFound = lazy(() => import('./pages/NotFound').then((m) => ({ default: m.NotFound })));
 const CookieNotice = lazy(() => import('./components/CookieNotice').then((m) => ({ default: m.CookieNotice })));
 const TypewriterIntro = lazy(() =>
@@ -137,6 +138,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/guestbook" element={<GuestbookPage />} />
           <Route path="/about" element={<About />} />
           <Route path="/road" element={<RoadPage />} />
+          <Route path="/accumulate" element={<AccumulatePage />} />
           <Route path="/cover" element={<CoverGenerator />} />
           <Route path="/watermark" element={<Watermark />} />
           <Route path="/search" element={<SearchPage />} />
