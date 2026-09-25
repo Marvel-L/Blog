@@ -8,6 +8,11 @@ import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import DOMPurify from 'dompurify';
 import { remarkPostBasePlugins } from '@/utils/markdownPlugins';
+import {
+  imageFigureLayoutClass,
+  isInlineMarkdownImageChild,
+  resolveImageDisplayOptions,
+} from '@/utils/markdownImageDisplay';
 
 import {
   ArrowLeft,
@@ -73,6 +78,7 @@ import { HEADING_SCROLL_OFFSET } from '@/utils/scroll';
 type MarkdownImageProps = React.ImgHTMLAttributes<HTMLImageElement> & {
   previewSrc?: string;
   node?: unknown;
+  className?: string | string[];
 };
 
 type MarkdownPlugin = import('unified').Pluggable;
@@ -1134,6 +1140,58 @@ const createMarkdownComponents = (
   const isImageUrl = (url: string) => /\.(jpe?g|png|gif|webp|avif|svg|bmp|ico)(\?.*)?$/i.test(url);
 
   return {
+    // remark 会把「整段均为 {.inline} 图」提升为 div[data-role=markdown-image-row]；
+    // 这里再兜底：若仍走 p，按 img.className 识别并改成横排容器。
+    p: ({ children, node: _node, ...props }: React.HTMLAttributes<HTMLParagraphElement> & { node?: unknown }) => {
+      const childList = React.Children.toArray(children);
+      const meaningful = childList.filter((child) => {
+        if (typeof child === 'string' || typeof child === 'number') {
+          return String(child).trim().length > 0;
+        }
+        return true;
+      });
+      const isInlineImageRow =
+        meaningful.length > 0 &&
+        meaningful.every(
+          (child) => React.isValidElement(child) && isInlineMarkdownImageChild(child.props as Record<string, unknown>),
+        );
+
+      if (isInlineImageRow) {
+        return (
+          <div data-role="markdown-image-row" className="markdown-image-row" {...props}>
+            {children}
+          </div>
+        );
+      }
+
+      return <p {...props}>{children}</p>;
+    },
+    div: ({
+      children,
+      node: _node,
+      className,
+      ...props
+    }: React.HTMLAttributes<HTMLDivElement> & { node?: unknown }) => {
+      const role = (props as Record<string, unknown>)['data-role'];
+      const isImageRow =
+        role === 'markdown-image-row' ||
+        (typeof className === 'string' && className.split(/\s+/).includes('markdown-image-row')) ||
+        (Array.isArray(className) && className.includes('markdown-image-row'));
+
+      if (isImageRow) {
+        return (
+          <div data-role="markdown-image-row" className="markdown-image-row" {...props}>
+            {children}
+          </div>
+        );
+      }
+
+      return (
+        <div className={className} {...props}>
+          {children}
+        </div>
+      );
+    },
     a: ({
       href,
       children,
@@ -1247,7 +1305,7 @@ const createMarkdownComponents = (
         </a>
       );
     },
-    img: ({ src, alt, title, previewSrc, node: _node, ...props }: MarkdownImageProps) => {
+    img: ({ src, alt, title, previewSrc, className, node: _node, ...props }: MarkdownImageProps) => {
       const siblingUrl = siblingPostImageUrl(postFilePath, src);
       const resolvedSrc = siblingUrl
         ? assetUrl(siblingUrl)
@@ -1258,11 +1316,17 @@ const createMarkdownComponents = (
           : src;
       const previewTarget = previewSrc || resolvedSrc || '';
       const dimensions = resolvedSrc ? findImageDimensions(imageDimensions, resolvedSrc) : undefined;
-      // 深色模式图片适配的豁免约定：![alt](url "no-dark") 表示保持原亮度
-      // （如深色截图/图表），其余正文图片在暗色下自动柔和降亮。
-      const isNoDarkAdapt = title === 'no-dark';
+      // 展示约定：![alt](url){.small}{.inline}；暗色豁免仍兼容 title="no-dark"。
+      const display = resolveImageDisplayOptions(className, title);
+      const layoutClass = imageFigureLayoutClass(display);
+      const passthroughClass = display.passthroughClasses.join(' ');
       return (
-        <figure data-role="markdown-figure" className="group/myimage my-6 md:my-8">
+        <figure
+          data-role="markdown-figure"
+          data-size={display.size === 'default' ? undefined : display.size}
+          data-inline={display.inline ? true : undefined}
+          className={`group/myimage ${layoutClass}${passthroughClass ? ` ${passthroughClass}` : ''}`}
+        >
           <button
             type="button"
             onClick={() => onPreviewImage({ src: previewTarget, alt })}
@@ -1278,7 +1342,7 @@ const createMarkdownComponents = (
               width={dimensions?.width ?? props.width}
               height={dimensions?.height ?? props.height}
               wrapperClassName="w-full rounded-[6px]"
-              className={`h-auto w-full cursor-zoom-in rounded-[6px] object-contain ${isNoDarkAdapt ? 'no-dark-adapt' : ''}`}
+              className={`h-auto w-full cursor-zoom-in rounded-[6px] object-contain ${display.noDark ? 'no-dark-adapt' : ''}`}
             />
             <span className="pointer-events-none absolute right-3 top-3 rounded-[6px] border border-white/20 bg-black/50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/85 opacity-0 transition-opacity duration-200 group-hover/myimage:opacity-100 group-focus-visible/myimage:opacity-100">
               预览

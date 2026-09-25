@@ -472,12 +472,82 @@
   @apply rounded-micro outline outline-2 outline-offset-2 outline-zinc-900 dark:outline-zinc-100;
 }
 
-/* ===== 文章正文排版（post-prose）=====
-   文章页专属排版增强：正文在 prose 插件（1.125rem/1.85）基础上再精细化，
-   让中文长文阅读更舒适。非 @layer 规则优先级高于插件生成的 components 层。 */
-.post-prose {
-  font-size: 1.0625rem; /* 移动端 17px，避免过大的行宽导致换行频繁 */
-  line-height: 1.9;
+/* 正文图片尺寸 / 并排：用 data-* 控宽（不依赖 .mjs 里的 Tailwind 任意值 class） */
+.post-prose [data-role='markdown-image-row'],
+.post-prose .markdown-image-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.post-prose figure.md-img-figure {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+}
+
+.post-prose figure.md-img-figure[data-size='small']:not([data-inline]) {
+  width: 100%;
+  max-width: 24rem; /* ~max-w-sm */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.post-prose figure.md-img-figure[data-size='medium']:not([data-inline]) {
+  width: 100%;
+  max-width: 36rem; /* ~max-w-xl */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.post-prose figure.md-img-figure[data-inline],
+.post-prose [data-role='markdown-image-row'] > figure,
+.post-prose .markdown-image-row > figure {
+  display: block;
+  flex: 0 0 auto;
+  width: 11rem;
+  max-width: calc(50% - 0.375rem);
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.post-prose figure.md-img-figure[data-inline][data-size='medium'],
+.post-prose [data-role='markdown-image-row'] > figure[data-size='medium'],
+.post-prose .markdown-image-row > figure[data-size='medium'] {
+  width: 16rem;
+}
+
+@media (min-width: 640px) {
+  .post-prose figure.md-img-figure[data-inline],
+  .post-prose [data-role='markdown-image-row'] > figure,
+  .post-prose .markdown-image-row > figure {
+    width: 13rem;
+  }
+
+  .post-prose figure.md-img-figure[data-inline][data-size='medium'],
+  .post-prose [data-role='markdown-image-row'] > figure[data-size='medium'],
+  .post-prose .markdown-image-row > figure[data-size='medium'] {
+    width: 18rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .post-prose [data-role='markdown-image-row'],
+  .post-prose .markdown-image-row {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    gap: 1rem;
+  }
+
+  .post-prose figure.md-img-figure {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+  }
 }
 
 @media (min-width: 768px) {
@@ -1195,6 +1265,27 @@ html.dark .mermaid-diagram > svg {
 .reading-mode-article .post-prose figure {
   margin-top: 2rem;
   margin-bottom: 2rem;
+}
+
+.reading-mode-article .post-prose [data-role='markdown-image-row'],
+.reading-mode-article .post-prose .markdown-image-row {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.reading-mode-article .post-prose figure[data-inline],
+.reading-mode-article .post-prose [data-role='markdown-image-row'] > figure,
+.reading-mode-article .post-prose .markdown-image-row > figure {
+  margin-top: 0;
+  margin-bottom: 0;
+  width: 13rem;
+  max-width: calc(50% - 0.375rem);
 }
 
 .reading-mode-article .post-prose img {

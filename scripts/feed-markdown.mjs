@@ -7,6 +7,7 @@ import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
 import { remarkTyporaMarks } from '../src/utils/remark-typora-marks-core.mjs';
+import { remarkImageAttrs } from '../src/utils/remark-image-attrs-core.mjs';
 import remarkMath from 'remark-math';
 import remarkRehype from 'remark-rehype';
 import rehypeKatex from 'rehype-katex';
@@ -133,6 +134,7 @@ const createProcessor = (options) =>
     .use(remarkParse)
     .use(remarkGfm)
     .use(remarkTyporaMarks)
+    .use(remarkImageAttrs)
     .use(remarkMath)
     .use(remarkRehype)
     .use(rehypeKatex)

@@ -9,9 +9,30 @@
 - `src/pages/Post.tsx`（约 2600 行，全站最大文件）
 - `src/utils/headings-core.mjs` / `headings.ts`（标题提取/锚点 id，**构建端与客户端共享**）
 - `src/utils/remarkCodeMeta.ts` / `markdown-core.mjs` / `markdownText.ts`
+- `src/utils/remarkImageAttrs.ts` / `remark-image-attrs-core.mjs` / `markdownImageDisplay.ts` / `markdown-image-display-core.mjs`（图片属性块）
 - `src/components/{TableOfContents, GiscusComments, ShareModal, ReadingProgressBadge, ProgressiveImage, ImageViewer}.tsx`
 - `src/utils/readingProgress.ts`
 - 文章分级闪卡见 [post-rank.md](post-rank.md)（`PostRankFrame` / `FlashCover`，逻辑不堆进本页）
+
+## 正文图片属性块（作者约定）
+
+语法：`![alt](file.jpg){.small}{.inline}`（多修饰写成**多个** `{}`，依次紧挨）。
+
+| class                       | 含义                                                               |
+| --------------------------- | ------------------------------------------------------------------ |
+| （无）                      | 通栏全宽（默认）                                                   |
+| `{.small}` / `{.medium}`    | 居中缩小                                                           |
+| `{.inline}`                 | 同行并排；**未写尺寸时默认 small**，可用 `{.inline}{.medium}` 覆盖 |
+| `{.no-dark}` 或 `{no-dark}` | 暗色模式不降亮；亦兼容旧写法 `![alt](x.jpg "no-dark")`             |
+| `{.fx-*}`                   | 特效预留，透传到 `<figure class>`，一期可不实现样式                |
+
+示例：`![a](a.jpg){.inline}`、`![a](a.jpg){.small}{.inline}{.fx-spark}`。
+
+实现要点：
+
+- 解析在 `remarkImageAttrs`（挂入 `remarkCommonPlugins`）；展示映射在 `Post.tsx` 的 `img` / `p`（纯 `.inline` 段 → `markdown-image-row`）。
+- Feed 管道（`scripts/feed-markdown.mjs`）必须同步挂载同一插件，避免 RSS 残留 `{.small}` 文本。
+- 新增尺寸/特效时：先扩展 `markdown-image-display-core.mjs` 与 `Post.tsx` 映射，再更新本表与根 README 的精简说明；**不要**改回 title 令牌或单 `{}` 内空格拼 class 的写法。
 
 ## 修改规则（必须遵守）
 
@@ -25,12 +46,17 @@
 8. **无障碍**：`role="application"` 仅限 Mermaid 视口容器（其确实接管键盘）；复制/分享按钮有可访问名称；快捷键有 kbd 提示。
 9. **性能**：`stripMarkdown(post.content)` 结果必须 useMemo 缓存（meta description 与 articleBody 共用）；useMemo 不得放在条件早退之后（Hooks 规则）。
 10. **分级闪卡**：标题区与封面的闪卡、专注阅读只留段位名、正文不被光泽覆盖，均遵守 [post-rank.md](post-rank.md)。不要把闪卡样式内联进 `Post.tsx`。
+11. **图片属性块**：只认 `{.class}` 约定；点击预览、ProgressiveImage、暗色适配链路不得因尺寸/并排被绕过；任意 `key=value` 不得直接落到 DOM 属性。
 
 ## 常见陷阱
 
 - 标题含图片/公式时渲染文本与 rawText 不一致 → 锚点错位（按既有 usedHeadingIds 兜底）；
 - 修改 headings-core 的正则会影响构建期校验（锚点链接校验）；
-- Post.tsx 体量极大，新增逻辑优先抽到 utils/组件，避免继续膨胀。
+- Post.tsx 体量极大，新增逻辑优先抽到 utils/组件，避免继续膨胀；
+- 只改前端、漏改 feed 插件 → RSS 正文出现 `{.small}` 字面量；
+- `.inline` 图若未全部标记，不会组成并排行（各图按自身尺寸单独排布）。
+- `p` 检测并排时子节点仍是 `img`（不是 figure）：必须用 className 含 `inline` 判断，不能只看 `data-inline`。
+- 图片宽度样式必须写在 `index.css`（`data-size` / `data-inline`），**不要**把任意值 Tailwind class 只放在 `.mjs` 里——`tailwind.config.js` 的 content 不扫描 `.mjs`，会导致通栏变大、无法横排。
 
 ## 破例条款
 
