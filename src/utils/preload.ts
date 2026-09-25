@@ -36,6 +36,7 @@ const pageLoaders: Record<string, ModuleLoader> = {
   '/accumulate': () => import('../pages/Accumulate').then((m) => ({ default: m.Accumulate })),
   '/cover': () => import('../pages/CoverGenerator').then((m) => ({ default: m.CoverGenerator })),
   '/watermark': () => import('../pages/Watermark').then((m) => ({ default: m.Watermark })),
+  '/image-compress': () => import('../pages/ImageCompress').then((m) => ({ default: m.ImageCompress })),
   '/search': () => import('../pages/Search').then((m) => ({ default: m.Search })),
 };
 

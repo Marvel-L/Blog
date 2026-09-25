@@ -22,6 +22,7 @@ import { fetchCommentCounts } from './fetch-giscus-comments.mjs';
 import { SHUOSHUO_IMAGE_OPTIONS, siblingContentImageUrl, siblingImageRelative } from '../src/utils/post-image-src.mjs';
 import { getGitFileDates, resolvePostDates } from './lib/git-file-dates.mjs';
 import { listMarkdownFiles } from './lib/list-markdown-files.mjs';
+import { runCompressContentImagesCli, writeImageCompressReport } from './compress-content-images.mjs';
 
 const logger = createBuildLogger('gen:data');
 logger.start('Generate site data');
@@ -93,6 +94,14 @@ const copySiblingImages = (sourceDir, publicSubdir) => {
       }
       const dest = path.join(destRoot, path.relative(sourceDir, full));
       fs.mkdirSync(path.dirname(dest), { recursive: true });
+      // 覆盖只读残留（偶发来自外部工具/旧产物），避免 EACCES 阻断 gen:data。
+      if (fs.existsSync(dest)) {
+        try {
+          fs.chmodSync(dest, 0o644);
+        } catch {
+          // ignore
+        }
+      }
       fs.copyFileSync(full, dest);
       count += 1;
     }
@@ -784,6 +793,14 @@ if (validationErrors.length > 0) {
   throw new Error(validationErrors.join('\n'));
 }
 
+// 幂等压缩内容旁路图：已在清单中的文件跳过，避免多次有损压缩。
+// SKIP_IMAGE_COMPRESS=1 可跳过。dev / CI build 都走 gen:data，因此会自动覆盖。
+await runCompressContentImagesCli({
+  logger: {
+    log: (message) => logger.step('Compress content images', message.replace(/^\[compress-images\]\s*/, '')),
+  },
+});
+
 const copiedPostImages = copySiblingImages(POSTS_DIR, 'posts-img');
 if (copiedPostImages > 0) {
   logger.step('Copied post images', `files=${copiedPostImages} dest=public/posts-img`);
@@ -828,6 +845,11 @@ fs.writeFileSync(
   ),
 );
 logger.step('Generated posts data', `posts=${posts.length} sourceFiles=${files.length}`);
+
+const compressReport = writeImageCompressReport(
+  posts.map((post) => ({ id: post.id, title: post.title, filePath: post.filePath })),
+);
+logger.step('Generated image-compress-report.json', `items=${compressReport.items.length}`);
 
 const requiredFriendFields = ['name', 'description', 'avatar', 'url'];
 const friendFiles = fs.existsSync(FRIENDS_DIR)
@@ -920,6 +942,7 @@ const generateSitemap = () => {
     { path: 'accumulate', changefreq: 'weekly', priority: '0.6', lastmod: latestPostDate },
     { path: 'cover', changefreq: 'monthly', priority: '0.5', lastmod: latestPostDate },
     { path: 'watermark', changefreq: 'monthly', priority: '0.5', lastmod: latestPostDate },
+    { path: 'image-compress', changefreq: 'monthly', priority: '0.5', lastmod: latestPostDate },
     { path: 'search', changefreq: 'monthly', priority: '0.5', lastmod: latestPostDate },
   ];
   const postUrl = (post) => siteAbsoluteUrl(`/post/${post.id}`);

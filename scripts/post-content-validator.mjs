@@ -22,6 +22,7 @@ const DEFAULT_STATIC_ROUTES = new Set([
   '/accumulate',
   '/cover',
   '/watermark',
+  '/image-compress',
   '/search',
 ]);
 

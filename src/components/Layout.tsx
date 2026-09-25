@@ -22,6 +22,7 @@ import {
   Mail,
   ExternalLink,
   Image as ImageIcon,
+  Minimize2,
   MessageSquareText,
   MessageCircle,
   LayoutGrid,
@@ -111,6 +112,13 @@ const moreNavItems: NavItem[] = [
     hint: '给图片添加文字水印',
     icon: ImageIcon,
   },
+  {
+    key: 'image-compress',
+    path: '/image-compress',
+    label: '图片压缩',
+    hint: '本地压缩图片并下载',
+    icon: Minimize2,
+  },
   { key: 'email', label: '邮件', hint: '联系作者', icon: Mail, href: siteConfig.social.email },
   {
     key: 'github',
@@ -145,7 +153,7 @@ const mobileMorePanelGroups: Array<{ label: string; items: NavItem[] }> = [
   },
   {
     label: '工具',
-    items: moreNavItems.filter((item) => ['cover', 'watermark'].includes(item.key ?? '')),
+    items: moreNavItems.filter((item) => ['cover', 'watermark', 'image-compress'].includes(item.key ?? '')),
   },
   {
     label: '订阅与联系',

@@ -9,6 +9,7 @@
   },
   "type": "module",
   "scripts": {
+    "compress:images": "node scripts/compress-content-images.mjs",
     "gen:data": "node scripts/generate-site-data.mjs",
     "build:ssr": "vite build --config vite.ssr.config.ts",
     "ssg": "node scripts/ssg.mjs",

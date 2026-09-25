@@ -27,6 +27,7 @@
 11. **文章分级**：`rank` 可选。缺省或空字符串不写入闪卡字段；非空且不在 `content.config.json` 的 `postRanks` 内则 fail-closed。合法值经 `normalizeRank` 显式写入 `posts.json`，不要靠 front matter 白名单原样透传。展示规则见 [post-rank.md](post-rank.md)。
 12. **说说日期**：`shuoshuo/*.md` 的 `date` 可选，走与文章相同的 `resolvePostDates`（合法手写 > Git 首次提交日 > 构建日 warn）。非法手写值 fail-closed。不写回 `.md`。
 13. **说说目录与配图**：递归收录 `shuoshuo/` 下全部 `.md`。`images` 相对路径解析到该文件旁的本地图片并改写为 `/shuoshuo-img/...`（复制到 `public/shuoshuo-img/`）；缺失或越界 fail-closed。图床 `http(s)` 链接不改写。
+14. **旁路图片压缩**：`gen:data` 在复制到 `public/*-img/` 之前调用 `compress-content-images`（`npm run compress:images` 可单独跑）。清单 `config/image-compress-manifest.json` 按「文件 sha256 + profileId」跳过已处理文件，并记录 `originalBytes`/`bytes`；升级策略时递增 `IMAGE_COMPRESS_PROFILE.id`。同时写出 `generated/image-compress-report.json` 供 `/image-compress` 页展示。`SKIP_IMAGE_COMPRESS=1` 可跳过。压缩会原地改写内容目录图片，清单需一并提交。
 
 ## 常见陷阱
 

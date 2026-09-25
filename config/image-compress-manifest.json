@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "profileId": "v1",
+  "files": {
+    "posts/life/choose/北京工作切换/bei_jing.jpg": {
+      "hash": "c429808cab3ed1dbb213db9376975662fdeae1fc8df2955e222638af01df89bc",
+      "profileId": "v1",
+      "bytes": 213487,
+      "originalBytes": 220345
+    },
+    "posts/life/choose/北京工作切换/my_baby_and_me.jpg": {
+      "hash": "24a0ca2b57342b554c6709c3efbb064ab025bae7e3eb27342dfc0450dd664c79",
+      "profileId": "v1",
+      "bytes": 119097,
+      "originalBytes": 127375
+    },
+    "posts/life/日常/2026/中秋_记录一次运动/bag.png": {
+      "hash": "2e602e7f33825dc21092e079fb028830cdb0b4be35be6fb59525b022cbf03b0c",
+      "profileId": "v1",
+      "bytes": 755529,
+      "originalBytes": 2332960
+    },
+    "posts/life/日常/2026/中秋_记录一次运动/breakfast_0x01.jpg": {
+      "hash": "41a8ea322957894445c2eb0ae57eb2a02ee6ec048896dfa4ce9c566cd46c6a5c",
+      "profileId": "v1",
+      "bytes": 245028,
+      "unchanged": true,
+      "originalBytes": 245028
+    },
+    "posts/life/日常/2026/中秋_记录一次运动/breakfast_0x02.jpg": {
+      "hash": "d29e1378246170906c812425d54ad7b89054e1a75660d5801e96ebbc949df917",
+      "profileId": "v1",
+      "bytes": 205313,
+      "originalBytes": 3198637
+    },
+    "posts/life/日常/2026/中秋_记录一次运动/breakfast_0x03.jpg": {
+      "hash": "796501c6b8df88ef20ea1a1752cda6705397e45f5ca21e0093cdafbf45fe4ab9",
+      "profileId": "v1",
+      "bytes": 194013,
+      "unchanged": true,
+      "originalBytes": 194013
+    },
+    "posts/life/日常/2026/中秋_记录一次运动/breakfast_0x04.jpg": {
+      "hash": "574a603768e1bdb03e81e66d4ac35676d6c0b5e6e20112bc2b6678bbb95e2f79",
+      "profileId": "v1",
+      "bytes": 245637,
+      "unchanged": true,
+      "originalBytes": 245637
+    },
+    "posts/life/日常/2026/中秋_记录一次运动/diulaji.jpg": {
+      "hash": "49b62aedfa8a67d7aedd359c598654641bb10546cff6af7fc78899da33f8e097",
+      "profileId": "v1",
+      "bytes": 172640,
+      "originalBytes": 2512140
+    },
+    "posts/life/日常/2026/中秋_记录一次运动/img_1.png": {
+      "hash": "7ce746bb9cafa0763ff068a1c5b719e61fe5d779256d7180a6e3343c3b6b9984",
+      "profileId": "v1",
+      "bytes": 415311,
+      "originalBytes": 1032624
+    },
+    "posts/life/日常/2026/中秋_记录一次运动/img.png": {
+      "hash": "973cc1d78940433bba187c100f068ca7e0908fbb17de9a29864733d7554fef4e",
+      "profileId": "v1",
+      "bytes": 216012,
+      "originalBytes": 1092929
+    },
+    "posts/life/日常/2026/中秋_记录一次运动/jigongbao.png": {
+      "hash": "069c2204a5e6ecc33b21d25380ffff66261c42d3cbb0136810c591af814d22b7",
+      "profileId": "v1",
+      "bytes": 822990,
+      "originalBytes": 3204600
+    },
+    "posts/life/日常/2026/中秋_记录一次运动/laji.png": {
+      "hash": "956d42e28c15def06716879875c14ea3370db5e84abb07d37755b98881f80984",
+      "profileId": "v1",
+      "bytes": 1214965,
+      "originalBytes": 4754457
+    },
+    "posts/life/日常/2026/中秋_记录一次运动/water_mac.png": {
+      "hash": "cd7ce440ca10f1897949e622ab469241eb48779690151ebab0bd90c403613a88",
+      "profileId": "v1",
+      "bytes": 751267,
+      "originalBytes": 2399212
+    },
+    "posts/yuean/入职第三天/crm_360.png": {
+      "hash": "8481aa5c0dca9308e4f8745371f5f54c7a187e37144a229399ea9bedb9f544cb",
+      "profileId": "v1",
+      "bytes": 379127,
+      "originalBytes": 1639251
+    },
+    "posts/yuean/入职第三天/crm_404.png": {
+      "hash": "25a1b9f129cdeccf319137be8c6ccbbb26657f8066ea13749fc949bf16b9cef6",
+      "profileId": "v1",
+      "bytes": 139435,
+      "originalBytes": 317849
+    },
+    "posts/yuean/入职第三天/crm_blank.png": {
+      "hash": "b3858d755964e265b7d6ff2f9712baf34230482fe7736b54fd7b22c7057a34b7",
+      "profileId": "v1",
+      "bytes": 39789,
+      "originalBytes": 160755
+    },
+    "posts/yuean/入职第二天/img.png": {
+      "hash": "cb059fcb8904e37a4e2684c9adfc7935bc5f3343154027dbc6ca2cdc254a8fbb",
+      "profileId": "v1",
+      "bytes": 222342,
+      "originalBytes": 755835
+    },
+    "posts/杂谈/同时期的人/yanghongyi_wangyi.jpg": {
+      "hash": "de9f8604b22d6f4a3ff6cb34628c4f47f3a8e31b3304dc04ee4de9ddb1e37e40",
+      "profileId": "v1",
+      "bytes": 81936,
+      "originalBytes": 94952
+    },
+    "shuoshuo/26-09-19/after_lunch.jpg": {
+      "hash": "e573ee4b9e8b1cc8ce28c6052b1cf36ffc39a4e0df12352407cb50adeef2efbb",
+      "profileId": "v1",
+      "bytes": 107040,
+      "unchanged": true,
+      "originalBytes": 107040
+    },
+    "shuoshuo/26-09-19/img.png": {
+      "hash": "aac697c707f905fc0b55b2074ae25d4cb846433f610d1fc384147f23e19998db",
+      "profileId": "v1",
+      "bytes": 101705,
+      "originalBytes": 416945
+    },
+    "shuoshuo/26-09-19/lunch.jpg": {
+      "hash": "4caeee13252e3e8ac801ba33d68c8e063c1f80578b864d735c71ca1e64cc83b5",
+      "profileId": "v1",
+      "bytes": 231618,
+      "unchanged": true,
+      "originalBytes": 231618
+    }
+  }
+}

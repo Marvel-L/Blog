@@ -498,6 +498,12 @@ export const runSsg = async ({
       schemaType: 'WebApplication',
     },
     {
+      path: 'image-compress',
+      title: `图片压缩 - ${siteConfig.title}`,
+      description: '在浏览器本地压缩图片并下载，同时查看站内文章已压缩配图的体积收益，无需上传文件。',
+      schemaType: 'WebApplication',
+    },
+    {
       path: 'search',
       schemaType: 'WebPage',
       schemaFromSeo: true,

@@ -18,6 +18,7 @@ const RELATIVE_BASE_ROUTE_MARKERS = [
   '/accumulate',
   '/cover',
   '/watermark',
+  '/image-compress',
 ] as const;
 
 const inferRelativeBasePath = (currentPath: string): string => {

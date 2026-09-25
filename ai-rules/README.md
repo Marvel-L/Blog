@@ -29,7 +29,7 @@
 
 ### 前端页面
 - [首页](home.md) · [文章详情页](post.md) · [文章分级闪卡](post-rank.md) · [归档页](archive.md) · [标签页](tags.md) · [搜索](search.md) · [统计页](stats.md) · [友链页](friends.md) · [说说](shuoshuo.md) · [留言板](guestbook.md) · [关于页](about.md) · [404 页](not-found.md)
-- [封面生成器](cover-generator.md) · [水印工具](watermark.md)
+- [封面生成器](cover-generator.md) · [水印工具](watermark.md) · [图片压缩](image-compress.md)
 
 ### 通用系统
 - [布局与导航](layout-nav.md) · [主题系统](theme.md) · [评论系统（Giscus）](giscus-comments.md) · [Service Worker 离线缓存](service-worker.md) · [SEO 与结构化数据](seo.md) · [访问分析（D-Umami）](umami-analytics.md)
