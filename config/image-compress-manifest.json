@@ -2,6 +2,36 @@
   "version": 1,
   "profileId": "v1",
   "files": {
+    "posts/life/choose/26年新跑鞋/adidas.png": {
+      "hash": "dec6f85c5628240447150adde368fb95afef40a9f172925d4237cd6e95e298ed",
+      "profileId": "v1",
+      "bytes": 465320,
+      "originalBytes": 1691477
+    },
+    "posts/life/choose/26年新跑鞋/anta.png": {
+      "hash": "5f6b7dbcebf3543eda34add71c1fdf1679156fc7027db1398d412db6b0521857",
+      "profileId": "v1",
+      "bytes": 494249,
+      "originalBytes": 1688151
+    },
+    "posts/life/choose/26年新跑鞋/lining_0x01.png": {
+      "hash": "0ef5815626baa1f518270e7f959447e9311fdfaf2e41f53638e9571cdd19ee67",
+      "profileId": "v1",
+      "bytes": 690595,
+      "originalBytes": 4446410
+    },
+    "posts/life/choose/26年新跑鞋/nike.png": {
+      "hash": "bc9cf301c0219a458d05d866b50983fb8ea4d491045471401aaf3d4255d6d698",
+      "profileId": "v1",
+      "bytes": 508804,
+      "originalBytes": 1648047
+    },
+    "posts/life/choose/26年新跑鞋/xtep.png": {
+      "hash": "96bb735f8fad217bc59ee9d27c54e845ef644f778f84e30c55c50634ef0955ac",
+      "profileId": "v1",
+      "bytes": 466881,
+      "originalBytes": 1772027
+    },
     "posts/life/choose/北京工作切换/bei_jing.jpg": {
       "hash": "c429808cab3ed1dbb213db9376975662fdeae1fc8df2955e222638af01df89bc",
       "profileId": "v1",
