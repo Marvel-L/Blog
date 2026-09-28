@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="360" viewBox="0 0 900 360">
+  <rect width="900" height="360" fill="#fbfaf6"/>
+  <text x="40" y="44" font-size="28" font-family="Arial, Helvetica, sans-serif" fill="#1f2937">传入 *Node 时，复制的是地址值</text>
+
+  <rect x="48" y="90" width="180" height="88" rx="16" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="72" y="126" font-size="24" font-family="Arial, Helvetica, sans-serif" fill="#1e3a8a">main 里的 x</text>
+  <text x="84" y="158" font-size="24" font-family="Arial, Helvetica, sans-serif" fill="#1e3a8a">Node{Val: 1}</text>
+
+  <rect x="320" y="90" width="200" height="88" rx="16" fill="#fde68a" stroke="#d97706" stroke-width="2"/>
+  <text x="344" y="126" font-size="24" font-family="Arial, Helvetica, sans-serif" fill="#78350f">形参 n</text>
+  <text x="344" y="158" font-size="22" font-family="Arial, Helvetica, sans-serif" fill="#78350f">保存的是 &amp;x 的副本</text>
+
+  <rect x="640" y="90" width="200" height="88" rx="16" fill="#fecaca" stroke="#dc2626" stroke-width="2"/>
+  <text x="664" y="126" font-size="24" font-family="Arial, Helvetica, sans-serif" fill="#7f1d1d">新对象</text>
+  <text x="676" y="158" font-size="24" font-family="Arial, Helvetica, sans-serif" fill="#7f1d1d">Node{Val: 100}</text>
+
+  <line x1="228" y1="134" x2="320" y2="134" stroke="#2563eb" stroke-width="4"/>
+  <polygon points="320,134 306,126 306,142" fill="#2563eb"/>
+  <text x="240" y="118" font-size="18" font-family="Arial, Helvetica, sans-serif" fill="#2563eb">调用时复制地址值</text>
+
+  <line x1="520" y1="134" x2="640" y2="134" stroke="#dc2626" stroke-width="4" stroke-dasharray="10 8"/>
+  <polygon points="640,134 626,126 626,142" fill="#dc2626"/>
+  <text x="544" y="118" font-size="18" font-family="Arial, Helvetica, sans-serif" fill="#dc2626">函数内 n 重新指向</text>
+
+  <text x="52" y="248" font-size="26" font-family="Arial, Helvetica, sans-serif" fill="#111827">结果：</text>
+  <text x="128" y="248" font-size="24" font-family="Arial, Helvetica, sans-serif" fill="#374151">`n = &amp;Node{...}` 只改了局部变量 n，不会改掉外面的 x。</text>
+  <text x="52" y="294" font-size="24" font-family="Arial, Helvetica, sans-serif" fill="#374151">因此 `x.Val` 仍然是 1。</text>
+</svg>

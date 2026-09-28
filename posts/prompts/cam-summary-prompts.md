@@ -7,7 +7,7 @@ tags:
   - cam
 author: Marvel-L
 rank: 白银
-featured: true
+featured: false
 featured-top: 1
 series: false
 draft: false

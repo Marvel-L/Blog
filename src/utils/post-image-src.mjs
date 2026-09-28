@@ -4,7 +4,7 @@
  * 只接受落在该文件目录内的图片，拒绝跳出内容根目录。
  */
 
-const IMAGE_EXT = /\.(?:jpe?g|png|gif|webp|avif)$/i;
+const IMAGE_EXT = /\.(?:jpe?g|png|gif|webp|avif|svg)$/i;
 
 const hasScheme = (value) => /^[a-z][a-z\d+.-]*:/i.test(value);
 

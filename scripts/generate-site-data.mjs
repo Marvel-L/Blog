@@ -73,7 +73,7 @@ const SHUOSHUO_DIR = path.join(__dirname, '../shuoshuo');
 const SUMMARY_DIR = path.join(__dirname, '../Summary');
 const OUTPUT_JSON_DIR = path.join(__dirname, '../generated');
 const PUBLIC_DIR = path.join(__dirname, '../public');
-const POST_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif']);
+const POST_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.svg']);
 
 /** 把内容目录旁的图片复制到 public/<publicSubdir>/，生产构建才能当静态资源发出。 */
 const copySiblingImages = (sourceDir, publicSubdir) => {

@@ -11,6 +11,7 @@ const POST_IMAGE_TYPES: Record<string, string> = {
   '.gif': 'image/gif',
   '.webp': 'image/webp',
   '.avif': 'image/avif',
+  '.svg': 'image/svg+xml',
 };
 
 /** 开发服务器把 /posts-img/、/shuoshuo-img/、/summary-img/ 映射到对应目录里和 Markdown 放在一起的图片。 */

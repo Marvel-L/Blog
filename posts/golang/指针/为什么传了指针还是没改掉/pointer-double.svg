@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="420" viewBox="0 0 900 420">
+  <rect width="900" height="420" fill="#f6fbf8"/>
+  <text x="40" y="44" font-size="28" font-family="Arial, Helvetica, sans-serif" fill="#1f2937">传入 **Node 时，可以改外部指针变量本身</text>
+
+  <rect x="48" y="96" width="180" height="88" rx="16" fill="#bfdbfe" stroke="#2563eb" stroke-width="2"/>
+  <text x="82" y="132" font-size="24" font-family="Arial, Helvetica, sans-serif" fill="#1e3a8a">main 里的 x</text>
+  <text x="76" y="164" font-size="22" font-family="Arial, Helvetica, sans-serif" fill="#1e3a8a">类型是 *Node</text>
+
+  <rect x="320" y="96" width="200" height="88" rx="16" fill="#a7f3d0" stroke="#059669" stroke-width="2"/>
+  <text x="350" y="132" font-size="24" font-family="Arial, Helvetica, sans-serif" fill="#065f46">形参 n</text>
+  <text x="352" y="164" font-size="22" font-family="Arial, Helvetica, sans-serif" fill="#065f46">类型是 **Node</text>
+
+  <rect x="642" y="96" width="200" height="88" rx="16" fill="#fecaca" stroke="#dc2626" stroke-width="2"/>
+  <text x="668" y="132" font-size="24" font-family="Arial, Helvetica, sans-serif" fill="#7f1d1d">新对象</text>
+  <text x="676" y="164" font-size="24" font-family="Arial, Helvetica, sans-serif" fill="#7f1d1d">Node{Val: 100}</text>
+
+  <line x1="228" y1="140" x2="320" y2="140" stroke="#2563eb" stroke-width="4"/>
+  <polygon points="320,140 306,132 306,148" fill="#2563eb"/>
+  <text x="250" y="120" font-size="18" font-family="Arial, Helvetica, sans-serif" fill="#2563eb">调用 replacePointer(&amp;x)</text>
+
+  <line x1="520" y1="140" x2="642" y2="140" stroke="#059669" stroke-width="4"/>
+  <polygon points="642,140 628,132 628,148" fill="#059669"/>
+  <text x="548" y="120" font-size="18" font-family="Arial, Helvetica, sans-serif" fill="#059669">*n = &amp;Node{...}</text>
+
+  <text x="52" y="252" font-size="26" font-family="Arial, Helvetica, sans-serif" fill="#111827">关键区别：</text>
+  <text x="52" y="294" font-size="24" font-family="Arial, Helvetica, sans-serif" fill="#374151">这次 n 保存的是“外部指针变量 x 的地址”，所以 *n 就是外部的 x。</text>
+  <text x="52" y="336" font-size="24" font-family="Arial, Helvetica, sans-serif" fill="#374151">因此给 *n 赋新值，等价于直接给 x 重新赋值。</text>
+  <text x="52" y="378" font-size="24" font-family="Arial, Helvetica, sans-serif" fill="#374151">这就是为什么 **Node 可以改掉外部指针本身。</text>
+</svg>
