@@ -38,6 +38,7 @@ const pageLoaders: Record<string, ModuleLoader> = {
   '/watermark': () => import('../pages/Watermark').then((m) => ({ default: m.Watermark })),
   '/image-compress': () => import('../pages/ImageCompress').then((m) => ({ default: m.ImageCompress })),
   '/search': () => import('../pages/Search').then((m) => ({ default: m.Search })),
+  '/tbd': () => import('../pages/TbdPosts').then((m) => ({ default: m.TbdPosts })),
 };
 
 export { pageLoaders };

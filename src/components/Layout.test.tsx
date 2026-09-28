@@ -80,9 +80,9 @@ describe('Layout', () => {
     renderLayout();
     // 顶栏导航 + 移动端底部标签栏各是一个 nav
     expect(screen.getAllByRole('navigation').length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByRole('link', { name: /文章/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '文章' })).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: /归档/ }).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByRole('link', { name: /标签/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '标签' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '积累' })).toBeInTheDocument();
   });
 
@@ -93,7 +93,7 @@ describe('Layout', () => {
 
   it('渲染待补完文章入口按钮', () => {
     renderLayout();
-    expect(screen.getAllByRole('button', { name: /查看待补完文章/ }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByRole('link', { name: /查看待补完文章页/ }).length).toBeGreaterThanOrEqual(1);
   });
 
   it('渲染搜索入口按钮', () => {

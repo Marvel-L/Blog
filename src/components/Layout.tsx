@@ -1057,15 +1057,15 @@ const Navbar = ({
               >
                 <Search size={18} />
               </button>
-              <TbdPostsButton />
               <ThemeToggle particleEffect={particleEffect} onParticleEffectChange={onParticleEffectChange} />
+              <TbdPostsButton />
             </div>
           </div>
 
           <div className="flex items-center gap-1.5 lg:hidden">
-            {/* 移动端顶栏保留待补完入口与主题切换：搜索/导航入口下沉到底部标签栏 */}
-            <TbdPostsButton />
+            {/* 移动端顶栏保留主题切换与待补完入口：搜索/导航入口下沉到底部标签栏 */}
             <ThemeToggle particleEffect={particleEffect} onParticleEffectChange={onParticleEffectChange} />
+            <TbdPostsButton />
           </div>
         </motion.div>
       </nav>

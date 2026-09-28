@@ -470,6 +470,17 @@ const REPO_ROOT = path.join(__dirname, '..');
 /** 构建日（UTC 日历日）：未提交新文件等无 Git 历史时的 date/updatedAt 回退。 */
 const buildTodayUtc = () => new Date().toISOString().slice(0, 10);
 
+const calculateCalendarDayDiff = (startDate, endDate) => {
+  if (!validateDateString(startDate) || !validateDateString(endDate)) {
+    return 0;
+  }
+
+  const start = new Date(`${startDate}T00:00:00Z`);
+  const end = new Date(`${endDate}T00:00:00Z`);
+  const diffDays = Math.floor((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
+  return Math.max(0, diffDays);
+};
+
 const postRecords = files
   .map((filename) => {
     const filePath = path.join(POSTS_DIR, filename);
@@ -587,6 +598,7 @@ const normalizeTagsStrict = (value) => (Array.isArray(value) ? value.map((tag) =
 
 const buildPost = (record) => {
   const { filename, content, data, restData, id, formattedDate, formattedUpdatedAt, draft, tbd } = record;
+  const buildDay = buildTodayUtc();
   const normalizedAuthors = normalizeAuthors(data.author, data.authors);
   const category = normalizeCategory(data.category);
   const tags = normalizeTagsStrict(data.tags);
@@ -606,7 +618,12 @@ const buildPost = (record) => {
         // 且 validatePostFrontmatter 已保证二者为非空字符串。
         title: data.title,
         excerpt: data.excerpt,
-        ...(tbd ? { tbd: true } : {}),
+        ...(tbd
+          ? {
+              tbd: true,
+              tbdAgeDays: calculateCalendarDayDiff(formattedDate, buildDay),
+            }
+          : {}),
         ...(isSeries ? { series: true, seriesName, seriesOrder } : {}),
         coverImage: normalizedCoverImage,
         category,

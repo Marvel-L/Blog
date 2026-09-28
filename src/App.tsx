@@ -27,6 +27,7 @@ const CoverGenerator = lazy(pageLoaders['/cover']);
 const Watermark = lazy(pageLoaders['/watermark']);
 const ImageCompress = lazy(pageLoaders['/image-compress']);
 const SearchPage = lazy(pageLoaders['/search']);
+const TbdPostsPage = lazy(pageLoaders['/tbd']);
 const RoadPage = lazy(pageLoaders['/road']);
 const AccumulatePage = lazy(pageLoaders['/accumulate']);
 const NotFound = lazy(() => import('./pages/NotFound').then((m) => ({ default: m.NotFound })));
@@ -144,6 +145,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/watermark" element={<Watermark />} />
           <Route path="/image-compress" element={<ImageCompress />} />
           <Route path="/search" element={<SearchPage />} />
+          <Route path="/tbd" element={<TbdPostsPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>

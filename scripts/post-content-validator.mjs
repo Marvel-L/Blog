@@ -24,6 +24,7 @@ const DEFAULT_STATIC_ROUTES = new Set([
   '/watermark',
   '/image-compress',
   '/search',
+  '/tbd',
 ]);
 
 const isEscaped = (value, index) => {
