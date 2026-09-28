@@ -8,7 +8,7 @@ tags:
   - 工作
   - 重要选择
 author: Marvel-L
-rank: 王者
+rank: 钻石
 featured: true
 featured-top: 1
 series: false
