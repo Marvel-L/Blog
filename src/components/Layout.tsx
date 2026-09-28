@@ -1286,6 +1286,7 @@ interface LayoutProps {
 }
 
 const routeShellVariants = routeTransition;
+const PARTICLE_FRONT_ROUTES = new Set(['/', '/shuoshuo', '/stats', '/road', '/about', '/accumulate']);
 
 const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => {
   const location = useLocation();
@@ -1302,6 +1303,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
     writeStoredParticleEffect(effect);
   }, []);
   const prefersReducedMotion = useSiteReducedMotion();
+  const isParticleFrontRoute = PARTICLE_FRONT_ROUTES.has(location.pathname);
   const routeVariants = prefersReducedMotion
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : routeShellVariants;
@@ -1349,7 +1351,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
     <div
       className={`site-shell relative flex min-h-screen flex-col ${isReadingMode ? 'reading-mode-shell' : ''}`}
       data-reading-mode={isReadingMode ? 'true' : undefined}
-      data-particle-front={location.pathname === '/accumulate' ? 'true' : undefined}
+      data-particle-front={isParticleFrontRoute ? 'true' : undefined}
     >
       <Background />
       {!isReadingMode && <ParticleField effect={particleEffect} />}

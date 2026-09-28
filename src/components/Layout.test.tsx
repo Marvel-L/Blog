@@ -26,9 +26,9 @@ const LocationProbe = () => {
   return null;
 };
 
-const renderLayout = () =>
+const renderLayout = (initialEntries: string[] = ['/']) =>
   render(
-    <MemoryRouter initialEntries={['/']}>
+    <MemoryRouter initialEntries={initialEntries}>
       <Layout>
         <LocationProbe />
         <div>页面内容</div>
@@ -60,19 +60,16 @@ describe('Layout', () => {
     document.body.style.overflow = '';
   });
 
-  it('积累页把氛围粒子抬到阅读区之上', () => {
-    render(
-      <MemoryRouter initialEntries={['/accumulate']}>
-        <Layout>
-          <div>页面内容</div>
-        </Layout>
-      </MemoryRouter>,
-    );
-    expect(document.querySelector('.site-shell')).toHaveAttribute('data-particle-front', 'true');
-  });
+  it.each(['/', '/shuoshuo', '/stats', '/road', '/about', '/accumulate'])(
+    '页面 %s 把氛围粒子抬到阅读区之上',
+    (pathname) => {
+      renderLayout([pathname]);
+      expect(document.querySelector('.site-shell')).toHaveAttribute('data-particle-front', 'true');
+    },
+  );
 
-  it('其它页面不抬高氛围粒子', () => {
-    renderLayout();
+  it('未列入白名单的页面不抬高氛围粒子', () => {
+    renderLayout(['/archive']);
     expect(document.querySelector('.site-shell')).not.toHaveAttribute('data-particle-front');
   });
 
