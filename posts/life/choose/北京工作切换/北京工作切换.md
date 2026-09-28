@@ -9,8 +9,6 @@ tags:
   - 重要选择
 author: Marvel-L
 rank: 钻石
-featured: true
-featured-top: 1
 series: false
 draft: false
 ---

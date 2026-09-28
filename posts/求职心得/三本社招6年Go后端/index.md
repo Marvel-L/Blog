@@ -7,8 +7,6 @@ tags:
   - 工作
 author: Marvel-L
 rank: 王者
-featured: true
-featured-top: 1
 series: false
 draft: false
 ---

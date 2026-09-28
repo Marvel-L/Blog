@@ -8,8 +8,7 @@ tags:
   - 我的来时路
 author: Marvel-L
 rank: 青铜
-featured: true
-featured-top: 1
+featured: false
 series: false
 draft: false
 ---
@@ -160,5 +159,183 @@ func swapPairs(head *ListNode) *ListNode {
     }
     
     return head 
+}
+```
+
+
+```golang
+type MyLinkedList struct { 
+ 	 Val int 
+ 	 Next *MyLinkedList 
+ 	 Len int 
+ } 
+ 
+ 
+ func Constructor() MyLinkedList { 
+ 	 return MyLinkedList{ 
+ 	 	 Val: 0, 
+ 	 	 Next: nil, 
+ 	 } 
+ } 
+ 
+ 
+ func (this *MyLinkedList) Get(index int) int { 
+ 	 if index  + 1  > this.Len { 
+ 	 	 return -1 
+ 	 } 
+ 	 cnt := 0 
+ 
+ 	 for  cur := this ; cur != nil ; cur = cur.Next { 
+ 	 	 if cnt == index { 
+ 	 	 	 return cur.Val 
+ 	 	 } 
+ 	 	 cnt ++ 
+ 	 } 
+ 	 return 0 
+ } 
+ 
+ 
+ func (this *MyLinkedList) AddAtHead(val int)  { 
+ 	 newLinkedList := &MyLinkedList{ 
+ 	 	 Val: val, 
+ 	 } 
+ 	 newLinkedList.Next = this 
+ 	 newLinkedList.Len = this.Len + 1 
+ 	 this = newLinkedList 
+ } 
+ 
+ 
+ func (this *MyLinkedList) AddAtTail(val int)  { 
+ 	 tail := this.Get(this.Len - 1) // 获取末尾 
+ 	 this.AddAtIndex(this.Len - 1, val) // 插入在末尾前 
+ 	 this.DeleteAtIndex(this.Len - 1) // 删除末尾 
+ 	 this.AddAtIndex(this.Len - 1, tail) // 插入在末尾前 
+ } 
+ 
+ 
+ func (this *MyLinkedList) AddAtIndex(index int, val int)  { 
+ 	 if index > this.Len { 
+ 	 	 return 
+ 	 } 
+ 	 if index == 0 { 
+ 	 	 this.AddAtHead(val) 
+ 	 } 
+ 	 dummy := &MyLinkedList{Next:this} 
+ 	 prev := dummy 
+ 	 cnt := 0 
+ 	 for prev.Next != nil { 
+ 	 	 if cnt - 1 == index { 
+ 	 	 	 new := &MyLinkedList{Val:val} 
+ 	 	 	 new.Next = prev.Next 
+ 	 	 	 prev.Next = new 
+ 	 	 } 
+ 	 	 prev = prev.Next // 1->2 
+ 	 	 cnt ++ 
+ 	 } 
+ 	 this = dummy.Next 
+ } 
+ 
+ 
+ func (this *MyLinkedList) DeleteAtIndex(index int)  { 
+ 	 if index > this.Len { 
+ 	 	 return 
+ 	 } 
+ 	 if index == 0 { 
+ 	 	 this = this.Next 
+ 	 } 
+ 
+ 	 cur := this 
+ 	 cnt := 0 
+ 	 for cur != nil { 
+ 	 	 cur  = cur.Next 
+ 	 	 cnt ++ 
+ 	 	 if cnt == index { // 上一个 
+ 	 	 	 cur.Next = cur.Next.Next 
+ 	 	 } 
+ 	 } 
+ } 
+ 
+
+```
+
+修正后 
+
+```go
+type Node struct {
+	Val  int
+	Next *Node
+}
+
+type MyLinkedList struct {
+	head *Node
+	size int
+}
+
+func Constructor() MyLinkedList {
+	return MyLinkedList{}
+}
+
+func (this *MyLinkedList) Get(index int) int {
+	if index < 0 || index >= this.size {
+		return -1
+	}
+	cur := this.head
+	for i := 0; i < index; i++ {
+		cur = cur.Next
+	}
+	return cur.Val
+}
+
+func (this *MyLinkedList) AddAtHead(val int) {
+	this.head = &Node{
+		Val:  val,
+		Next: this.head,
+	}
+	this.size++
+}
+
+func (this *MyLinkedList) AddAtTail(val int) {
+	this.AddAtIndex(this.size, val)
+}
+
+func (this *MyLinkedList) AddAtIndex(index int, val int) {
+	if index < 0 {
+		index = 0
+	}
+	if index > this.size {
+		return
+	}
+	if index == 0 {
+		this.AddAtHead(val)
+		return
+	}
+
+	prev := this.head
+	for i := 0; i < index-1; i++ {
+		prev = prev.Next
+	}
+	prev.Next = &Node{
+		Val:  val,
+		Next: prev.Next,
+	}
+	this.size++
+}
+
+func (this *MyLinkedList) DeleteAtIndex(index int) {
+	if index < 0 || index >= this.size {
+		return
+	}
+	if index == 0 {
+		this.head = this.head.Next
+		this.size--
+		return
+	}
+
+	prev := this.head
+	for i := 0; i < index-1; i++ {
+		prev = prev.Next
+	}
+	prev.Next = prev.Next.Next
+	this.size--
 }
 ```

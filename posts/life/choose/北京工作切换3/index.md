@@ -9,8 +9,6 @@ tags:
   - 重要选择
 author: Marvel-L
 rank: 王者
-featured: true
-featured-top: 1
 tbd: true 
 series: false
 draft: false

@@ -8,8 +8,6 @@ tags:
   - 我的第二份工作
 author: Marvel-L
 rank: 白银
-featured: true
-featured-top: 1
 series: false
 draft: false
 ---

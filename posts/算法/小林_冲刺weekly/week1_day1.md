@@ -8,8 +8,6 @@ tags:
   - 我的来时路
 author: Marvel-L
 rank: 青铜
-featured: true
-featured-top: 1
 series: false
 draft: false
 ---
