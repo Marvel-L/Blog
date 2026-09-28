@@ -91,6 +91,11 @@ describe('Layout', () => {
     expect(screen.getAllByRole('button', { name: /外观与氛围/ }).length).toBeGreaterThanOrEqual(1);
   });
 
+  it('渲染待补完文章入口按钮', () => {
+    renderLayout();
+    expect(screen.getAllByRole('button', { name: /查看待补完文章/ }).length).toBeGreaterThanOrEqual(1);
+  });
+
   it('渲染搜索入口按钮', () => {
     renderLayout();
     // 桌面端搜索按钮；移动端入口在底部标签栏的「搜索」标签

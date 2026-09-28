@@ -513,7 +513,7 @@ const postRecords = files
 
     // 仅解构实际使用的字段；其余未知键全部进入 restData，由下方白名单过滤剔除
     // （frontmatter 中的 author/authors/coverImage 等经 data.* 显式读取）。
-    const { draft, updatedAt, ...restData } = data;
+    const { draft, updatedAt, tbd, ...restData } = data;
     const id = typeof data.id === 'string' ? data.id : '';
     const frontmatterDate = formatFrontmatterDate(data.date);
     const frontmatterUpdatedAt = formatFrontmatterDate(updatedAt);
@@ -555,6 +555,7 @@ const postRecords = files
       // Phase 3 加固：白名单过滤未知 frontmatter 键，杜绝污染产物数据契约。
       restData: Object.fromEntries(Object.entries(restData).filter(([key]) => POST_FRONTMATTER_ALLOWLIST.has(key))),
       draft: draft === true,
+      tbd: tbd === true,
       id,
       formattedDate,
       formattedUpdatedAt,
@@ -585,7 +586,7 @@ postRecords.forEach((record) => {
 const normalizeTagsStrict = (value) => (Array.isArray(value) ? value.map((tag) => tag.trim()) : []);
 
 const buildPost = (record) => {
-  const { filename, content, data, restData, id, formattedDate, formattedUpdatedAt, draft } = record;
+  const { filename, content, data, restData, id, formattedDate, formattedUpdatedAt, draft, tbd } = record;
   const normalizedAuthors = normalizeAuthors(data.author, data.authors);
   const category = normalizeCategory(data.category);
   const tags = normalizeTagsStrict(data.tags);
@@ -605,6 +606,7 @@ const buildPost = (record) => {
         // 且 validatePostFrontmatter 已保证二者为非空字符串。
         title: data.title,
         excerpt: data.excerpt,
+        ...(tbd ? { tbd: true } : {}),
         ...(isSeries ? { series: true, seriesName, seriesOrder } : {}),
         coverImage: normalizedCoverImage,
         category,

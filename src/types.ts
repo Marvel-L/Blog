@@ -38,6 +38,7 @@ export interface PostMetadata {
   commentCount?: number;
   featured?: boolean;
   'featured-top'?: number;
+  tbd?: boolean;
   /**
    * 文章分级。缺省为普通展示；仅当值为 content.config.json 的 postRanks 之一时
    * 列表卡片与阅读页启用对应闪卡。

@@ -120,21 +120,26 @@ describe('searchPosts 排序与匹配', () => {
     const searchData = (await import('../../generated/posts-search.json')).default as Array<
       PostMetadata & { searchText?: string }
     >;
+    const categoryQuery = searchData.find((post) => post.category.trim())?.category;
+    expect(categoryQuery).toBeTruthy();
+    if (!categoryQuery) {
+      return;
+    }
     // 构造对比对：找一个「纯分类命中」的文章（category=教程，但标题/摘要/正文
     // 均不含"教程"——分类命中权重 4×12 独立贡献），与一个「纯正文命中」的文章
     //（category≠教程 但正文含"教程"）。断言前者在结果中排在后者之前。
     const pureCategoryHit = searchData.find(
       (post) =>
-        post.category === '教程' &&
-        !post.title.includes('教程') &&
-        !post.excerpt.includes('教程') &&
-        !(post.searchText ?? '').includes('教程'),
+        post.category === categoryQuery &&
+        !post.title.includes(categoryQuery) &&
+        !post.excerpt.includes(categoryQuery) &&
+        !(post.searchText ?? '').includes(categoryQuery),
     );
     const pureContentHit = searchData.find(
-      (post) => post.category !== '教程' && (post.searchText ?? '').includes('教程'),
+      (post) => post.category !== categoryQuery && (post.searchText ?? '').includes(categoryQuery),
     );
     // 站点数据不足时跳过（测试不依赖具体内容），但至少保证有分类命中结果。
-    const results = await searchPosts('教程');
+    const results = await searchPosts(categoryQuery);
     expect(results.length).toBeGreaterThan(0);
     if (pureCategoryHit && pureContentHit) {
       const categoryIndex = results.findIndex((post) => post.id === pureCategoryHit.id);
@@ -184,10 +189,16 @@ describe('searchPosts scope 筛选', () => {
   });
 
   it('scope=category 只返回分类包含查询的文章', async () => {
-    const results = await searchPosts('教程', { scope: 'category' });
+    const allPosts = await getPosts();
+    const categoryQuery = allPosts.find((post) => post.category.trim())?.category;
+    expect(categoryQuery).toBeTruthy();
+    if (!categoryQuery) {
+      return;
+    }
+    const results = await searchPosts(categoryQuery, { scope: 'category' });
     expect(results.length).toBeGreaterThan(0);
     for (const result of results) {
-      expect(result.category).toBe('教程');
+      expect(result.category).toBe(categoryQuery);
     }
   });
 

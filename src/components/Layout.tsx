@@ -46,6 +46,7 @@ import { pingBusuanzi } from '@/services/busuanzi';
 
 import { ProgressiveImage } from './ProgressiveImage';
 import { ISSUE_SUBSCRIPTION_URL } from './IssueSubscriptionCard';
+import { TbdPostsButton } from './TbdPostsButton';
 import { useReducedMotion as useSiteReducedMotion } from '@/hooks/useReducedMotion';
 import { hasOpenOverlay, lockBodyScroll, unlockBodyScroll } from '@/hooks/useModalOverlay';
 import { useReadingMode, ReadingModeProvider } from './ReadingModeContext';
@@ -1056,12 +1057,14 @@ const Navbar = ({
               >
                 <Search size={18} />
               </button>
+              <TbdPostsButton />
               <ThemeToggle particleEffect={particleEffect} onParticleEffectChange={onParticleEffectChange} />
             </div>
           </div>
 
           <div className="flex items-center gap-1.5 lg:hidden">
-            {/* 移动端顶栏只保留主题切换：搜索/导航入口下沉到底部标签栏 */}
+            {/* 移动端顶栏保留待补完入口与主题切换：搜索/导航入口下沉到底部标签栏 */}
+            <TbdPostsButton />
             <ThemeToggle particleEffect={particleEffect} onParticleEffectChange={onParticleEffectChange} />
           </div>
         </motion.div>
