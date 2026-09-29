@@ -28,6 +28,59 @@
       } catch (_) { }
     })();
   </script>
+  <script>
+    (function () {
+      try {
+        var loveMode = localStorage.getItem('d-blog-love-mode') === 'true';
+        if (loveMode) {
+          document.documentElement.dataset.loveMode = 'true';
+          document.documentElement.dataset.loveModeBoot = 'true';
+        }
+      } catch (_) { }
+    })();
+  </script>
+  <style>
+    #love-mode-preload {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .2s ease;
+      z-index: 9999;
+      background:
+        radial-gradient(circle at 16% 14%, rgba(255, 228, 202, .22), transparent 28%),
+        radial-gradient(circle at 84% 18%, rgba(250, 167, 194, .18), transparent 24%),
+        radial-gradient(circle at 50% 100%, rgba(255, 119, 87, .24), transparent 36%),
+        linear-gradient(180deg, #200815 0%, #3f0f24 38%, #6d1b37 72%, #1b0c14 100%);
+    }
+
+    #love-mode-preload::before,
+    #love-mode-preload::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+    }
+
+    #love-mode-preload::before {
+      opacity: .16;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, .22) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .16) 1px, transparent 1px);
+      background-size: 72px 72px;
+    }
+
+    #love-mode-preload::after {
+      background: linear-gradient(180deg, rgba(255, 255, 255, .12), transparent 22rem);
+    }
+
+    html[data-love-mode-boot='true'] #love-mode-preload {
+      opacity: 1;
+    }
+
+    html[data-love-mode-boot='true'] #root {
+      opacity: 0;
+    }
+  </style>
 
   <!-- DNS 预解析和预连接优化 -->
   <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
@@ -70,6 +123,7 @@
 </head>
 
 <body class="bg-paper text-ink dark:bg-void dark:text-gray-200 overflow-x-hidden">
+  <div id="love-mode-preload" aria-hidden="true"></div>
   <div id="root"></div>
   <script type="module" src="/src/index.tsx"></script>
 </body>

@@ -100,6 +100,11 @@ export interface SiteIntro {
   holdMs: number;
 }
 
+export interface SiteLoveMode {
+  /** 配置后，在 Love 面背景从左上到右下重复铺陈该名字。 */
+  personName?: string;
+}
+
 export interface SiteConfig {
   title: string;
   subtitle: string;
@@ -132,6 +137,8 @@ export interface SiteConfig {
   beian: SiteBeian;
   /** 首页首次进入的打字机引导；缺省或 enabled=false 时不展示。 */
   intro?: SiteIntro;
+  /** Love 面额外展示配置。 */
+  loveMode?: SiteLoveMode;
 }
 
 export const siteConfig: SiteConfig = siteConfigJson;

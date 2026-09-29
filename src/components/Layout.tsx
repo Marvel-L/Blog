@@ -942,7 +942,11 @@ const Navbar = ({
   return (
     <>
       <nav
-        className={`site-navbar fixed left-0 right-0 top-0 ${isMobileNavMounted ? 'z-nav-panel' : 'z-nav'} border-b border-zinc-200/80 bg-paper/95 dark:border-zinc-800 dark:bg-void/95 lg:border-transparent lg:bg-paper lg:dark:border-transparent lg:dark:bg-void`}
+        className={`site-navbar fixed left-0 right-0 top-0 ${isMobileNavMounted ? 'z-nav-panel' : 'z-nav'} border-b ${
+          isLoveMode
+            ? 'border-white/12 bg-[rgba(35,8,24,0.62)] text-white backdrop-blur-xl lg:border-white/10 lg:bg-[rgba(35,8,24,0.52)]'
+            : 'border-zinc-200/80 bg-paper/95 dark:border-zinc-800 dark:bg-void/95 lg:border-transparent lg:bg-paper lg:dark:border-transparent lg:dark:bg-void'
+        }`}
       >
         {/* 顶部导航：内联 paddingTop 承接刘海/灵动岛的 safe-area-inset-top
             （viewport-fit=cover 下固定顶部元素会贴进屏幕缺口），高度由 min-h 兜底，
@@ -965,7 +969,11 @@ const Navbar = ({
                   className="h-8 w-8 object-cover sm:h-9 sm:w-9"
                 />
               ) : null}
-              <span className="max-w-[calc(100vw-9.5rem)] truncate font-serif text-lg font-bold tracking-tight text-ink dark:text-white sm:max-w-none sm:text-2xl">
+              <span
+                className={`max-w-[calc(100vw-9.5rem)] truncate font-serif text-lg font-bold tracking-tight sm:max-w-none sm:text-2xl ${
+                  isLoveMode ? 'text-white' : 'text-ink dark:text-white'
+                }`}
+              >
                 {siteConfig.title}
               </span>
             </Link>
@@ -977,12 +985,18 @@ const Navbar = ({
               aria-label={isLoveMode ? '退出 Love 面' : '进入 Love 面'}
               className={`group relative z-50 ml-2 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-[opacity,background-color,border-color,color,transform] duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/80 active:scale-[0.97] sm:h-10 sm:w-10 ${
                 isLoveMode
-                  ? 'border-rose-300/80 bg-rose-100/70 text-rose-500 opacity-100 dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-300'
+                  ? 'border-rose-200/30 bg-white/10 text-rose-100 opacity-100'
                   : 'border-rose-200/45 bg-rose-100/10 text-rose-300/70 opacity-35 hover:border-rose-300/80 hover:bg-rose-100/35 hover:text-rose-500 hover:opacity-100 dark:border-rose-500/20 dark:bg-rose-500/5 dark:text-rose-300/55 dark:hover:border-rose-400/45 dark:hover:bg-rose-500/10 dark:hover:text-rose-200'
               }`}
             >
               <Heart size={16} aria-hidden="true" className={isLoveMode ? 'fill-current' : ''} />
-              <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-control border border-rose-300/70 bg-white/95 px-2 py-1 text-xs text-rose-500 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 dark:border-rose-500/40 dark:bg-zinc-950/95 dark:text-rose-200">
+              <span
+                className={`pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-control border px-2 py-1 text-xs opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 ${
+                  isLoveMode
+                    ? 'border-white/18 bg-[rgba(35,8,24,0.92)] text-rose-100'
+                    : 'border-rose-300/70 bg-white/95 text-rose-500 dark:border-rose-500/40 dark:bg-zinc-950/95 dark:text-rose-200'
+                }`}
+              >
                 {isLoveMode ? 'Love 面' : 'Love'}
               </span>
             </button>
@@ -1352,6 +1366,10 @@ const Footer = () => {
 };
 
 const Background = ({ isLoveMode }: { isLoveMode: boolean }) => {
+  const lovePersonName = siteConfig.loveMode?.personName?.trim() || '';
+  const nameRows = lovePersonName ? Array.from({ length: 7 }, (_, rowIndex) => rowIndex) : [];
+  const repeatedName = lovePersonName ? Array.from({ length: 10 }, () => lovePersonName).join('   ') : '';
+
   return (
     <div
       className={`pointer-events-none fixed inset-0 z-[-1] overflow-hidden transition-[background,color] duration-700 ${
@@ -1363,6 +1381,20 @@ const Background = ({ isLoveMode }: { isLoveMode: boolean }) => {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,rgba(255,228,202,0.22),transparent_28%),radial-gradient(circle_at_84%_18%,rgba(250,167,194,0.18),transparent_24%),radial-gradient(circle_at_50%_100%,rgba(255,119,87,0.24),transparent_36%),linear-gradient(180deg,#200815_0%,#3f0f24_38%,#6d1b37_72%,#1b0c14_100%)]" />
           <div className="absolute inset-0 opacity-[0.16] [background-image:linear-gradient(rgba(255,255,255,0.22)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.16)_1px,transparent_1px)] [background-size:72px_72px]" />
           <div className="absolute inset-x-0 top-0 h-56 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),transparent)]" />
+          {lovePersonName ? (
+            <div className="absolute -left-[18vw] top-[-8vh] flex h-[132vh] w-[150vw] -rotate-[28deg] flex-col justify-between overflow-hidden opacity-[0.14]">
+              {nameRows.map((rowIndex) => (
+                <p
+                  key={rowIndex}
+                  className={`whitespace-nowrap font-serif text-[clamp(2.2rem,4.8vw,5.8rem)] font-semibold tracking-[0.34em] text-rose-100/75 ${
+                    rowIndex % 2 === 0 ? 'translate-x-[-6%]' : 'translate-x-[8%]'
+                  }`}
+                >
+                  {repeatedName}
+                </p>
+              ))}
+            </div>
+          ) : null}
         </>
       ) : null}
     </div>

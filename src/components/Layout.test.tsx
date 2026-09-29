@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { Layout } from './Layout';
+import { siteConfig } from '@config/site.config';
 
 // 懒加载子组件用简单 stub 替代，避免测试中等待 dynamic import 与动画。
 // 注意：Layout 以命名导出方式解构（import('./X').then(m => m.X)），mock 需提供同名导出。
@@ -40,6 +41,9 @@ describe('Layout', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
+    delete document.documentElement.dataset.loveMode;
+    delete document.documentElement.dataset.loveModeBoot;
+    siteConfig.loveMode = { personName: '' };
     // jsdom 不实现 matchMedia：ThemeToggle / Navbar 的媒体查询依赖它。
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
@@ -59,6 +63,9 @@ describe('Layout', () => {
   afterEach(() => {
     // 移动端导航锁定 body 滚动：重置避免跨用例污染。
     document.body.style.overflow = '';
+    delete document.documentElement.dataset.loveMode;
+    delete document.documentElement.dataset.loveModeBoot;
+    siteConfig.loveMode = { personName: '' };
   });
 
   it.each(['/', '/shuoshuo', '/stats', '/road', '/about', '/accumulate'])(
@@ -178,6 +185,27 @@ describe('Layout', () => {
     expect(screen.queryByRole('link', { name: '文章' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '打开更多菜单' })).not.toBeInTheDocument();
     expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument();
+  });
+
+  it('启动阶段已标记 Love 模式时，首帧直接进入 Love 面', async () => {
+    document.documentElement.dataset.loveMode = 'true';
+    document.documentElement.dataset.loveModeBoot = 'true';
+    window.localStorage.setItem('d-blog-love-mode', 'true');
+    renderLayout();
+
+    expect(await screen.findByRole('heading', { name: 'Love 面' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '退出 Love 面' })).toBeInTheDocument();
+  });
+
+  it('配置 Love 面人名后，背景会铺陈该名字', async () => {
+    siteConfig.loveMode = { personName: '刘宇' };
+    const user = userEvent.setup();
+    renderLayout();
+
+    await user.click(screen.getByRole('button', { name: '进入 Love 面' }));
+    await screen.findByRole('heading', { name: 'Love 面' });
+
+    expect(screen.getAllByText(/刘宇/).length).toBeGreaterThan(0);
   });
 
   // 等待移动端导航动画完成（data-state 从 opening 推进到 open）：

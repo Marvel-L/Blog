@@ -232,6 +232,11 @@ content:
           - { name: enabled, label: 启用引导, type: boolean }
           - { name: lines, label: 引导文案（逐行打印）, type: string, list: true }
           - { name: holdMs, label: 打印完成后等待毫秒数, type: number }
+      - name: loveMode
+        label: Love 面
+        type: object
+        fields:
+          - { name: personName, label: 背景人名（留空则不显示）, type: string }
 
 # ── 部署动作：CMS 侧边栏按钮，触发 .github/workflows/deploy.yml ──
 # 文档: https://pagescms.org/docs/configuration/actions/

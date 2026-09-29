@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 const LOVE_MODE_STORAGE_KEY = 'd-blog-love-mode';
+const LOVE_MODE_PRELOAD_ID = 'love-mode-preload';
 
 interface LoveModeContextValue {
   isLoveMode: boolean;
@@ -11,17 +12,31 @@ interface LoveModeContextValue {
 const LoveModeContext = createContext<LoveModeContextValue | null>(null);
 
 export const LoveModeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isLoveMode, setIsLoveMode] = useState(false);
+  const [isLoveMode, setIsLoveMode] = useState(() => {
+    if (typeof document === 'undefined') {
+      return false;
+    }
+    return document.documentElement.dataset.loveMode === 'true';
+  });
+  const [hasHydrated, setHasHydrated] = useState(false);
 
   useEffect(() => {
+    let next = false;
     try {
-      setIsLoveMode(window.localStorage.getItem(LOVE_MODE_STORAGE_KEY) === 'true');
+      next = window.localStorage.getItem(LOVE_MODE_STORAGE_KEY) === 'true';
     } catch {
-      setIsLoveMode(false);
+      next = false;
     }
+
+    setIsLoveMode(next);
+    setHasHydrated(true);
   }, []);
 
   useEffect(() => {
+    if (!hasHydrated || typeof document === 'undefined') {
+      return;
+    }
+
     if (typeof document === 'undefined') {
       return;
     }
@@ -38,10 +53,16 @@ export const LoveModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // 本地持久化失败时仍保持当前会话状态可用。
     }
 
+    delete document.documentElement.dataset.loveModeBoot;
+    const preload = document.getElementById(LOVE_MODE_PRELOAD_ID);
+    if (preload) {
+      preload.setAttribute('hidden', 'true');
+    }
+
     return () => {
       delete document.documentElement.dataset.loveMode;
     };
-  }, [isLoveMode]);
+  }, [hasHydrated, isLoveMode]);
 
   const setLoveMode = useCallback((next: boolean) => {
     setIsLoveMode(next);
