@@ -216,12 +216,12 @@ describe('Layout', () => {
     await user.click(screen.getByRole('button', { name: '进入 Love 面' }));
     await screen.findByRole('heading', { name: 'Love 面' });
 
-    const marqueeButtons = screen.getAllByRole('button', { name: '走动特效' });
-    const rainButtons = screen.getAllByRole('button', { name: '代码雨特效' });
-    expect(marqueeButtons[0]).toHaveAttribute('aria-pressed', 'true');
+    const effectTriggers = screen.getAllByRole('button', { name: 'Love 面特效，当前走动' });
+    await user.click(effectTriggers[0]);
+    const rainButtons = await screen.findAllByRole('button', { name: '代码雨特效选项' });
 
     await user.click(rainButtons[0]);
-    expect(rainButtons[0]).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByRole('button', { name: 'Love 面特效，当前代码雨' })[0]).toBeInTheDocument();
   });
 
   // 等待移动端导航动画完成（data-state 从 opening 推进到 open）：

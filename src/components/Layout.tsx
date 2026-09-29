@@ -29,6 +29,7 @@ import {
   LayoutGrid,
   Map as MapIcon,
   Library,
+  Sparkles,
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { preloadPage } from '@/utils/preload';
@@ -408,6 +409,110 @@ const ThemeToggle = ({
                   );
                 })}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const LOVE_EFFECT_OPTIONS: Array<{ id: LoveNameEffect; label: string; hint: string }> = [
+  { id: 'marquee', label: '走动', hint: '斜向流动的人名幕布' },
+  { id: 'rain', label: '代码雨', hint: '按列落下的人名雨幕' },
+];
+
+const LoveEffectToggle = ({
+  loveNameEffect,
+  onLoveNameEffectChange,
+}: {
+  loveNameEffect: LoveNameEffect;
+  onLoveNameEffectChange: (effect: LoveNameEffect) => void;
+}) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const menuId = 'love-effect-menu';
+  const currentEffectLabel = LOVE_EFFECT_OPTIONS.find((option) => option.id === loveNameEffect)?.label ?? loveNameEffect;
+
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+      if (!rootRef.current?.contains(target)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isMenuOpen]);
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setIsMenuOpen((open) => !open)}
+        className="group relative inline-flex h-11 w-11 items-center justify-center rounded-icon border border-white/14 bg-white/8 text-white transition-colors hover:border-white/28 hover:bg-white/14"
+        aria-label={`Love 面特效，当前${currentEffectLabel}`}
+        aria-haspopup="dialog"
+        aria-expanded={isMenuOpen}
+        aria-controls={menuId}
+      >
+        <Sparkles size={18} aria-hidden="true" />
+        <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-control border border-white/18 bg-[rgba(35,8,24,0.92)] px-2 py-1 text-xs text-rose-100 opacity-0 transition-opacity group-hover:opacity-100 group-aria-expanded:opacity-0">
+          特效
+        </span>
+      </button>
+
+      {isMenuOpen && (
+        <div
+          id={menuId}
+          role="dialog"
+          aria-label="Love 面特效"
+          className="absolute right-0 top-full z-popover mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-surface border border-white/14 bg-[rgba(35,8,24,0.94)] p-3 text-white shadow-lg backdrop-blur-xl"
+        >
+          <div>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">Love Effect</p>
+            <div className="grid gap-1.5" role="group" aria-label="Love 面人名特效">
+              {LOVE_EFFECT_OPTIONS.map((option) => {
+                const active = loveNameEffect === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    aria-pressed={active}
+                    aria-label={`${option.label}特效选项`}
+                    onClick={() => {
+                      onLoveNameEffectChange(option.id);
+                      setIsMenuOpen(false);
+                    }}
+                    className={`flex min-h-11 items-center justify-between rounded-control border px-3 py-2 text-left text-sm font-semibold transition-colors ${
+                      active
+                        ? 'border-white/20 bg-white text-[#52172a]'
+                        : 'border-white/10 bg-white/6 text-white hover:border-white/20 hover:bg-white/10'
+                    }`}
+                  >
+                    <span>{option.label}</span>
+                    <span className={`text-[10px] font-normal ${active ? 'text-[#7a3149]' : 'text-white/54'}`}>{option.hint}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -1012,32 +1117,10 @@ const Navbar = ({
           <div className="hidden min-w-0 shrink items-center gap-4 lg:flex">
             {isLoveMode ? (
               <div className="flex shrink-0 items-center gap-2">
-                <div
-                  role="group"
-                  aria-label="Love 面人名特效"
-                  className="inline-flex min-h-11 items-center rounded-full border border-white/14 bg-white/8 p-1 backdrop-blur-sm"
-                >
-                  {[
-                    { id: 'marquee' as const, label: '走动' },
-                    { id: 'rain' as const, label: '代码雨' },
-                  ].map((option) => {
-                    const active = loveNameEffect === option.id;
-                    return (
-                      <button
-                        key={option.id}
-                        type="button"
-                        aria-pressed={active}
-                        aria-label={`${option.label}特效`}
-                        onClick={() => onLoveNameEffectChange(option.id)}
-                        className={`rounded-full px-3 py-2 text-xs font-semibold transition-colors ${
-                          active ? 'bg-white text-[#52172a]' : 'text-white/74 hover:text-white'
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    );
-                  })}
-                </div>
+                <LoveEffectToggle
+                  loveNameEffect={loveNameEffect}
+                  onLoveNameEffectChange={onLoveNameEffectChange}
+                />
                 <button
                   type="button"
                   aria-label="地域（暂未开放）"
@@ -1173,32 +1256,10 @@ const Navbar = ({
             {/* 移动端顶栏保留主题切换与待补完入口：搜索/导航入口下沉到底部标签栏 */}
             {isLoveMode ? (
               <>
-                <div
-                  role="group"
-                  aria-label="Love 面人名特效"
-                  className="inline-flex min-h-10 items-center rounded-full border border-white/14 bg-white/8 p-1 backdrop-blur-sm"
-                >
-                  {[
-                    { id: 'marquee' as const, label: '走动' },
-                    { id: 'rain' as const, label: '代码雨' },
-                  ].map((option) => {
-                    const active = loveNameEffect === option.id;
-                    return (
-                      <button
-                        key={option.id}
-                        type="button"
-                        aria-pressed={active}
-                        aria-label={`${option.label}特效`}
-                        onClick={() => onLoveNameEffectChange(option.id)}
-                        className={`rounded-full px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${
-                          active ? 'bg-white text-[#52172a]' : 'text-white/74 hover:text-white'
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    );
-                  })}
-                </div>
+                <LoveEffectToggle
+                  loveNameEffect={loveNameEffect}
+                  onLoveNameEffectChange={onLoveNameEffectChange}
+                />
                 <button
                   type="button"
                   aria-label="地域（暂未开放）"
