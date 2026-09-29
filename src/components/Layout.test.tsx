@@ -181,7 +181,7 @@ describe('Layout', () => {
     await user.click(screen.getByRole('button', { name: '进入 Love 面' }));
 
     expect(await screen.findByRole('heading', { name: 'Love 面' })).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: '地域（暂未开放）' }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByRole('button', { name: '打开地域系统，当前湘潭' }).length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByRole('link', { name: '文章' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '打开更多菜单' })).not.toBeInTheDocument();
     expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument();
