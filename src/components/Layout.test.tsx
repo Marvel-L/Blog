@@ -39,6 +39,7 @@ const renderLayout = (initialEntries: string[] = ['/']) =>
 describe('Layout', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
     // jsdom 不实现 matchMedia：ThemeToggle / Navbar 的媒体查询依赖它。
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
@@ -151,6 +152,7 @@ describe('Layout', () => {
     renderLayout();
     expect(screen.getByRole('contentinfo')).toBeInTheDocument();
   });
+
   it('Ctrl+K 跳转到搜索页', async () => {
     const user = userEvent.setup();
     renderLayout();
@@ -163,6 +165,19 @@ describe('Layout', () => {
     renderLayout();
     await user.click(screen.getAllByRole('button', { name: '打开搜索页' })[0]);
     await waitFor(() => expect(probePathname).toBe('/search'));
+  });
+
+  it('点击爱心按钮进入 Love 面并隐藏原有导航入口', async () => {
+    const user = userEvent.setup();
+    renderLayout();
+
+    await user.click(screen.getByRole('button', { name: '进入 Love 面' }));
+
+    expect(screen.getByRole('heading', { name: 'Love 面' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: '地域（暂未开放）' }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByRole('link', { name: '文章' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '打开更多菜单' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument();
   });
 
   // 等待移动端导航动画完成（data-state 从 opening 推进到 open）：

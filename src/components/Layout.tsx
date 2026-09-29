@@ -8,6 +8,7 @@ import {
   Sun,
   Moon,
   Github,
+  Heart,
   X,
   Search,
   Rss,
@@ -50,6 +51,8 @@ import { TbdPostsButton } from './TbdPostsButton';
 import { useReducedMotion as useSiteReducedMotion } from '@/hooks/useReducedMotion';
 import { hasOpenOverlay, lockBodyScroll, unlockBodyScroll } from '@/hooks/useModalOverlay';
 import { useReadingMode, ReadingModeProvider } from './ReadingModeContext';
+import { LoveModeProvider, useLoveMode } from './LoveModeContext';
+import { LoveSurface } from './LoveSurface';
 import { routeTransition } from '@/utils/motion';
 
 const BackToTop = lazy(() => import('./BackToTop').then((m) => ({ default: m.BackToTop })));
@@ -418,10 +421,14 @@ const Navbar = ({
   onSearchNavigate,
   particleEffect,
   onParticleEffectChange,
+  isLoveMode,
+  onToggleLoveMode,
 }: {
   onSearchNavigate: () => void;
   particleEffect: ParticleEffectId;
   onParticleEffectChange: (effect: ParticleEffectId) => void;
+  isLoveMode: boolean;
+  onToggleLoveMode: () => void;
 }) => {
   const [mobileNavPhase, setMobileNavPhase] = useState<MobileNavPhase>('closed');
   const [isMobileNavMounted, setIsMobileNavMounted] = useState(false);
@@ -671,6 +678,21 @@ const Navbar = ({
       nativeSwipeCaptureRef.current = null;
     }
   }, []);
+
+  useEffect(() => {
+    if (!isLoveMode || !isMobileNavMounted) {
+      return;
+    }
+
+    clearAnimationFrame();
+    clearTransitionTimer();
+    detachNativeSwipeCapture();
+    afterCloseActionRef.current = null;
+    previousActiveElementRef.current = null;
+    setIsMobileNavMounted(false);
+    setMobileNavPhase('closed');
+    setIsMoreMenuOpen(false);
+  }, [clearAnimationFrame, clearTransitionTimer, detachNativeSwipeCapture, isLoveMode, isMobileNavMounted]);
 
   const resetMobileNavDragStyles = useCallback(() => {
     const panel = mobileNavPanelRef.current;
@@ -930,210 +952,263 @@ const Navbar = ({
           className="mx-auto flex min-h-14 max-w-7xl items-center justify-between px-3 sm:min-h-16 sm:px-6 md:min-h-16"
           style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
         >
-          <Link to="/" className="group z-50 flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
-            {siteConfig.logoSmall.trim() ? (
-              <ProgressiveImage
-                src={assetUrl(siteConfig.logoSmall)}
-                alt={`${siteConfig.title} 站点标志`}
-                fetchPriority="auto"
-                width={96}
-                height={96}
-                wrapperClassName="h-8 w-8 bg-white sm:h-9 sm:w-9"
-                className="h-8 w-8 object-cover sm:h-9 sm:w-9"
-              />
-            ) : null}
-            <span className="max-w-[calc(100vw-9.5rem)] truncate font-serif text-lg font-bold tracking-tight text-ink dark:text-white sm:max-w-none sm:text-2xl">
-              {siteConfig.title}
-            </span>
-          </Link>
+          <div className="flex min-w-0 shrink items-center">
+            <Link to="/" className="group z-50 flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
+              {siteConfig.logoSmall.trim() ? (
+                <ProgressiveImage
+                  src={assetUrl(siteConfig.logoSmall)}
+                  alt={`${siteConfig.title} 站点标志`}
+                  fetchPriority="auto"
+                  width={96}
+                  height={96}
+                  wrapperClassName="h-8 w-8 bg-white sm:h-9 sm:w-9"
+                  className="h-8 w-8 object-cover sm:h-9 sm:w-9"
+                />
+              ) : null}
+              <span className="max-w-[calc(100vw-9.5rem)] truncate font-serif text-lg font-bold tracking-tight text-ink dark:text-white sm:max-w-none sm:text-2xl">
+                {siteConfig.title}
+              </span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={onToggleLoveMode}
+              aria-pressed={isLoveMode}
+              aria-label={isLoveMode ? '退出 Love 面' : '进入 Love 面'}
+              className={`group relative z-50 ml-2 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-[opacity,background-color,border-color,color,transform] duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/80 active:scale-[0.97] sm:h-10 sm:w-10 ${
+                isLoveMode
+                  ? 'border-rose-300/80 bg-rose-100/70 text-rose-500 opacity-100 dark:border-rose-500/50 dark:bg-rose-500/15 dark:text-rose-300'
+                  : 'border-rose-200/45 bg-rose-100/10 text-rose-300/70 opacity-35 hover:border-rose-300/80 hover:bg-rose-100/35 hover:text-rose-500 hover:opacity-100 dark:border-rose-500/20 dark:bg-rose-500/5 dark:text-rose-300/55 dark:hover:border-rose-400/45 dark:hover:bg-rose-500/10 dark:hover:text-rose-200'
+              }`}
+            >
+              <Heart size={16} aria-hidden="true" className={isLoveMode ? 'fill-current' : ''} />
+              <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-control border border-rose-300/70 bg-white/95 px-2 py-1 text-xs text-rose-500 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 dark:border-rose-500/40 dark:bg-zinc-950/95 dark:text-rose-200">
+                {isLoveMode ? 'Love 面' : 'Love'}
+              </span>
+            </button>
+          </div>
 
           <div className="hidden min-w-0 shrink items-center gap-4 lg:flex">
-            <div className="flex min-w-0 shrink gap-2">
-              {navItems.map((item) => {
-                const isActive = isNavItemActive(item.path);
-
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onMouseEnter={() => preloadPage(item.path)}
-                    aria-current={isActive ? 'page' : undefined}
-                    className={`group relative inline-flex h-10 items-center px-2 py-1 text-sm font-semibold tracking-wide transition-colors ${
-                      isActive
-                        ? 'text-ink dark:text-white'
-                        : 'text-zinc-700 hover:text-ink dark:text-zinc-300 dark:hover:text-white'
-                    }`}
-                  >
-                    <span className="relative z-10">{item.label}</span>
-                    <span
-                      aria-hidden="true"
-                      className={`absolute bottom-[2px] left-2 right-2 h-[2px] origin-center rounded-none bg-zinc-900 dark:bg-zinc-100 transition-[transform,opacity] duration-[250ms] ${
-                        isActive
-                          ? 'scale-x-100 opacity-100'
-                          : 'scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-70'
-                      }`}
-                    />
-                  </Link>
-                );
-              })}
-              <div
-                className="nav-more-menu relative"
-                onMouseEnter={() => setIsMoreMenuOpen(true)}
-                onMouseLeave={() => setIsMoreMenuOpen(false)}
-              >
+            {isLoveMode ? (
+              <div className="flex shrink-0 items-center gap-2">
                 <button
-                  ref={desktopMoreMenuButtonRef}
                   type="button"
-                  className="group inline-flex h-10 items-center gap-1 px-2 py-1 text-sm font-semibold tracking-wide text-zinc-700 transition-colors hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:text-zinc-300 dark:hover:text-white"
-                  aria-label="展开更多菜单"
-                  aria-haspopup="menu"
-                  aria-expanded={isMoreMenuOpen}
-                  aria-controls="desktop-more-menu"
-                  // 切换而非只开：菜单已由 hover 打开时，再次点击按钮应关闭
-                  // （指针始终在容器内不会触发 mouseleave，只开不关会让
-                  // aria-expanded 按钮的第二次点击失效）。
-                  onClick={() => setIsMoreMenuOpen((open) => !open)}
-                  onKeyDown={handleDesktopMoreMenuButtonKeyDown}
+                  aria-label="地域（暂未开放）"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-full border border-rose-200/80 bg-white/70 px-4 text-sm font-semibold text-zinc-800 transition-colors hover:bg-rose-50 dark:border-rose-900/80 dark:bg-white/5 dark:text-zinc-100 dark:hover:bg-rose-950/30"
                 >
-                  <span>更多</span>
-                  <ChevronDown
-                    size={14}
-                    className={`transition-transform duration-200 ${isMoreMenuOpen ? 'rotate-180' : ''}`}
-                    aria-hidden="true"
-                  />
+                  <MapIcon size={16} aria-hidden="true" className="text-rose-400 dark:text-rose-300" />
+                  <span>地域</span>
                 </button>
-                <div
-                  id="desktop-more-menu"
-                  role="menu"
-                  data-open={isMoreMenuOpen}
-                  className="nav-more-menu-panel absolute right-0 top-full z-popover w-64 max-w-[calc(100vw-2rem)] rounded-surface border border-zinc-200 bg-paper p-1.5 shadow-lg dark:border-zinc-700 dark:bg-zinc-950"
-                >
-                  {moreNavItems.map((item, index) => {
-                    const Icon = item.icon;
-                    const content = (
-                      <>
-                        <Icon size={15} aria-hidden="true" className="shrink-0" />
-                        <span className="shrink-0 whitespace-nowrap">{item.label}</span>
-                        <span className="min-w-0 flex-1 truncate text-right text-[10px] font-normal text-zinc-400">
-                          {item.hint}
-                        </span>
-                      </>
-                    );
-                    const itemProps = {
-                      ref: (element: HTMLElement | null) => {
-                        desktopMoreMenuItemRefs.current[index] = element;
-                      },
-                      role: 'menuitem' as const,
-                      tabIndex: isMoreMenuOpen && index === desktopMoreMenuActiveIndex ? 0 : -1,
-                      onKeyDown: (event: React.KeyboardEvent<HTMLElement>) =>
-                        handleDesktopMoreMenuItemKeyDown(event, index),
-                      onClick: () => closeDesktopMoreMenu(),
-                      className:
-                        'flex min-h-11 min-w-0 items-center gap-2 rounded-control px-2.5 py-2 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-ink dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white',
-                    };
-                    if ('path' in item) {
-                      return (
-                        <Link key={item.key} {...itemProps} to={item.path} onMouseEnter={() => preloadPage(item.path)}>
-                          {content}
-                        </Link>
-                      );
-                    }
+              </div>
+            ) : (
+              <>
+                <div className="flex min-w-0 shrink gap-2">
+                  {navItems.map((item) => {
+                    const isActive = isNavItemActive(item.path);
+
                     return (
-                      <a key={item.key} {...itemProps} href={item.href} target="_blank" rel="noopener noreferrer">
-                        {content}
-                        <ExternalLink size={11} className="shrink-0" aria-hidden="true" />
-                      </a>
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        onMouseEnter={() => preloadPage(item.path)}
+                        aria-current={isActive ? 'page' : undefined}
+                        className={`group relative inline-flex h-10 items-center px-2 py-1 text-sm font-semibold tracking-wide transition-colors ${
+                          isActive
+                            ? 'text-ink dark:text-white'
+                            : 'text-zinc-700 hover:text-ink dark:text-zinc-300 dark:hover:text-white'
+                        }`}
+                      >
+                        <span className="relative z-10">{item.label}</span>
+                        <span
+                          aria-hidden="true"
+                          className={`absolute bottom-[2px] left-2 right-2 h-[2px] origin-center rounded-none bg-zinc-900 dark:bg-zinc-100 transition-[transform,opacity] duration-[250ms] ${
+                            isActive
+                              ? 'scale-x-100 opacity-100'
+                              : 'scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-70'
+                          }`}
+                        />
+                      </Link>
                     );
                   })}
+                  <div
+                    className="nav-more-menu relative"
+                    onMouseEnter={() => setIsMoreMenuOpen(true)}
+                    onMouseLeave={() => setIsMoreMenuOpen(false)}
+                  >
+                    <button
+                      ref={desktopMoreMenuButtonRef}
+                      type="button"
+                      className="group inline-flex h-10 items-center gap-1 px-2 py-1 text-sm font-semibold tracking-wide text-zinc-700 transition-colors hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:text-zinc-300 dark:hover:text-white"
+                      aria-label="展开更多菜单"
+                      aria-haspopup="menu"
+                      aria-expanded={isMoreMenuOpen}
+                      aria-controls="desktop-more-menu"
+                      // 切换而非只开：菜单已由 hover 打开时，再次点击按钮应关闭
+                      // （指针始终在容器内不会触发 mouseleave，只开不关会让
+                      // aria-expanded 按钮的第二次点击失效）。
+                      onClick={() => setIsMoreMenuOpen((open) => !open)}
+                      onKeyDown={handleDesktopMoreMenuButtonKeyDown}
+                    >
+                      <span>更多</span>
+                      <ChevronDown
+                        size={14}
+                        className={`transition-transform duration-200 ${isMoreMenuOpen ? 'rotate-180' : ''}`}
+                        aria-hidden="true"
+                      />
+                    </button>
+                    <div
+                      id="desktop-more-menu"
+                      role="menu"
+                      data-open={isMoreMenuOpen}
+                      className="nav-more-menu-panel absolute right-0 top-full z-popover w-64 max-w-[calc(100vw-2rem)] rounded-surface border border-zinc-200 bg-paper p-1.5 shadow-lg dark:border-zinc-700 dark:bg-zinc-950"
+                    >
+                      {moreNavItems.map((item, index) => {
+                        const Icon = item.icon;
+                        const content = (
+                          <>
+                            <Icon size={15} aria-hidden="true" className="shrink-0" />
+                            <span className="shrink-0 whitespace-nowrap">{item.label}</span>
+                            <span className="min-w-0 flex-1 truncate text-right text-[10px] font-normal text-zinc-400">
+                              {item.hint}
+                            </span>
+                          </>
+                        );
+                        const itemProps = {
+                          ref: (element: HTMLElement | null) => {
+                            desktopMoreMenuItemRefs.current[index] = element;
+                          },
+                          role: 'menuitem' as const,
+                          tabIndex: isMoreMenuOpen && index === desktopMoreMenuActiveIndex ? 0 : -1,
+                          onKeyDown: (event: React.KeyboardEvent<HTMLElement>) =>
+                            handleDesktopMoreMenuItemKeyDown(event, index),
+                          onClick: () => closeDesktopMoreMenu(),
+                          className:
+                            'flex min-h-11 min-w-0 items-center gap-2 rounded-control px-2.5 py-2 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-ink dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white',
+                        };
+                        if ('path' in item) {
+                          return (
+                            <Link
+                              key={item.key}
+                              {...itemProps}
+                              to={item.path}
+                              onMouseEnter={() => preloadPage(item.path)}
+                            >
+                              {content}
+                            </Link>
+                          );
+                        }
+                        return (
+                          <a key={item.key} {...itemProps} href={item.href} target="_blank" rel="noopener noreferrer">
+                            {content}
+                            <ExternalLink size={11} className="shrink-0" aria-hidden="true" />
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-2 border-l border-zinc-300 pl-4 dark:border-zinc-700">
-              <button
-                onClick={onSearchNavigate}
-                className="group relative inline-flex h-11 w-11 items-center justify-center rounded-icon border border-zinc-300 bg-zinc-100 text-ink transition-colors hover:border-zinc-500 hover:bg-zinc-200 active:bg-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:bg-zinc-800 dark:active:bg-zinc-700"
-                aria-label="打开搜索页"
-              >
-                <Search size={18} />
-              </button>
-              <ThemeToggle particleEffect={particleEffect} onParticleEffectChange={onParticleEffectChange} />
-              <TbdPostsButton />
-            </div>
+                <div className="flex shrink-0 items-center gap-2 border-l border-zinc-300 pl-4 dark:border-zinc-700">
+                  <button
+                    onClick={onSearchNavigate}
+                    className="group relative inline-flex h-11 w-11 items-center justify-center rounded-icon border border-zinc-300 bg-zinc-100 text-ink transition-colors hover:border-zinc-500 hover:bg-zinc-200 active:bg-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:bg-zinc-800 dark:active:bg-zinc-700"
+                    aria-label="打开搜索页"
+                  >
+                    <Search size={18} />
+                  </button>
+                  <ThemeToggle particleEffect={particleEffect} onParticleEffectChange={onParticleEffectChange} />
+                  <TbdPostsButton />
+                </div>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5 lg:hidden">
             {/* 移动端顶栏保留主题切换与待补完入口：搜索/导航入口下沉到底部标签栏 */}
-            <ThemeToggle particleEffect={particleEffect} onParticleEffectChange={onParticleEffectChange} />
-            <TbdPostsButton />
+            {isLoveMode ? (
+              <button
+                type="button"
+                aria-label="地域（暂未开放）"
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-rose-200/80 bg-white/70 px-3 text-sm font-semibold text-zinc-800 dark:border-rose-900/80 dark:bg-white/5 dark:text-zinc-100"
+              >
+                <MapIcon size={15} aria-hidden="true" className="text-rose-400 dark:text-rose-300" />
+                <span>地域</span>
+              </button>
+            ) : (
+              <>
+                <ThemeToggle particleEffect={particleEffect} onParticleEffectChange={onParticleEffectChange} />
+                <TbdPostsButton />
+              </>
+            )}
           </div>
         </motion.div>
       </nav>
 
       {/* 移动端底部标签栏：lg 以下固定底部，首页/说说/搜索/友链 一级直达，「更多」打开分组面板 */}
-      <nav
-        aria-label="移动端底部导航"
-        className="site-tab-bar fixed inset-x-0 bottom-0 z-nav border-t border-zinc-200/80 bg-paper/95 dark:border-zinc-800 dark:bg-void/95 lg:hidden"
-        style={{
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          paddingLeft: 'env(safe-area-inset-left, 0px)',
-          paddingRight: 'env(safe-area-inset-right, 0px)',
-        }}
-      >
-        <div className="mx-auto grid h-14 max-w-7xl grid-cols-5">
-          {mobileTabItems.map((item) => {
-            const isActive = isNavItemActive(item.path);
-            const Icon = item.icon;
+      {!isLoveMode && (
+        <nav
+          aria-label="移动端底部导航"
+          className="site-tab-bar fixed inset-x-0 bottom-0 z-nav border-t border-zinc-200/80 bg-paper/95 dark:border-zinc-800 dark:bg-void/95 lg:hidden"
+          style={{
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+            paddingLeft: 'env(safe-area-inset-left, 0px)',
+            paddingRight: 'env(safe-area-inset-right, 0px)',
+          }}
+        >
+          <div className="mx-auto grid h-14 max-w-7xl grid-cols-5">
+            {mobileTabItems.map((item) => {
+              const isActive = isNavItemActive(item.path);
+              const Icon = item.icon;
 
-            return (
-              <Link
-                key={item.key}
-                to={item.path}
-                aria-current={isActive ? 'page' : undefined}
-                className={`relative flex min-w-0 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold tracking-wide transition-colors ${
-                  isActive
-                    ? 'text-ink dark:text-white'
-                    : 'text-zinc-500 hover:text-ink dark:text-zinc-400 dark:hover:text-white'
-                }`}
-              >
-                <Icon size={19} strokeWidth={isActive ? 2.2 : 1.8} aria-hidden="true" />
-                <span>{item.label}</span>
-                <span
-                  aria-hidden="true"
-                  className={`absolute top-0 h-0.5 w-8 rounded-none bg-zinc-900 transition-opacity dark:bg-zinc-100 ${
-                    isActive ? 'opacity-100' : 'opacity-0'
+              return (
+                <Link
+                  key={item.key}
+                  to={item.path}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`relative flex min-w-0 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold tracking-wide transition-colors ${
+                    isActive
+                      ? 'text-ink dark:text-white'
+                      : 'text-zinc-500 hover:text-ink dark:text-zinc-400 dark:hover:text-white'
                   }`}
-                />
-              </Link>
-            );
-          })}
-          <button
-            ref={mobileNavMenuButtonRef}
-            type="button"
-            onClick={handleToggleMobileNav}
-            disabled={isMobileNavAnimating}
-            aria-label={isMobileNavOpen ? '关闭更多菜单' : '打开更多菜单'}
-            aria-expanded={isMobileNavOpen}
-            aria-controls="mobile-navigation-panel"
-            className={`relative flex min-w-0 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold tracking-wide transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-              isMobileNavOpen
-                ? 'text-ink dark:text-white'
-                : 'text-zinc-500 hover:text-ink dark:text-zinc-400 dark:hover:text-white'
-            }`}
-          >
-            <LayoutGrid size={19} strokeWidth={isMobileNavOpen ? 2.2 : 1.8} aria-hidden="true" />
-            <span>更多</span>
-            <span
-              aria-hidden="true"
-              className={`absolute top-0 h-0.5 w-8 rounded-none bg-zinc-900 transition-opacity dark:bg-zinc-100 ${
-                isMobileNavOpen ? 'opacity-100' : 'opacity-0'
+                >
+                  <Icon size={19} strokeWidth={isActive ? 2.2 : 1.8} aria-hidden="true" />
+                  <span>{item.label}</span>
+                  <span
+                    aria-hidden="true"
+                    className={`absolute top-0 h-0.5 w-8 rounded-none bg-zinc-900 transition-opacity dark:bg-zinc-100 ${
+                      isActive ? 'opacity-100' : 'opacity-0'
+                    }`}
+                  />
+                </Link>
+              );
+            })}
+            <button
+              ref={mobileNavMenuButtonRef}
+              type="button"
+              onClick={handleToggleMobileNav}
+              disabled={isMobileNavAnimating}
+              aria-label={isMobileNavOpen ? '关闭更多菜单' : '打开更多菜单'}
+              aria-expanded={isMobileNavOpen}
+              aria-controls="mobile-navigation-panel"
+              className={`relative flex min-w-0 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold tracking-wide transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                isMobileNavOpen
+                  ? 'text-ink dark:text-white'
+                  : 'text-zinc-500 hover:text-ink dark:text-zinc-400 dark:hover:text-white'
               }`}
-            />
-          </button>
-        </div>
-      </nav>
+            >
+              <LayoutGrid size={19} strokeWidth={isMobileNavOpen ? 2.2 : 1.8} aria-hidden="true" />
+              <span>更多</span>
+              <span
+                aria-hidden="true"
+                className={`absolute top-0 h-0.5 w-8 rounded-none bg-zinc-900 transition-opacity dark:bg-zinc-100 ${
+                  isMobileNavOpen ? 'opacity-100' : 'opacity-0'
+                }`}
+              />
+            </button>
+          </div>
+        </nav>
+      )}
 
-      {isMobileNavMounted && (
+      {!isLoveMode && isMobileNavMounted && (
         <div className="mobile-nav-root lg:hidden">
           <div
             data-testid="mobile-nav-backdrop"
@@ -1292,6 +1367,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const location = useLocation();
   const navigate = useNavigate();
   const { isReadingMode } = useReadingMode();
+  const { isLoveMode, toggleLoveMode } = useLoveMode();
   const [particleEffect, setParticleEffect] = useState<ParticleEffectId>(DEFAULT_PARTICLE_EFFECT);
   // 搜索为独立页面（/search）：所有搜索入口（顶栏按钮、Ctrl+K、移动端抽屉快捷动作）
   // 统一跳转到搜索页。
@@ -1312,6 +1388,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const viewTransitionRouteVariants = { initial: { opacity: 1 }, animate: { opacity: 1 } } as const;
   // 仅 query 变化时保持组件挂载，避免搜索输入导致首页动画重启。
   const routeContentKey = location.pathname;
+  const visibleContent = isLoveMode ? <LoveSurface /> : children;
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1360,6 +1437,8 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
           onSearchNavigate={goToSearch}
           particleEffect={particleEffect}
           onParticleEffectChange={handleParticleEffectChange}
+          isLoveMode={isLoveMode}
+          onToggleLoveMode={toggleLoveMode}
         />
       )}
       {/* 非阅读模式：main 顶部内边距 = 导航栏高度 + 呼吸间距，并补偿导航栏
@@ -1392,7 +1471,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
             style={hasViewTransition ? { viewTransitionName: 'route-content' } : undefined}
             className="mx-auto min-w-0 w-full max-w-7xl"
           >
-            {children}
+            {visibleContent}
           </motion.div>
         </AnimatePresence>
       </main>
@@ -1401,13 +1480,15 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
           <BackToTop />
         </Suspense>
       )}
-      {!isReadingMode && <Footer />}
+      {!isReadingMode && !isLoveMode && <Footer />}
     </div>
   );
 };
 
 export const Layout: React.FC<LayoutProps> = (props) => (
-  <ReadingModeProvider>
-    <LayoutShell {...props} />
-  </ReadingModeProvider>
+  <LoveModeProvider>
+    <ReadingModeProvider>
+      <LayoutShell {...props} />
+    </ReadingModeProvider>
+  </LoveModeProvider>
 );
