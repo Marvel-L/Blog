@@ -80,6 +80,9 @@ type NavIcon = typeof BookOpen;
 type NavPathItem = { path: string; label: string; hint: string; icon: NavIcon; key?: string };
 type NavHrefItem = { href: string; label: string; hint: string; icon: NavIcon; key?: string };
 type NavItem = NavPathItem | NavHrefItem;
+type LoveNameEffect = 'marquee' | 'rain';
+
+const LOVE_NAME_EFFECT_STORAGE_KEY = 'd-blog-love-name-effect';
 
 const shuoshuoNavItem: NavPathItem = {
   path: '/shuoshuo',
@@ -423,12 +426,16 @@ const Navbar = ({
   onParticleEffectChange,
   isLoveMode,
   onToggleLoveMode,
+  loveNameEffect,
+  onLoveNameEffectChange,
 }: {
   onSearchNavigate: () => void;
   particleEffect: ParticleEffectId;
   onParticleEffectChange: (effect: ParticleEffectId) => void;
   isLoveMode: boolean;
   onToggleLoveMode: () => void;
+  loveNameEffect: LoveNameEffect;
+  onLoveNameEffectChange: (effect: LoveNameEffect) => void;
 }) => {
   const [mobileNavPhase, setMobileNavPhase] = useState<MobileNavPhase>('closed');
   const [isMobileNavMounted, setIsMobileNavMounted] = useState(false);
@@ -1005,6 +1012,32 @@ const Navbar = ({
           <div className="hidden min-w-0 shrink items-center gap-4 lg:flex">
             {isLoveMode ? (
               <div className="flex shrink-0 items-center gap-2">
+                <div
+                  role="group"
+                  aria-label="Love 面人名特效"
+                  className="inline-flex min-h-11 items-center rounded-full border border-white/14 bg-white/8 p-1 backdrop-blur-sm"
+                >
+                  {[
+                    { id: 'marquee' as const, label: '走动' },
+                    { id: 'rain' as const, label: '代码雨' },
+                  ].map((option) => {
+                    const active = loveNameEffect === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        aria-pressed={active}
+                        aria-label={`${option.label}特效`}
+                        onClick={() => onLoveNameEffectChange(option.id)}
+                        className={`rounded-full px-3 py-2 text-xs font-semibold transition-colors ${
+                          active ? 'bg-white text-[#52172a]' : 'text-white/74 hover:text-white'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
                 <button
                   type="button"
                   aria-label="地域（暂未开放）"
@@ -1139,14 +1172,42 @@ const Navbar = ({
           <div className="flex items-center gap-1.5 lg:hidden">
             {/* 移动端顶栏保留主题切换与待补完入口：搜索/导航入口下沉到底部标签栏 */}
             {isLoveMode ? (
-              <button
-                type="button"
-                aria-label="地域（暂未开放）"
-                className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-rose-200/80 bg-white/70 px-3 text-sm font-semibold text-zinc-800 dark:border-rose-900/80 dark:bg-white/5 dark:text-zinc-100"
-              >
-                <MapIcon size={15} aria-hidden="true" className="text-rose-400 dark:text-rose-300" />
-                <span>地域</span>
-              </button>
+              <>
+                <div
+                  role="group"
+                  aria-label="Love 面人名特效"
+                  className="inline-flex min-h-10 items-center rounded-full border border-white/14 bg-white/8 p-1 backdrop-blur-sm"
+                >
+                  {[
+                    { id: 'marquee' as const, label: '走动' },
+                    { id: 'rain' as const, label: '代码雨' },
+                  ].map((option) => {
+                    const active = loveNameEffect === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        aria-pressed={active}
+                        aria-label={`${option.label}特效`}
+                        onClick={() => onLoveNameEffectChange(option.id)}
+                        className={`rounded-full px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${
+                          active ? 'bg-white text-[#52172a]' : 'text-white/74 hover:text-white'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  aria-label="地域（暂未开放）"
+                  className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-rose-200/80 bg-white/70 px-3 text-sm font-semibold text-zinc-800 dark:border-rose-900/80 dark:bg-white/5 dark:text-zinc-100"
+                >
+                  <MapIcon size={15} aria-hidden="true" className="text-rose-400 dark:text-rose-300" />
+                  <span>地域</span>
+                </button>
+              </>
             ) : (
               <>
                 <ThemeToggle particleEffect={particleEffect} onParticleEffectChange={onParticleEffectChange} />
@@ -1365,10 +1426,17 @@ const Footer = () => {
   );
 };
 
-const Background = ({ isLoveMode }: { isLoveMode: boolean }) => {
+const BackgroundWithEffect = ({
+  isLoveMode,
+  loveNameEffect,
+}: {
+  isLoveMode: boolean;
+  loveNameEffect: LoveNameEffect;
+}) => {
   const lovePersonName = siteConfig.loveMode?.personName?.trim() || '';
   const nameRows = lovePersonName ? Array.from({ length: 7 }, (_, rowIndex) => rowIndex) : [];
   const repeatedName = lovePersonName ? Array.from({ length: 10 }, () => lovePersonName).join('   ') : '';
+  const rainColumns = lovePersonName ? Array.from({ length: 9 }, (_, columnIndex) => columnIndex) : [];
 
   return (
     <div
@@ -1381,18 +1449,44 @@ const Background = ({ isLoveMode }: { isLoveMode: boolean }) => {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,rgba(255,228,202,0.22),transparent_28%),radial-gradient(circle_at_84%_18%,rgba(250,167,194,0.18),transparent_24%),radial-gradient(circle_at_50%_100%,rgba(255,119,87,0.24),transparent_36%),linear-gradient(180deg,#200815_0%,#3f0f24_38%,#6d1b37_72%,#1b0c14_100%)]" />
           <div className="absolute inset-0 opacity-[0.16] [background-image:linear-gradient(rgba(255,255,255,0.22)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.16)_1px,transparent_1px)] [background-size:72px_72px]" />
           <div className="absolute inset-x-0 top-0 h-56 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),transparent)]" />
-          {lovePersonName ? (
-            <div className="absolute -left-[18vw] top-[-8vh] flex h-[132vh] w-[150vw] -rotate-[28deg] flex-col justify-between overflow-hidden opacity-[0.14]">
-              {nameRows.map((rowIndex) => (
-                <p
-                  key={rowIndex}
-                  className={`whitespace-nowrap font-serif text-[clamp(2.2rem,4.8vw,5.8rem)] font-semibold tracking-[0.34em] text-rose-100/75 ${
-                    rowIndex % 2 === 0 ? 'translate-x-[-6%]' : 'translate-x-[8%]'
-                  }`}
-                >
-                  {repeatedName}
-                </p>
-              ))}
+          {lovePersonName && loveNameEffect === 'marquee' ? (
+            <div className="absolute -left-[22vw] top-[-8vh] flex h-[132vh] w-[165vw] -rotate-[28deg] flex-col justify-between overflow-hidden opacity-[0.22]">
+              {nameRows.map((rowIndex) => {
+                const fromX = rowIndex % 2 === 0 ? '-14%' : '10%';
+                const toX = rowIndex % 2 === 0 ? '8%' : '-12%';
+                return (
+                  <motion.p
+                    key={rowIndex}
+                    aria-hidden="true"
+                    initial={false}
+                    animate={{ x: [fromX, toX] }}
+                    transition={{ duration: 10 + rowIndex * 0.9, ease: 'linear', repeat: Infinity, repeatType: 'mirror' }}
+                    className="whitespace-nowrap font-serif text-[clamp(2.6rem,5vw,6rem)] font-semibold tracking-[0.34em] text-rose-100/80"
+                  >
+                    {repeatedName}
+                  </motion.p>
+                );
+              })}
+            </div>
+          ) : null}
+          {lovePersonName && loveNameEffect === 'rain' ? (
+            <div className="absolute inset-0 overflow-hidden opacity-[0.28]">
+              {rainColumns.map((columnIndex) => {
+                const columnText = Array.from({ length: 12 }, () => lovePersonName).join('\n');
+                return (
+                  <motion.pre
+                    key={columnIndex}
+                    aria-hidden="true"
+                    initial={false}
+                    animate={{ y: ['-42%', '100%'] }}
+                    transition={{ duration: 7.5 + columnIndex * 0.75, ease: 'linear', repeat: Infinity, delay: columnIndex * 0.45 }}
+                    className="absolute top-0 whitespace-pre font-mono text-[clamp(1rem,1.25vw,1.25rem)] font-semibold leading-[1.45] tracking-[0.22em] text-rose-100/75"
+                    style={{ left: `${columnIndex * 11 + 2}%` }}
+                  >
+                    {columnText}
+                  </motion.pre>
+                );
+              })}
             </div>
           ) : null}
         </>
@@ -1415,6 +1509,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const { isReadingMode } = useReadingMode();
   const { isLoveMode, toggleLoveMode } = useLoveMode();
   const [particleEffect, setParticleEffect] = useState<ParticleEffectId>(DEFAULT_PARTICLE_EFFECT);
+  const [loveNameEffect, setLoveNameEffect] = useState<LoveNameEffect>('marquee');
   // 搜索为独立页面（/search）：所有搜索入口（顶栏按钮、Ctrl+K、移动端抽屉快捷动作）
   // 统一跳转到搜索页。
   const goToSearch = useCallback(() => {
@@ -1475,6 +1570,26 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
     setParticleEffect(readStoredParticleEffect());
   }, []);
 
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(LOVE_NAME_EFFECT_STORAGE_KEY);
+      if (saved === 'marquee' || saved === 'rain') {
+        setLoveNameEffect(saved);
+      }
+    } catch {
+      setLoveNameEffect('marquee');
+    }
+  }, []);
+
+  const handleLoveNameEffectChange = useCallback((next: LoveNameEffect) => {
+    setLoveNameEffect(next);
+    try {
+      window.localStorage.setItem(LOVE_NAME_EFFECT_STORAGE_KEY, next);
+    } catch {
+      // Love 面特效控制无法持久化时，仍保持当前会话状态可用。
+    }
+  }, []);
+
   // 不蒜子统计：路由变化即上报当前页访问并回填计数 span（适配 SPA 客户端导航，
   // 替代官方 <script> 仅首屏执行一次、无法为新路由上报/回填的局限）。
   useEffect(() => {
@@ -1490,7 +1605,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
       data-love-mode={isLoveMode ? 'true' : undefined}
       data-particle-front={isParticleFrontRoute ? 'true' : undefined}
     >
-      <Background isLoveMode={isLoveMode} />
+      <BackgroundWithEffect isLoveMode={isLoveMode} loveNameEffect={loveNameEffect} />
       {!isReadingMode && <ParticleField effect={particleEffect} />}
       {!isReadingMode && (
         <Navbar
@@ -1499,6 +1614,8 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
           onParticleEffectChange={handleParticleEffectChange}
           isLoveMode={isLoveMode}
           onToggleLoveMode={toggleLoveMode}
+          loveNameEffect={loveNameEffect}
+          onLoveNameEffectChange={handleLoveNameEffectChange}
         />
       )}
       {/* 非阅读模式：main 顶部内边距 = 导航栏高度 + 呼吸间距，并补偿导航栏

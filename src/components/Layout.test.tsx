@@ -208,6 +208,22 @@ describe('Layout', () => {
     expect(screen.getAllByText(/刘宇/).length).toBeGreaterThan(0);
   });
 
+  it('Love 面导航可以切换人名特效模式', async () => {
+    siteConfig.loveMode = { personName: '刘宇' };
+    const user = userEvent.setup();
+    renderLayout();
+
+    await user.click(screen.getByRole('button', { name: '进入 Love 面' }));
+    await screen.findByRole('heading', { name: 'Love 面' });
+
+    const marqueeButtons = screen.getAllByRole('button', { name: '走动特效' });
+    const rainButtons = screen.getAllByRole('button', { name: '代码雨特效' });
+    expect(marqueeButtons[0]).toHaveAttribute('aria-pressed', 'true');
+
+    await user.click(rainButtons[0]);
+    expect(rainButtons[0]).toHaveAttribute('aria-pressed', 'true');
+  });
+
   // 等待移动端导航动画完成（data-state 从 opening 推进到 open）：
   // 用 waitFor 轮询状态而非固定 sleep —— 动画时长（MOBILE_NAV_ANIMATION_DURATION_MS）
   // 调整时测试不脆断，也不拖慢套件。
