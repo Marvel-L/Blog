@@ -29,8 +29,47 @@
   }
 }
 
+@keyframes love-marquee-drift {
+  from {
+    transform: translate3d(var(--love-marquee-from, -12%), 0, 0);
+  }
+  to {
+    transform: translate3d(var(--love-marquee-to, 8%), 0, 0);
+  }
+}
+
+@keyframes love-rain-fall {
+  from {
+    transform: translate3d(0, var(--love-rain-from, -140%), 0);
+  }
+  to {
+    transform: translate3d(0, var(--love-rain-to, 150%), 0);
+  }
+}
+
 .hero-quote-enter {
   animation: hero-quote-enter 0.45s ease-out both;
+}
+
+.love-marquee-row {
+  animation-name: love-marquee-drift;
+  animation-duration: var(--love-marquee-duration, 12s);
+  animation-delay: var(--love-marquee-delay, 0s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  transform: translate3d(var(--love-marquee-from, -12%), 0, 0);
+  will-change: transform;
+}
+
+.love-rain-column {
+  animation-name: love-rain-fall;
+  animation-duration: var(--love-rain-duration, 9s);
+  animation-delay: var(--love-rain-delay, 0s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  transform: translate3d(0, var(--love-rain-from, -140%), 0);
+  will-change: transform;
 }
 
 @media (prefers-reduced-motion: reduce) {

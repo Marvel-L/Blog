@@ -1495,9 +1495,9 @@ const BackgroundWithEffect = ({
   loveNameEffect: LoveNameEffect;
 }) => {
   const lovePersonName = siteConfig.loveMode?.personName?.trim() || '';
-  const nameRows = lovePersonName ? Array.from({ length: 7 }, (_, rowIndex) => rowIndex) : [];
-  const repeatedName = lovePersonName ? Array.from({ length: 10 }, () => lovePersonName).join('   ') : '';
-  const rainColumns = lovePersonName ? Array.from({ length: 9 }, (_, columnIndex) => columnIndex) : [];
+  const nameRows = lovePersonName ? Array.from({ length: 9 }, (_, rowIndex) => rowIndex) : [];
+  const repeatedName = lovePersonName ? Array.from({ length: 14 }, () => lovePersonName).join('   ') : '';
+  const rainColumns = lovePersonName ? Array.from({ length: 12 }, (_, columnIndex) => columnIndex) : [];
 
   return (
     <div
@@ -1511,45 +1511,60 @@ const BackgroundWithEffect = ({
           <div className="absolute inset-0 opacity-[0.16] [background-image:linear-gradient(rgba(255,255,255,0.22)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.16)_1px,transparent_1px)] [background-size:72px_72px]" />
           <div className="absolute inset-x-0 top-0 h-56 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),transparent)]" />
           {lovePersonName && loveNameEffect === 'marquee' ? (
-            <div className="absolute -left-[22vw] top-[-8vh] flex h-[132vh] w-[165vw] -rotate-[28deg] flex-col justify-between overflow-hidden opacity-[0.22]">
+            <div
+              data-testid="love-name-marquee"
+              className="absolute -left-[46vw] top-[-18vh] flex h-[148vh] w-[192vw] -rotate-[22deg] flex-col justify-around overflow-hidden opacity-[0.22] sm:-left-[38vw] sm:w-[180vw] sm:-rotate-[24deg]"
+            >
               {nameRows.map((rowIndex) => {
-                const fromX = rowIndex % 2 === 0 ? '-14%' : '10%';
-                const toX = rowIndex % 2 === 0 ? '8%' : '-12%';
+                const fromX = rowIndex % 2 === 0 ? '-18%' : '12%';
+                const toX = rowIndex % 2 === 0 ? '10%' : '-14%';
+                const duration = 12 + rowIndex * 0.85;
+                const delay = -(rowIndex * 1.4);
                 return (
-                  <motion.p
+                  <p
                     key={rowIndex}
                     aria-hidden="true"
-                    initial={false}
-                    animate={{ x: [fromX, toX] }}
-                    transition={{ duration: 10 + rowIndex * 0.9, ease: 'linear', repeat: Infinity, repeatType: 'mirror' }}
-                    className="whitespace-nowrap font-serif text-[clamp(2.6rem,5vw,6rem)] font-semibold tracking-[0.34em] text-rose-100/80"
+                    className="love-marquee-row whitespace-nowrap font-serif text-[clamp(1.6rem,4.6vw,5rem)] font-semibold tracking-[0.24em] text-rose-100/78"
+                    style={
+                      {
+                        '--love-marquee-from': fromX,
+                        '--love-marquee-to': toX,
+                        '--love-marquee-duration': `${duration}s`,
+                        '--love-marquee-delay': `${delay}s`,
+                      } as React.CSSProperties
+                    }
                   >
                     {repeatedName}
-                  </motion.p>
+                  </p>
                 );
               })}
             </div>
           ) : null}
           {lovePersonName && loveNameEffect === 'rain' ? (
-            <div className="absolute inset-0 overflow-hidden opacity-[0.28]">
+            <div data-testid="love-name-rain" className="absolute inset-0 overflow-hidden opacity-[0.28]">
               {rainColumns.map((columnIndex) => {
                 const columnText = Array.from({ length: 12 }, () => lovePersonName).join('\n');
-                // 每列从不同的纵向进度开始，切到“代码雨”时直接呈现进行中的下落状态，
-                // 避免先出现整齐排队、再依次落下的割裂首帧。
-                const startY = -38 + ((columnIndex * 19) % 104);
-                const endY = startY + 168;
+                const duration = 8.8 + (columnIndex % 4) * 0.95;
+                const delay = -(duration * (((columnIndex * 0.17) % 0.82) + 0.08));
+                const fromY = `${-132 - ((columnIndex * 11) % 44)}%`;
+                const toY = `${146 + ((columnIndex * 7) % 22)}%`;
                 return (
-                  <motion.pre
+                  <pre
                     key={columnIndex}
                     aria-hidden="true"
-                    initial={false}
-                    animate={{ y: [`${startY}%`, `${endY}%`] }}
-                    transition={{ duration: 7.5 + columnIndex * 0.75, ease: 'linear', repeat: Infinity }}
-                    className="absolute top-0 whitespace-pre font-mono text-[clamp(1rem,1.25vw,1.25rem)] font-semibold leading-[1.45] tracking-[0.22em] text-rose-100/75"
-                    style={{ left: `${columnIndex * 11 + 2}%` }}
+                    className="love-rain-column absolute top-0 whitespace-pre font-mono text-[clamp(0.78rem,1.7vw,1.14rem)] font-semibold leading-[1.42] tracking-[0.16em] text-rose-100/75"
+                    style={
+                      {
+                        left: `${(columnIndex / rainColumns.length) * 100}%`,
+                        '--love-rain-from': fromY,
+                        '--love-rain-to': toY,
+                        '--love-rain-duration': `${duration}s`,
+                        '--love-rain-delay': `${delay}s`,
+                      } as React.CSSProperties
+                    }
                   >
                     {columnText}
-                  </motion.pre>
+                  </pre>
                 );
               })}
             </div>

@@ -206,6 +206,7 @@ describe('Layout', () => {
     await screen.findByRole('heading', { name: 'Love 面' });
 
     expect(screen.getAllByText(/刘宇/).length).toBeGreaterThan(0);
+    expect(screen.getByTestId('love-name-marquee')).toBeInTheDocument();
   });
 
   it('Love 面导航可以切换人名特效模式', async () => {
@@ -215,6 +216,8 @@ describe('Layout', () => {
 
     await user.click(screen.getByRole('button', { name: '进入 Love 面' }));
     await screen.findByRole('heading', { name: 'Love 面' });
+    expect(screen.getByTestId('love-name-marquee')).toBeInTheDocument();
+    expect(screen.queryByTestId('love-name-rain')).not.toBeInTheDocument();
 
     const effectTriggers = screen.getAllByRole('button', { name: 'Love 面特效，当前走动' });
     await user.click(effectTriggers[0]);
@@ -222,6 +225,8 @@ describe('Layout', () => {
 
     await user.click(rainButtons[0]);
     expect(screen.getAllByRole('button', { name: 'Love 面特效，当前代码雨' })[0]).toBeInTheDocument();
+    expect(screen.queryByTestId('love-name-marquee')).not.toBeInTheDocument();
+    expect(screen.getByTestId('love-name-rain')).toBeInTheDocument();
   });
 
   // 等待移动端导航动画完成（data-state 从 opening 推进到 open）：
