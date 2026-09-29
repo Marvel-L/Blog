@@ -1473,13 +1473,17 @@ const BackgroundWithEffect = ({
             <div className="absolute inset-0 overflow-hidden opacity-[0.28]">
               {rainColumns.map((columnIndex) => {
                 const columnText = Array.from({ length: 12 }, () => lovePersonName).join('\n');
+                // 每列从不同的纵向进度开始，切到“代码雨”时直接呈现进行中的下落状态，
+                // 避免先出现整齐排队、再依次落下的割裂首帧。
+                const startY = -38 + ((columnIndex * 19) % 104);
+                const endY = startY + 168;
                 return (
                   <motion.pre
                     key={columnIndex}
                     aria-hidden="true"
                     initial={false}
-                    animate={{ y: ['-42%', '100%'] }}
-                    transition={{ duration: 7.5 + columnIndex * 0.75, ease: 'linear', repeat: Infinity, delay: columnIndex * 0.45 }}
+                    animate={{ y: [`${startY}%`, `${endY}%`] }}
+                    transition={{ duration: 7.5 + columnIndex * 0.75, ease: 'linear', repeat: Infinity }}
                     className="absolute top-0 whitespace-pre font-mono text-[clamp(1rem,1.25vw,1.25rem)] font-semibold leading-[1.45] tracking-[0.22em] text-rose-100/75"
                     style={{ left: `${columnIndex * 11 + 2}%` }}
                   >
