@@ -2,13 +2,14 @@
 
 ## 功能概述
 
-全站外壳：头部导航（桌面下拉/移动抽屉）、主题切换按钮、移动端滑动抽屉手势、滚动进度/返回顶部、页脚、Cookie 提示条、Service Worker 更新提示、错误边界与 View Transitions 页面切换。
+全站外壳：头部导航（桌面下拉/移动抽屉）、主题切换按钮、移动端滑动抽屉手势、Love 面切换入口、滚动进度/返回顶部、页脚、Cookie 提示条、Service Worker 更新提示、错误边界与 View Transitions 页面切换。
 
 ## 关键文件
 
 - `src/components/Layout.tsx`（约 1350 行）
 - `src/App.tsx`（路由 + 错误边界 + View Transitions）
 - `src/components/{BackToTop, OfflineStatus, ServiceWorkerUpdatePrompt, CookieNotice, ReadingModeToggle}.tsx`
+- Love 面细节见 [love-mode.md](love-mode.md)（`Layout` 只负责全站壳层切面与入口摆放）
 - `src/hooks/useModalOverlay.ts`（弹层栈/滚动锁/焦点陷阱，全局共享）
 
 ## 修改规则（必须遵守）
@@ -20,6 +21,7 @@
 5. **Cookie 提示**：「同意」永久持久化（localStorage）、「关闭」会话级（sessionStorage）语义保持。
 6. **返回顶部**：隐藏时同步 visibility/tabIndex 并主动 blur 焦点。
 7. **SSG 确定性**：主题/网络状态先渲染默认态再在 effect 中纠正；getServiceWorkerState 只读模块变量。
+8. **Love 面边界**：涉及 Love 面入口位置、全站切面接管、导航收起与退出路径时，必须同时遵守 [love-mode.md](love-mode.md)；不要在 `Layout` 里复制另一套与文档脱节的 Love 逻辑。
 
 ## 常见陷阱
 
