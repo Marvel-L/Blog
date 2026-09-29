@@ -101,3 +101,24 @@ $$
 入口是 3，环长 $C=4$。若在 5 相遇：$a=2,\ b=2,\ c=2$。  
 检查：$a+b=4=1\cdot C$，且 $a=c=2$。  
 从头：1→2→**3**；从 5：5→6→**3**。两步后都到入口。
+
+
+## Code
+
+```go
+func detectCycle(head *ListNode) *ListNode {
+    slow,fast := head,head 
+    for fast != nil && fast.Next != nil {
+        slow = slow.Next
+        fast = fast.Next.Next
+        if slow == fast {
+            for head != slow {
+                head = head.Next
+                slow = slow.Next
+            }
+            return slow 
+        }
+    }
+    return nil 
+}
+```

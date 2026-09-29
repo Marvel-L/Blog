@@ -91,3 +91,114 @@ func getIntersectionNode(headA, headB *ListNode) *ListNode {
     return pA
 }
 ```
+
+#  142.环形链表II
+ 
+见 [环形链表专题](https://marvel-l.github.io/Blog/post/xiaolin_algo_week1_day3_0x01)
+
+# 242.有效的字母异位词
+
+力扣链接：https://leetcode.cn/problems/valid-anagram/
+
+题目：给你两个字符串，如果这两个字符串的每个字符出现的次数都一样，返回true
+
+## 思路
+
+因为只有 ==26个字母== 使用标记数组进行统计，然后在进行删除
+
+```go
+func isAnagram(s string, t string) bool {
+    st := make([]int,27)
+    for _ , v := range s {
+        st[v - 'a'] ++ 
+    }        
+
+    for _, v := range t {
+        st[v - 'a'] -- 
+    }
+    for i := 0 ; i <= 26; i ++ {
+        if st[i] != 0 {
+            return false 
+        }
+    }
+    return true 
+}
+```
+
+#   349. 两个数组的交集
+
+力扣链接：https://leetcode.cn/problems/intersection-of-two-arrays/
+
+题目：求两个数组的交集
+
+## 思路
+
+1. 同样使用 一个 ==Map 进行统计== 
+2. 不过需要注意的是，==对于第一个数组需要判断是否为0 防止重复计算==，==对于第二个数组需要判断不等于0 防止重复计算==
+
+## Code 
+
+```go
+func intersection(nums1 []int, nums2 []int) []int {
+    mp := make(map[int]int)
+    for _ ,v := range nums1 {
+        if mp[v] == 0 {
+            mp[v] ++ 
+        }
+    }
+    for _, v := range nums2 {
+        if mp[v] != 0 {
+            mp[v] -- 
+        }
+    }
+
+    res := make([]int,0,len(nums1))
+    for k ,v := range mp {
+        if v != 1 {
+            res = append(res, k)
+        }
+    }
+    return res 
+}
+```
+#  第202题. 快乐数
+
+力扣链接： https://leetcode.cn/problems/happy-number/
+
+题目： 重复计算：数字各个位 的 平方 的 和 ，直到和为1，则返回true，如果不可能为1，返回false
+
+## 思路
+
+模拟即可
+
+## code 
+
+```go
+func isHappy(n int) bool {
+    mp := make(map[int]bool)
+    for  {
+       res :=  calc(n)
+       if res == 1 {
+            return true 
+       }else if mp[res] == true {
+            return false 
+       }
+       mp[res] =true 
+       n = res 
+    }
+    return false 
+}
+
+func calc(n int) int {
+    res := 0 
+    for n != 0  {
+        wv := n % 10
+        res += wv * wv 
+        n /= 10 
+    }
+    return res 
+}
+
+// 111 , 3 , 9 
+// 222 , 12 , 5, 25
+```
