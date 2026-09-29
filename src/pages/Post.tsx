@@ -190,7 +190,8 @@ const syncHighlightTheme = (css: string) => {
 };
 
 const hasCodeBlocks = (content: string) => /^```[\w-]*[\s\S]*?^```/m.test(content);
-const hasMathExpressions = (content: string) => /\$\$[\s\S]*?\$\$|\\\(|\\\[/m.test(content);
+// remark-math 认 $...$ / $$...$$；\(...\) / \[...\] 会被 CommonMark 当转义吃掉，勿作正文公式写法。
+const hasMathExpressions = (content: string) => /\$\$[\s\S]*?\$\$|\$[^$\n]+\$|\\\(|\\\[/m.test(content);
 const hasMermaidDiagrams = (content: string) => /```mermaid\b/.test(content);
 
 const formatMetaDate = (dateText?: string) => {
