@@ -1351,8 +1351,22 @@ const Footer = () => {
   );
 };
 
-const Background = () => {
-  return <div className="pointer-events-none fixed inset-0 z-[-1] overflow-hidden bg-paper dark:bg-void" />;
+const Background = ({ isLoveMode }: { isLoveMode: boolean }) => {
+  return (
+    <div
+      className={`pointer-events-none fixed inset-0 z-[-1] overflow-hidden transition-[background,color] duration-700 ${
+        isLoveMode ? 'bg-[#200815]' : 'bg-paper dark:bg-void'
+      }`}
+    >
+      {isLoveMode ? (
+        <>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,rgba(255,228,202,0.22),transparent_28%),radial-gradient(circle_at_84%_18%,rgba(250,167,194,0.18),transparent_24%),radial-gradient(circle_at_50%_100%,rgba(255,119,87,0.24),transparent_36%),linear-gradient(180deg,#200815_0%,#3f0f24_38%,#6d1b37_72%,#1b0c14_100%)]" />
+          <div className="absolute inset-0 opacity-[0.16] [background-image:linear-gradient(rgba(255,255,255,0.22)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.16)_1px,transparent_1px)] [background-size:72px_72px]" />
+          <div className="absolute inset-x-0 top-0 h-56 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),transparent)]" />
+        </>
+      ) : null}
+    </div>
+  );
 };
 
 interface LayoutProps {
@@ -1389,6 +1403,19 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   // 仅 query 变化时保持组件挂载，避免搜索输入导致首页动画重启。
   const routeContentKey = location.pathname;
   const visibleContent = isLoveMode ? <LoveSurface /> : children;
+  const surfaceTransitionKey = isLoveMode ? `love:${routeContentKey}` : `default:${routeContentKey}`;
+  const surfaceSwitchVariants = prefersReducedMotion
+    ? { initial: { opacity: 1, y: 0, scale: 1 }, animate: { opacity: 1, y: 0, scale: 1 }, exit: { opacity: 1, y: 0, scale: 1 } }
+    : {
+        initial: { opacity: 0, y: isLoveMode ? 20 : 10, scale: isLoveMode ? 0.985 : 1 },
+        animate: { opacity: 1, y: 0, scale: 1, transition: { duration: isLoveMode ? 0.6 : 0.34, ease: 'easeOut' as const } },
+        exit: {
+          opacity: 0,
+          y: isLoveMode ? -10 : 8,
+          scale: isLoveMode ? 1.01 : 0.995,
+          transition: { duration: isLoveMode ? 0.32 : 0.22, ease: 'easeInOut' as const },
+        },
+      };
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1428,9 +1455,10 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
     <div
       className={`site-shell relative flex min-h-screen flex-col ${isReadingMode ? 'reading-mode-shell' : ''}`}
       data-reading-mode={isReadingMode ? 'true' : undefined}
+      data-love-mode={isLoveMode ? 'true' : undefined}
       data-particle-front={isParticleFrontRoute ? 'true' : undefined}
     >
-      <Background />
+      <Background isLoveMode={isLoveMode} />
       {!isReadingMode && <ParticleField effect={particleEffect} />}
       {!isReadingMode && (
         <Navbar
@@ -1471,7 +1499,18 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
             style={hasViewTransition ? { viewTransitionName: 'route-content' } : undefined}
             className="mx-auto min-w-0 w-full max-w-7xl"
           >
-            {visibleContent}
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={surfaceTransitionKey}
+                variants={surfaceSwitchVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                className={isLoveMode ? 'min-h-[calc(100vh-8rem)]' : undefined}
+              >
+                {visibleContent}
+              </motion.div>
+            </AnimatePresence>
           </motion.div>
         </AnimatePresence>
       </main>
