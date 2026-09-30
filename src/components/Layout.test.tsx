@@ -160,6 +160,25 @@ describe('Layout', () => {
     expect(screen.getByRole('contentinfo')).toBeInTheDocument();
   });
 
+  it('首页页脚笑脸入口需要密码通过后才跳转隐私页', async () => {
+    const user = userEvent.setup();
+    renderLayout();
+
+    await user.click(screen.getByRole('button', { name: '打开隐私页密码框' }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('隐私页密码'), 'wrong-password');
+    await user.click(screen.getByRole('button', { name: '验证并进入' }));
+    expect(await screen.findByText('密码错误，请重新输入。')).toBeInTheDocument();
+    expect(probePathname).toBe('/');
+
+    await user.clear(screen.getByLabelText('隐私页密码'));
+    await user.type(screen.getByLabelText('隐私页密码'), 'Mx179516');
+    await user.click(screen.getByRole('button', { name: '验证并进入' }));
+
+    await waitFor(() => expect(probePathname).toBe('/privacy'));
+  });
+
   it('Ctrl+K 跳转到搜索页', async () => {
     const user = userEvent.setup();
     renderLayout();

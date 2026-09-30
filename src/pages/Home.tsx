@@ -4,8 +4,8 @@
 
 import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowDownWideNarrow, ArrowUpWideNarrow, ChevronRight, Smile, X } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { ArrowDownWideNarrow, ArrowUpWideNarrow, ChevronRight, X } from 'lucide-react';
 import { SearchField } from '@/components/SearchField';
 import { getInitialPosts, getPosts } from '@/services/posts';
 import type { PostMetadata } from '../types';
@@ -27,9 +27,6 @@ import { canonicalizeHomeQuery, getHomeQueryState, setHomeQueryParam } from '@/u
 import { clearSearchQueryParams, setSearchQueryParams } from '@/utils/searchParams';
 import { HeroQuote, resolveHeroQuoteSide } from '@/components/HeroQuote';
 import { getHeroQuotesConfig, type HeroQuoteSide } from '@/utils/heroQuotes';
-import { preloadPage } from '@/utils/preload';
-import { PrivacyPasswordModal } from '@/components/PrivacyPasswordModal';
-import { grantPrivacyAccess } from '@/utils/privacyAccess';
 
 const ShareModal = lazy(() => import('../components/ShareModal').then((m) => ({ default: m.ShareModal })));
 
@@ -236,7 +233,6 @@ const Hero = () => {
 };
 
 export const Home = () => {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryFromUrl = searchParams.get('category');
   const queryFromUrl = searchParams.get('q') || '';
@@ -258,7 +254,6 @@ export const Home = () => {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [sharePost, setSharePost] = useState<PostMetadata | null>(null);
-  const [isPrivacyDialogOpen, setIsPrivacyDialogOpen] = useState(false);
   const { latest: latestReading, refresh: refreshReadingHistory } = useReadingHistory();
   const { searchQuery, isSearching, searchError, results, handleSearch, setSearchQuery, clearSearch, hasSearchQuery } =
     // 不把 URL 的 ?q= 作为 useState 初始值（与 Search 页一致）：SSG 预渲染的是
@@ -486,12 +481,6 @@ export const Home = () => {
     setSearchParams((previous) => clearSearchQueryParams(previous, ['page']), { replace: true });
   };
 
-  const handlePrivacyAccessGranted = () => {
-    grantPrivacyAccess();
-    setIsPrivacyDialogOpen(false);
-    navigate('/privacy', { state: { privacyUnlocked: true } });
-  };
-
   const currentPosts = useMemo(() => {
     const pageStart = (currentPage - 1) * POSTS_PER_PAGE;
     const pageEnd = pageStart + POSTS_PER_PAGE;
@@ -698,24 +687,6 @@ export const Home = () => {
           />
         </Suspense>
       )}
-
-      <button
-        type="button"
-        onClick={() => setIsPrivacyDialogOpen(true)}
-        onMouseEnter={() => preloadPage('/privacy')}
-        onFocus={() => preloadPage('/privacy')}
-        className="privacy-smile-button fixed inline-flex h-11 w-11 items-center justify-center rounded-full border border-rose-300/28 bg-transparent text-rose-400/42 transition-[border-color,color,background-color,transform,box-shadow,opacity] duration-200 hover:scale-[1.04] hover:border-rose-400/58 hover:bg-rose-50/12 hover:text-rose-500/72 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-300 active:scale-[0.98] dark:border-rose-300/18 dark:bg-transparent dark:text-rose-200/34 dark:hover:border-rose-300/38 dark:hover:bg-rose-300/8 dark:hover:text-rose-200/64"
-        aria-label="打开隐私页密码框"
-        title="隐私页"
-      >
-        <Smile size={16} aria-hidden="true" />
-      </button>
-
-      <PrivacyPasswordModal
-        isOpen={isPrivacyDialogOpen}
-        onClose={() => setIsPrivacyDialogOpen(false)}
-        onSuccess={handlePrivacyAccessGranted}
-      />
     </div>
   );
 };

@@ -1,21 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation, useSearchParams } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom';
 import { Home } from './Home';
 
 // URL 探针：MemoryRouter 不更新 window.location，断言搜索参数必须经
 // useSearchParams 读取（否则「清除搜索后参数移除」的断言恒真、无回归保护）。
 let probeSearch = '';
-let probePathname = '';
 const SearchParamsProbe = () => {
   const [searchParams] = useSearchParams();
   probeSearch = searchParams.toString();
-  return null;
-};
-
-const LocationProbe = () => {
-  probePathname = useLocation().pathname;
   return null;
 };
 
@@ -44,16 +38,6 @@ const renderHome = (initialEntry = '/') =>
             <>
               <Home />
               <SearchParamsProbe />
-              <LocationProbe />
-            </>
-          }
-        />
-        <Route
-          path="/privacy"
-          element={
-            <>
-              <div>隐私页面内容</div>
-              <LocationProbe />
             </>
           }
         />
@@ -65,7 +49,6 @@ describe('Home', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     probeSearch = '';
-    probePathname = '/';
     window.sessionStorage.clear();
     // jsdom 不实现 matchMedia：useReducedMotion/useMediaQuery 等依赖媒体查询。
     Object.defineProperty(window, 'matchMedia', {
@@ -154,23 +137,4 @@ describe('Home', () => {
     });
   });
 
-  it('点击右下角笑脸后，密码验证通过才跳转隐私页', async () => {
-    const user = userEvent.setup();
-    renderHome();
-
-    await user.click(screen.getByRole('button', { name: '打开隐私页密码框' }));
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
-
-    await user.type(screen.getByLabelText('隐私页密码'), 'wrong-password');
-    await user.click(screen.getByRole('button', { name: '验证并进入' }));
-    expect(await screen.findByText('密码错误，请重新输入。')).toBeInTheDocument();
-    expect(probePathname).toBe('/');
-
-    await user.clear(screen.getByLabelText('隐私页密码'));
-    await user.type(screen.getByLabelText('隐私页密码'), 'Mx179516');
-    await user.click(screen.getByRole('button', { name: '验证并进入' }));
-
-    await waitFor(() => expect(probePathname).toBe('/privacy'));
-    expect(await screen.findByText('隐私页面内容')).toBeInTheDocument();
-  });
 });

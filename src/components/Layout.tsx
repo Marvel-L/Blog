@@ -30,6 +30,7 @@ import {
   Map as MapIcon,
   Library,
   Sparkles,
+  Smile,
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { preloadPage } from '@/utils/preload';
@@ -55,6 +56,8 @@ import { useReadingMode, ReadingModeProvider } from './ReadingModeContext';
 import { LoveModeProvider, useLoveMode } from './LoveModeContext';
 import { LoveSurface } from './LoveSurface';
 import { routeTransition } from '@/utils/motion';
+import { PrivacyPasswordModal } from './PrivacyPasswordModal';
+import { grantPrivacyAccess } from '@/utils/privacyAccess';
 
 const BackToTop = lazy(() => import('./BackToTop').then((m) => ({ default: m.BackToTop })));
 
@@ -1438,7 +1441,13 @@ const Navbar = ({
   );
 };
 
-const Footer = () => {
+const Footer = ({
+  showPrivacyEntry,
+  onOpenPrivacy,
+}: {
+  showPrivacyEntry: boolean;
+  onOpenPrivacy: () => void;
+}) => {
   return (
     <footer className="site-footer mt-8 hidden md:mt-12 lg:block">
       <WaveFishDivider variant="fish" className="mx-auto max-w-7xl px-3 sm:px-6" />
@@ -1454,9 +1463,24 @@ const Footer = () => {
         </div>
 
         <div className="mt-7 flex flex-col gap-2 border-t border-zinc-200/70 pt-5 text-xs text-zinc-600 dark:border-zinc-800/70 dark:text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            {siteConfig.footerText} · {siteConfig.author.name}
-          </p>
+          <div className="flex items-center gap-2">
+            <p>
+              {siteConfig.footerText} · {siteConfig.author.name}
+            </p>
+            {showPrivacyEntry ? (
+              <button
+                type="button"
+                onClick={onOpenPrivacy}
+                onMouseEnter={() => preloadPage('/privacy')}
+                onFocus={() => preloadPage('/privacy')}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-rose-300/25 bg-transparent text-rose-400/42 transition-[border-color,color,background-color] duration-200 hover:border-rose-400/50 hover:bg-rose-50/10 hover:text-rose-500/72 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-300 dark:border-rose-300/16 dark:text-rose-200/36 dark:hover:border-rose-300/34 dark:hover:bg-rose-300/8 dark:hover:text-rose-200/66"
+                aria-label="打开隐私页密码框"
+                title="隐私页"
+              >
+                <Smile size={13} aria-hidden="true" />
+              </button>
+            ) : null}
+          </div>
           <a
             href={siteConfig.beian.url}
             target="_blank"
@@ -1574,6 +1598,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const { isLoveMode, setLoveMode } = useLoveMode();
   const [particleEffect, setParticleEffect] = useState<ParticleEffectId>(DEFAULT_PARTICLE_EFFECT);
   const [loveNameEffect, setLoveNameEffect] = useState<LoveNameEffect>('marquee');
+  const [isPrivacyDialogOpen, setIsPrivacyDialogOpen] = useState(false);
   // 搜索为独立页面（/search）：所有搜索入口（顶栏按钮、Ctrl+K、移动端抽屉快捷动作）
   // 统一跳转到搜索页。
   const goToSearch = useCallback(() => {
@@ -1658,6 +1683,12 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
     setLoveMode(!isLoveMode);
   }, [isLoveMode, setLoveMode]);
 
+  const handlePrivacyAccessGranted = useCallback(() => {
+    grantPrivacyAccess();
+    setIsPrivacyDialogOpen(false);
+    navigate('/privacy', { state: { privacyUnlocked: true } });
+  }, [navigate]);
+
   // 不蒜子统计：路由变化即上报当前页访问并回填计数 span（适配 SPA 客户端导航，
   // 替代官方 <script> 仅首屏执行一次、无法为新路由上报/回填的局限）。
   useEffect(() => {
@@ -1736,7 +1767,14 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
           <BackToTop />
         </Suspense>
       )}
-      {!isReadingMode && !isLoveMode && <Footer />}
+      {!isReadingMode && !isLoveMode && (
+        <Footer showPrivacyEntry={location.pathname === '/'} onOpenPrivacy={() => setIsPrivacyDialogOpen(true)} />
+      )}
+      <PrivacyPasswordModal
+        isOpen={isPrivacyDialogOpen}
+        onClose={() => setIsPrivacyDialogOpen(false)}
+        onSuccess={handlePrivacyAccessGranted}
+      />
     </div>
   );
 };
