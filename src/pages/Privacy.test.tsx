@@ -74,7 +74,7 @@ describe('Privacy', () => {
     await user.type(screen.getByLabelText('隐私页密码'), 'Mx179516');
     await user.click(screen.getByRole('button', { name: '验证并进入' }));
 
-    expect(await screen.findByRole('button', { name: /隐私区示例文章/ })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: '阅读文章：隐私区示例文章' })).toBeInTheDocument();
     expect(screen.getByText('这是一篇私密文章正文。')).toBeInTheDocument();
   });
 
@@ -84,7 +84,7 @@ describe('Privacy', () => {
     renderPrivacy();
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /隐私区示例文章/ })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: '阅读文章：隐私区示例文章' })).toBeInTheDocument();
     });
   });
 });
