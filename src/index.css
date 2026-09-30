@@ -904,6 +904,17 @@
 }
 
 .privacy-smile-button {
+  bottom: max(
+    calc(
+      var(--tab-bar-height, 0px) + var(--cookie-notice-height, 0px) + var(--service-worker-prompt-height, 0px) + 4.75rem
+    ),
+    calc(
+      var(--tab-bar-height, 0px) + env(safe-area-inset-bottom, 0px) + var(--cookie-notice-height, 0px) +
+        var(--service-worker-prompt-height, 0px) + 4.75rem
+    )
+  );
+  right: max(1rem, calc(env(safe-area-inset-right, 0px) + 1rem));
+  z-index: 40;
   animation: privacy-smile-breathe 3.2s ease-in-out infinite;
   will-change: transform, box-shadow;
 }
@@ -912,6 +923,13 @@
   .back-to-top-btn {
     bottom: calc(
       var(--tab-bar-height, 0px) + var(--cookie-notice-height, 0px) + var(--service-worker-prompt-height, 0px) + 2rem
+    );
+    right: 2rem;
+  }
+
+  .privacy-smile-button {
+    bottom: calc(
+      var(--tab-bar-height, 0px) + var(--cookie-notice-height, 0px) + var(--service-worker-prompt-height, 0px) + 5.5rem
     );
     right: 2rem;
   }
