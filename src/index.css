@@ -906,11 +906,11 @@
 .privacy-smile-button {
   bottom: max(
     calc(
-      var(--tab-bar-height, 0px) + var(--cookie-notice-height, 0px) + var(--service-worker-prompt-height, 0px) + 4.75rem
+      var(--tab-bar-height, 0px) + var(--cookie-notice-height, 0px) + var(--service-worker-prompt-height, 0px) + 1.5rem
     ),
     calc(
       var(--tab-bar-height, 0px) + env(safe-area-inset-bottom, 0px) + var(--cookie-notice-height, 0px) +
-        var(--service-worker-prompt-height, 0px) + 4.75rem
+        var(--service-worker-prompt-height, 0px) + 1.5rem
     )
   );
   right: max(1rem, calc(env(safe-area-inset-right, 0px) + 1rem));
@@ -928,10 +928,9 @@
   }
 
   .privacy-smile-button {
-    bottom: calc(
-      var(--tab-bar-height, 0px) + var(--cookie-notice-height, 0px) + var(--service-worker-prompt-height, 0px) + 5.5rem
-    );
-    right: 2rem;
+    /* 对齐页脚内容区右侧：与「Marvel-L 的技术分享和生活随笔」所在块保持接近同一水平带。 */
+    bottom: 6.5rem;
+    right: max(2rem, calc((100vw - min(100vw, 80rem)) / 2 + 1.5rem));
   }
 }
 

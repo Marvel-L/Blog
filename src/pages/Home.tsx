@@ -704,7 +704,7 @@ export const Home = () => {
         onClick={() => setIsPrivacyDialogOpen(true)}
         onMouseEnter={() => preloadPage('/privacy')}
         onFocus={() => preloadPage('/privacy')}
-        className="privacy-smile-button fixed inline-flex h-11 w-11 items-center justify-center rounded-full border border-rose-300/50 bg-white/18 text-rose-400/70 backdrop-blur-[3px] transition-[border-color,color,background-color,transform,box-shadow] duration-200 hover:scale-[1.06] hover:border-rose-400/70 hover:bg-rose-50/28 hover:text-rose-500/85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-300 active:scale-[0.98] dark:border-rose-300/28 dark:bg-zinc-950/18 dark:text-rose-200/62 dark:hover:border-rose-300/45 dark:hover:bg-rose-300/12 dark:hover:text-rose-200/82"
+        className="privacy-smile-button fixed inline-flex h-11 w-11 items-center justify-center rounded-full border border-rose-300/28 bg-transparent text-rose-400/42 transition-[border-color,color,background-color,transform,box-shadow,opacity] duration-200 hover:scale-[1.04] hover:border-rose-400/58 hover:bg-rose-50/12 hover:text-rose-500/72 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-300 active:scale-[0.98] dark:border-rose-300/18 dark:bg-transparent dark:text-rose-200/34 dark:hover:border-rose-300/38 dark:hover:bg-rose-300/8 dark:hover:text-rose-200/64"
         aria-label="打开隐私页密码框"
         title="隐私页"
       >
