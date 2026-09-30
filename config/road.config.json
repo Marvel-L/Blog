@@ -10,7 +10,7 @@
           "title": "Golang",
           "posts": [],
           "tags": [""],
-          "category": [""]
+          "category": ["Golang"]
         },
         {
           "id": "channel",
@@ -45,7 +45,9 @@
           "id": "算法",
           "title": "算法",
           "parents": ["程序员的一生"],
-          "posts": []
+          "posts": [],
+          "tags": [""],
+          "category": ["算法"]
         },
         {
           "id": "数据结构",
@@ -69,7 +71,9 @@
           "id": "Go",
           "title": "Go",
           "parents": ["编程语言"],
-          "posts": []
+          "posts": [],
+          "tags": [""],
+          "category": ["Golang"]
         },
         {
           "id": "中间件",
