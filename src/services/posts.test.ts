@@ -247,6 +247,18 @@ describe('searchPosts scope 筛选', () => {
 });
 
 describe('getPosts / getInitialPosts / getPostById', () => {
+  it('未解锁时仍可正常读取公开文章正文', async () => {
+    window.sessionStorage.clear();
+    window.localStorage.clear();
+
+    const publicPost = getInitialPosts()[0];
+    expect(publicPost).toBeDefined();
+    const post = await getPostById(publicPost.id);
+    expect(post?.id).toBe(publicPost.id);
+    expect(post?.title).toBe(publicPost.title);
+    expect(post?.content.trim().length).toBeGreaterThan(0);
+  });
+
   it('getPosts 返回生成的数据且字段完整', async () => {
     const posts = await getPosts();
     expect(posts.length).toBeGreaterThan(0);
