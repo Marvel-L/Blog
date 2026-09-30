@@ -30,11 +30,11 @@ describe('LoveSurface', () => {
     });
   });
 
-  it('Love 首页不展示地域内容', () => {
+  it('Love 首页保持为空展示', () => {
     renderLoveSurface();
 
     expect(screen.getByRole('region', { name: 'Love 首页' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: '湘潭' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '切换到下一个地域' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });

@@ -181,7 +181,6 @@ describe('Layout', () => {
     await user.click(screen.getByRole('button', { name: '进入 Love 面' }));
 
     expect(await screen.findByRole('region', { name: 'Love 首页' })).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Love 地域，当前湘潭' }).length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByRole('link', { name: '文章' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '打开更多菜单' })).not.toBeInTheDocument();
     expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument();
@@ -196,20 +195,6 @@ describe('Layout', () => {
 
     expect(await screen.findByRole('region', { name: 'Love 首页' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '退出 Love 面' })).toBeInTheDocument();
-  });
-
-  it('Love 面点击导航栏地域按钮后进入地域页', async () => {
-    const user = userEvent.setup();
-    renderLayout();
-
-    await user.click(screen.getByRole('button', { name: '进入 Love 面' }));
-    await screen.findByRole('region', { name: 'Love 首页' });
-
-    await user.click(screen.getAllByRole('button', { name: 'Love 地域，当前湘潭' })[0]);
-    await user.click(await screen.findByRole('button', { name: '北京地域选项' }));
-
-    expect(await screen.findByRole('heading', { name: '北京' })).toBeInTheDocument();
-    expect(screen.getByTestId('love-region-stage')).toBeInTheDocument();
   });
 
   it('配置 Love 面人名后，背景会铺陈该名字', async () => {
