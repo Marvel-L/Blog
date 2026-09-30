@@ -282,6 +282,8 @@ export const Home = () => {
     let cancelled = false;
     const shouldLoadPrivacyPosts = readPrivacyAccess();
     const loadKey = `${loadAttempt}:${privacyRefreshVersion}:${shouldLoadPrivacyPosts ? 'unlocked' : 'public'}`;
+    const hasRenderablePosts = allPosts.length > 0;
+    const shouldRefreshInBackground = hasRenderablePosts && loadAttempt === 0;
 
     // 首帧数据已由 getInitialPosts() 同步提供，水合后无需重复异步重取
     // （避免多余的一次全列表重渲染与 loading 态闪烁）；仅“重新加载”
@@ -302,7 +304,9 @@ export const Home = () => {
     handledLoadKeyRef.current = loadKey;
 
     const loadHomeData = async () => {
-      setLoading(true);
+      if (!shouldRefreshInBackground) {
+        setLoading(true);
+      }
       try {
         const posts = await getPosts();
         if (cancelled) {
@@ -318,7 +322,7 @@ export const Home = () => {
           setLoadError('文章列表加载失败，请稍后刷新重试。');
         }
       } finally {
-        if (!cancelled) {
+        if (!cancelled && !shouldRefreshInBackground) {
           setLoading(false);
         }
       }

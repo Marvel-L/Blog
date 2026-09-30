@@ -87,6 +87,8 @@ export const ArchivePage = () => {
   useEffect(() => {
     let cancelled = false;
     const shouldLoadPrivacyPosts = readPrivacyAccess();
+    const hasRenderablePosts = allPosts.length > 0;
+    const shouldRefreshInBackground = hasRenderablePosts && loadAttempt === 0;
 
     // 首次加载数据已由 eager glob 同步提供；仅“重新加载”（loadAttempt > 0）
     // 或初始数据缺失时才有必要走异步重取。
@@ -97,7 +99,9 @@ export const ArchivePage = () => {
       };
     }
 
-    setLoading(true);
+    if (!shouldRefreshInBackground) {
+      setLoading(true);
+    }
     getPosts()
       .then((posts) => {
         if (cancelled) {
@@ -114,7 +118,7 @@ export const ArchivePage = () => {
         }
       })
       .finally(() => {
-        if (!cancelled) {
+        if (!cancelled && !shouldRefreshInBackground) {
           setLoading(false);
         }
       });
