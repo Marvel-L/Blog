@@ -9,7 +9,7 @@ const renderLoveRegionSurface = () =>
   render(
     <HelmetProvider>
       <MemoryRouter>
-        <LoveRegionSurface />
+        <LoveRegionSurface regionId="xiangtan" />
       </MemoryRouter>
     </HelmetProvider>,
   );
@@ -31,24 +31,11 @@ describe('LoveRegionSurface', () => {
     });
   });
 
-  it('默认展示湘潭地域视图和城市下拉框', async () => {
+  it('默认展示湘潭地域沙盘', async () => {
     renderLoveRegionSurface();
 
     expect(await screen.findByRole('heading', { name: '湘潭' })).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: '选择地域城市' })).toHaveValue('xiangtan');
-  });
-
-  it('支持通过下拉切换不同地域', async () => {
-    const user = userEvent.setup();
-    renderLoveRegionSurface();
-
-    const select = screen.getByRole('combobox', { name: '选择地域城市' });
-    await user.selectOptions(select, 'changsha');
-    expect(await screen.findByRole('heading', { name: '长沙' })).toBeInTheDocument();
-
-    await user.selectOptions(select, 'beijing');
-    expect(await screen.findByRole('heading', { name: '北京' })).toBeInTheDocument();
-    expect(select).toHaveValue('beijing');
+    expect(screen.getByTestId('love-region-stage')).toBeInTheDocument();
   });
 
   it('鼠标移入版图舞台后进入悬浮态', async () => {
