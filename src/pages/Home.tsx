@@ -27,6 +27,7 @@ import { canonicalizeHomeQuery, getHomeQueryState, setHomeQueryParam } from '@/u
 import { clearSearchQueryParams, setSearchQueryParams } from '@/utils/searchParams';
 import { HeroQuote, resolveHeroQuoteSide } from '@/components/HeroQuote';
 import { getHeroQuotesConfig, type HeroQuoteSide } from '@/utils/heroQuotes';
+import { PRIVACY_ACCESS_CHANGE_EVENT, readPrivacyAccess } from '@/utils/privacyAccess';
 
 const ShareModal = lazy(() => import('../components/ShareModal').then((m) => ({ default: m.ShareModal })));
 
@@ -239,8 +240,9 @@ export const Home = () => {
   // 用户最近一次通过输入框编辑的查询值：用于区分「URL 更新还在 startTransition
   // 延迟中」与「URL 确实来自导航（直访 ?q= / 浏览器前进后退）」。见下方同步 effect。
   const lastEditedQueryRef = useRef<string | null>(null);
-  // 已处理过的 loadAttempt：防「重新加载成功 → length 变化 → 重复 fetch」。
-  const handledLoadAttemptRef = useRef(-1);
+  // 已处理过的加载键：防「重新加载成功 → length 变化 → 重复 fetch」。
+  const handledLoadKeyRef = useRef('');
+  const [privacyRefreshVersion, setPrivacyRefreshVersion] = useState(0);
   const homeQueryState = useMemo(() => getHomeQueryState(searchParams), [searchParams]);
   const [allPosts, setAllPosts] = useState<PostMetadata[]>(initialPosts);
   const [categories, setCategories] = useState<string[]>(() => getCategories(initialPosts));
@@ -266,12 +268,25 @@ export const Home = () => {
   const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
+    const handlePrivacyAccessChange = () => {
+      setPrivacyRefreshVersion((version) => version + 1);
+    };
+
+    window.addEventListener(PRIVACY_ACCESS_CHANGE_EVENT, handlePrivacyAccessChange);
+    return () => {
+      window.removeEventListener(PRIVACY_ACCESS_CHANGE_EVENT, handlePrivacyAccessChange);
+    };
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
+    const shouldLoadPrivacyPosts = readPrivacyAccess();
+    const loadKey = `${loadAttempt}:${privacyRefreshVersion}:${shouldLoadPrivacyPosts ? 'unlocked' : 'public'}`;
 
     // 首帧数据已由 getInitialPosts() 同步提供，水合后无需重复异步重取
     // （避免多余的一次全列表重渲染与 loading 态闪烁）；仅“重新加载”
     // （loadAttempt > 0）或初始数据缺失时才走异步加载。
-    if (loadAttempt === 0 && allPosts.length > 0) {
+    if (loadAttempt === 0 && allPosts.length > 0 && !shouldLoadPrivacyPosts) {
       return () => {
         cancelled = true;
       };
@@ -279,12 +294,12 @@ export const Home = () => {
     // 同一 loadAttempt 只发起一次请求：重新加载成功后 allPosts.length 变化
     // 会再次触发本 effect（依赖数组含 length），若不拦截会重复 fetch 并闪烁
     // loading 态；loadAttempt 递增（新的重试/重载）时正常放行。
-    if (handledLoadAttemptRef.current === loadAttempt) {
+    if (handledLoadKeyRef.current === loadKey) {
       return () => {
         cancelled = true;
       };
     }
-    handledLoadAttemptRef.current = loadAttempt;
+    handledLoadKeyRef.current = loadKey;
 
     const loadHomeData = async () => {
       setLoading(true);
@@ -314,7 +329,7 @@ export const Home = () => {
     return () => {
       cancelled = true;
     };
-  }, [allPosts.length, loadAttempt]);
+  }, [allPosts.length, loadAttempt, privacyRefreshVersion]);
 
   useEffect(() => {
     const canonicalParams = canonicalizeHomeQuery(searchParams);

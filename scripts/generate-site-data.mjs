@@ -18,6 +18,7 @@ import {
 } from './post-content-validator.mjs';
 import { extractMarkdownHeadings } from '../src/utils/headings-core.mjs';
 import { encryptJsonWithPassword } from '../src/utils/privacy-crypto-core.mjs';
+import { createHiddenContentMatcher, isHiddenPost as isHiddenPostCore } from '../src/utils/hidden-content-core.mjs';
 import { buildRssFeed } from './feed-generator.mjs';
 import { fetchCommentCounts } from './fetch-giscus-comments.mjs';
 import { SHUOSHUO_IMAGE_OPTIONS, siblingContentImageUrl, siblingImageRelative } from '../src/utils/post-image-src.mjs';
@@ -63,6 +64,7 @@ const BASE_PATH = getBasePath();
 const SITE_TITLE = siteConfig.title;
 const SITE_DESCRIPTION = siteConfig.description;
 const AUTHOR_NAME = siteConfig.author.name;
+const hiddenContentMatcher = createHiddenContentMatcher(siteConfig.hiddenContent);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -72,7 +74,6 @@ const IMAGE_ROOT = path.join(__dirname, '../posts-img');
 const FRIENDS_DIR = path.join(__dirname, '../friends');
 const SHUOSHUO_DIR = path.join(__dirname, '../shuoshuo');
 const SUMMARY_DIR = path.join(__dirname, '../Summary');
-const PRIVACY_POSTS_DIR = path.join(__dirname, '../packages/privacy-posts/content');
 const OUTPUT_JSON_DIR = path.join(__dirname, '../generated');
 const PUBLIC_DIR = path.join(__dirname, '../public');
 const POST_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.svg']);
@@ -129,7 +130,7 @@ const MAX_POST_FILE_BYTES = 5 * 1024 * 1024;
  * 注意：title/excerpt 等核心业务字段在 buildPost 中显式传递（见下方），
  * 此处只管辖"额外布尔/数字标志"的透传，避免核心字段被误过滤。
  */
-const POST_FRONTMATTER_ALLOWLIST = new Set(['featured', 'featured-top']);
+const POST_FRONTMATTER_ALLOWLIST = new Set(['featured', 'featured-top', 'needHidden']);
 
 if (!fs.existsSync(OUTPUT_JSON_DIR)) {
   fs.mkdirSync(OUTPUT_JSON_DIR, { recursive: true });
@@ -436,6 +437,9 @@ const validatePostFrontmatter = (filename, data, formattedDate, formattedUpdated
   if (data.featured !== undefined && typeof data.featured !== 'boolean') {
     errors.push('featured must be a boolean when provided');
   }
+  if (data.needHidden !== undefined && typeof data.needHidden !== 'boolean') {
+    errors.push('needHidden must be a boolean when provided');
+  }
   if (
     data['featured-top'] !== undefined &&
     (typeof data['featured-top'] !== 'number' || !Number.isFinite(data['featured-top']))
@@ -599,58 +603,6 @@ postRecords.forEach((record) => {
 
 const normalizeTagsStrict = (value) => (Array.isArray(value) ? value.map((tag) => tag.trim()) : []);
 
-const validatePrivacyPostFrontmatter = (filename, data, formattedDate, formattedUpdatedAt, id) => {
-  const errors = [];
-
-  if (typeof id !== 'string' || id.trim() === '') {
-    errors.push('id must be a non-empty string');
-  }
-  if (typeof data.title !== 'string' || data.title.trim() === '') {
-    errors.push('title must be a non-empty string');
-  }
-  if (typeof data.excerpt !== 'string' || data.excerpt.trim() === '') {
-    errors.push('excerpt must be a non-empty string');
-  }
-  if (formattedDate && !validateDateString(formattedDate)) {
-    errors.push('date must use YYYY-MM-DD format when provided');
-  }
-  if (formattedUpdatedAt && !validateDateString(formattedUpdatedAt)) {
-    errors.push('updatedAt must use YYYY-MM-DD format when provided');
-  }
-  if (!Array.isArray(data.tags)) {
-    errors.push('tags must be an array');
-  } else {
-    const seenTags = new Set();
-    data.tags.forEach((tag, index) => {
-      if (typeof tag !== 'string' || !tag.trim()) {
-        errors.push(`tags[${index}] must be a non-empty string`);
-        return;
-      }
-      const normalizedTag = tag.trim();
-      if (seenTags.has(normalizedTag)) {
-        errors.push(`tags contains duplicate label "${normalizedTag}"`);
-      }
-      seenTags.add(normalizedTag);
-    });
-  }
-  if (typeof data.category !== 'string' || data.category.trim() === '') {
-    errors.push('category must be a non-empty string');
-  }
-  if (
-    typeof id === 'string' &&
-    (id !== id.trim() ||
-      /\s|[\\/?#%"'<>]/.test(id) ||
-      id === '.' ||
-      id === '..' ||
-      id.includes('/./') ||
-      id.includes('/../'))
-  ) {
-    errors.push(`id "${id}" contains characters that are unsafe in a post URL`);
-  }
-
-  return errors.length > 0 ? `Invalid front matter in privacy post ${filename}: ${errors.join('; ')}` : undefined;
-};
-
 const buildPost = (record) => {
   const { filename, content, data, restData, id, formattedDate, formattedUpdatedAt, draft, tbd } = record;
   const buildDay = buildTodayUtc();
@@ -679,6 +631,7 @@ const buildPost = (record) => {
               tbdAgeDays: calculateCalendarDayDiff(formattedDate, buildDay),
             }
           : {}),
+        ...(data.needHidden === true ? { needHidden: true } : {}),
         ...(isSeries ? { series: true, seriesName, seriesOrder } : {}),
         coverImage: normalizedCoverImage,
         category,
@@ -695,87 +648,6 @@ const buildPost = (record) => {
         content,
         searchText: markdownToSearchText(content),
       };
-};
-
-const privacyFiles = listMarkdownFiles(PRIVACY_POSTS_DIR);
-
-const privacyPostRecords = privacyFiles.map((filename) => {
-  const filePath = path.join(PRIVACY_POSTS_DIR, filename);
-  const fileContent = fs.readFileSync(filePath, 'utf-8');
-  let data = {};
-  let content = fileContent;
-  let parseError;
-
-  try {
-    ({ data, content } = matter(fileContent));
-  } catch (error) {
-    parseError = `Invalid front matter in privacy post ${filename}: ${error instanceof Error ? error.message : String(error)}`;
-    content = '';
-  }
-
-  const id = typeof data.id === 'string' ? data.id : '';
-  const frontmatterDate = formatFrontmatterDate(data.date);
-  const frontmatterUpdatedAt = formatFrontmatterDate(data.updatedAt);
-  const safeFrontmatterDate = frontmatterDate && validateDateString(frontmatterDate) ? frontmatterDate : undefined;
-  const safeFrontmatterUpdatedAt =
-    frontmatterUpdatedAt && validateDateString(frontmatterUpdatedAt) ? frontmatterUpdatedAt : undefined;
-  const gitDates = getGitFileDates(filePath, { cwd: REPO_ROOT });
-  const resolvedDates = resolvePostDates({
-    frontmatterDate: safeFrontmatterDate,
-    frontmatterUpdatedAt: safeFrontmatterUpdatedAt,
-    gitCreated: gitDates.created,
-    gitUpdated: gitDates.updated,
-    today: buildTodayUtc(),
-  });
-  if (resolvedDates.dateSource === 'fallback' || resolvedDates.updatedAtSource === 'fallback') {
-    logger.warn(
-      'Privacy post dates fell back to build day (no Git history yet)',
-      `${filename}: date=${resolvedDates.date} updatedAt=${resolvedDates.updatedAt}`,
-    );
-  }
-
-  return {
-    filename,
-    filePath,
-    data,
-    content,
-    id,
-    formattedDate: resolvedDates.date,
-    formattedUpdatedAt: resolvedDates.updatedAt,
-    errors: [parseError || validatePrivacyPostFrontmatter(filename, data, frontmatterDate, frontmatterUpdatedAt, id)].filter(
-      Boolean,
-    ),
-  };
-});
-
-const seenPrivacyPostIds = new Map();
-privacyPostRecords.forEach((record) => {
-  if (!record.id) {
-    return;
-  }
-  const previous = seenPrivacyPostIds.get(record.id);
-  if (previous) {
-    validationErrors.push(`Duplicate privacy post id "${record.id}" found in ${record.filename} and ${previous}.`);
-    return;
-  }
-  seenPrivacyPostIds.set(record.id, record.filename);
-});
-validationErrors.push(...privacyPostRecords.flatMap((record) => record.errors));
-
-const buildPrivacyPost = (record) => {
-  const { filename, content, data, id, formattedDate, formattedUpdatedAt } = record;
-  return {
-    id,
-    title: data.title.trim(),
-    excerpt: data.excerpt.trim(),
-    date: formattedDate,
-    updatedAt: formattedUpdatedAt,
-    tags: normalizeTagsStrict(data.tags),
-    category: data.category.trim(),
-    filePath: `/packages/privacy-posts/content/${filename}`,
-    readTime: calculateReadTime(content),
-    content,
-  };
 };
 
 // ── 说说（短动态）解析：shuoshuo/**/*.md，可嵌套；frontmatter 提供 id/images ──
@@ -969,10 +841,13 @@ if (copiedSummaryImages > 0) {
   logger.step('Copied summary images', `files=${copiedSummaryImages} dest=public/summary-img`);
 }
 
-const postsWithSearch = postRecords
+const builtPostsWithSearch = postRecords
   .map(buildPost)
   .filter(Boolean)
   .sort((a, b) => new Date(b.date) - new Date(a.date) || a.id.localeCompare(b.id));
+
+const hiddenPostsWithSearch = builtPostsWithSearch.filter((post) => isHiddenPostCore(post, hiddenContentMatcher));
+const postsWithSearch = builtPostsWithSearch.filter((post) => !isHiddenPostCore(post, hiddenContentMatcher));
 
 generateSiteStats(postsWithSearch);
 // 评论数：构建期从 GitHub GraphQL 拉取 Giscus 评论数（方案 A 快照）。
@@ -1001,14 +876,12 @@ fs.writeFileSync(
 );
 logger.step('Generated posts data', `posts=${posts.length} sourceFiles=${files.length}`);
 
-const privacyPosts = privacyPostRecords
-  .map(buildPrivacyPost)
-  .sort((a, b) => new Date(b.date) - new Date(a.date) || a.id.localeCompare(b.id));
+const privacyPosts = hiddenPostsWithSearch.map(({ searchText: _searchText, ...post }) => post);
 const encryptedPrivacyPosts = await encryptJsonWithPassword(globalThis.crypto, PRIVACY_POSTS_PASSWORD, {
   posts: privacyPosts,
 });
 fs.writeFileSync(path.join(OUTPUT_JSON_DIR, 'privacy-posts.json'), JSON.stringify(encryptedPrivacyPosts, null, 2));
-logger.step('Generated privacy-posts.json', `posts=${privacyPosts.length} sourceFiles=${privacyFiles.length}`);
+logger.step('Generated privacy-posts.json', `posts=${privacyPosts.length} sourceFiles=${hiddenPostsWithSearch.length}`);
 
 const compressReport = writeImageCompressReport(
   posts.map((post) => ({ id: post.id, title: post.title, filePath: post.filePath })),

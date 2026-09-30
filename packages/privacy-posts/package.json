@@ -1,7 +1,0 @@
-{
-  "name": "@d-blog/privacy-posts",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "description": "D-blog 隐私页文章包，仅供构建期生成独立隐私文章数据。"
-}

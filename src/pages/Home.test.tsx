@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom';
 import { Home } from './Home';
+import * as postsService from '@/services/posts';
 
 // URL 探针：MemoryRouter 不更新 window.location，断言搜索参数必须经
 // useSearchParams 读取（否则「清除搜索后参数移除」的断言恒真、无回归保护）。
@@ -135,6 +136,32 @@ describe('Home', () => {
     await waitFor(() => {
       expect(probeSearch).not.toContain('q=');
     });
+  });
+
+  it('密码状态已解锁时，首页会重新加载并显示隐藏文章与分类', async () => {
+    const hiddenPost = {
+      id: 'hidden-post',
+      title: '隐藏文章',
+      excerpt: '仅密码通过后可见',
+      date: '2026-12-01',
+      category: '隐藏分类',
+      filePath: '/posts/hidden-post.md',
+      readTime: '3分钟阅读',
+      tags: ['隐藏标签'],
+      needHidden: true,
+    };
+    const getPostsSpy = vi.spyOn(postsService, 'getPosts').mockResolvedValue([
+      ...postsService.getInitialPosts(),
+      hiddenPost,
+    ]);
+
+    window.sessionStorage.setItem('d-blog-privacy-access', 'granted');
+    renderHome();
+
+    expect(await screen.findByRole('link', { name: '阅读文章：隐藏文章' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '隐藏分类' })).toBeInTheDocument();
+
+    getPostsSpy.mockRestore();
   });
 
 });

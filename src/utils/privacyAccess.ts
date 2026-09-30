@@ -2,6 +2,19 @@ const PRIVACY_ACCESS_STORAGE_KEY = 'd-blog-privacy-access';
 const PRIVACY_PASSWORD_STORAGE_KEY = 'd-blog-privacy-password';
 const PRIVACY_ACCESS_GRANTED = 'granted';
 const PRIVACY_PASSWORD = 'Mx179516';
+export const PRIVACY_ACCESS_CHANGE_EVENT = 'd-blog-privacy-access-change';
+
+const emitPrivacyAccessChange = (hasAccess: boolean) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent(PRIVACY_ACCESS_CHANGE_EVENT, {
+      detail: { hasAccess },
+    }),
+  );
+};
 
 export const verifyPrivacyPassword = (password: string) => password === PRIVACY_PASSWORD;
 
@@ -28,6 +41,7 @@ export const grantPrivacyAccess = (password: string) => {
   } catch {
     // 会话存储不可用时，当前页面内的访问状态仍由调用方内存态维持。
   }
+  emitPrivacyAccessChange(true);
 };
 
 export const clearPrivacyAccess = () => {
@@ -37,4 +51,5 @@ export const clearPrivacyAccess = () => {
   } catch {
     // 会话存储不可用时，无需抛错中断 UI。
   }
+  emitPrivacyAccessChange(false);
 };

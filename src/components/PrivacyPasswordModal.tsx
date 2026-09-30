@@ -15,8 +15,8 @@ export const PrivacyPasswordModal: React.FC<PrivacyPasswordModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
-  title = '输入隐私页密码',
-  description = '只有密码验证通过后，才能查看隐私页面中的文章和内容。',
+  title = '输入隐藏内容密码',
+  description = '只有密码验证通过后，才能查看首页中配置为隐藏的分类、标签和文章。',
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [password, setPassword] = useState('');

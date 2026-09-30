@@ -16,6 +16,7 @@ import { ContentStatus, LoadingStatus } from '@/components/ContentStatus';
 import { usePostSearch } from '@/hooks/usePostSearch';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { getDateTimestamp } from '@/utils/date';
+import { PRIVACY_ACCESS_CHANGE_EVENT, readPrivacyAccess } from '@/utils/privacyAccess';
 
 const buildTagList = (posts: PostMetadata[]) => {
   const tagMap = new Map<string, PostMetadata[]>();
@@ -52,6 +53,7 @@ export const Tags = () => {
   const [loading, setLoading] = useState(initialPosts.length === 0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
+  const [privacyRefreshVersion, setPrivacyRefreshVersion] = useState(0);
   const shouldReduceMotion = useReducedMotion();
   const selectedTag = searchParams.get('tag');
   const queryFromUrl = searchParams.get('q') || '';
@@ -67,11 +69,23 @@ export const Tags = () => {
     });
 
   useEffect(() => {
+    const handlePrivacyAccessChange = () => {
+      setPrivacyRefreshVersion((version) => version + 1);
+    };
+
+    window.addEventListener(PRIVACY_ACCESS_CHANGE_EVENT, handlePrivacyAccessChange);
+    return () => {
+      window.removeEventListener(PRIVACY_ACCESS_CHANGE_EVENT, handlePrivacyAccessChange);
+    };
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
+    const shouldLoadPrivacyPosts = readPrivacyAccess();
 
     // 首次加载数据已由 eager glob 同步提供；仅“重新加载”（loadAttempt > 0）
     // 或初始数据缺失时才有必要走异步重取。
-    if (loadAttempt === 0 && initialPosts.length > 0) {
+    if (loadAttempt === 0 && initialPosts.length > 0 && !shouldLoadPrivacyPosts) {
       setLoading(false);
       return;
     }
@@ -103,7 +117,7 @@ export const Tags = () => {
     return () => {
       cancelled = true;
     };
-  }, [loadAttempt]);
+  }, [loadAttempt, privacyRefreshVersion]);
 
   const handleSearchChange = (query: string) => {
     // 单向同步守卫：本次编辑落地前（URL 尚未提交），URL → state 回写必须被

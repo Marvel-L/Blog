@@ -105,6 +105,13 @@ export interface SiteLoveMode {
   personName?: string;
 }
 
+export interface SiteHiddenContent {
+  /** 这些分类下的文章在密码通过前不进入公开文章系统。 */
+  categories?: string[];
+  /** 带这些标签的文章在密码通过前不进入公开文章系统。 */
+  tags?: string[];
+}
+
 export interface SiteConfig {
   title: string;
   subtitle: string;
@@ -139,6 +146,8 @@ export interface SiteConfig {
   intro?: SiteIntro;
   /** Love 面额外展示配置。 */
   loveMode?: SiteLoveMode;
+  /** 需要在密码通过后才显示的分类/标签配置。 */
+  hiddenContent?: SiteHiddenContent;
 }
 
 export const siteConfig: SiteConfig = siteConfigJson;

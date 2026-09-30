@@ -160,11 +160,11 @@ describe('Layout', () => {
     expect(screen.getByRole('contentinfo')).toBeInTheDocument();
   });
 
-  it('首页页脚笑脸入口需要密码通过后才跳转隐私页', async () => {
+  it('首页页脚笑脸入口需要密码通过后才记录隐藏内容访问状态', async () => {
     const user = userEvent.setup();
     renderLayout();
 
-    await user.click(screen.getByRole('button', { name: '打开隐私页密码框' }));
+    await user.click(screen.getByRole('button', { name: '打开隐藏内容密码框' }));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
 
     await user.type(screen.getByLabelText('隐私页密码'), 'wrong-password');
@@ -176,18 +176,10 @@ describe('Layout', () => {
     await user.type(screen.getByLabelText('隐私页密码'), 'Mx179516');
     await user.click(screen.getByRole('button', { name: '验证并进入' }));
 
-    await waitFor(() => expect(probePathname).toBe('/privacy'));
-  });
-
-  it('隐私页切换为仅含站点标题、文章和统计的最小壳层', () => {
-    renderLayout(['/privacy']);
-
-    expect(screen.getByRole('link', { name: 'Blog' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '文章' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '统计' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /外观与氛围/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '打开更多菜单' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(window.sessionStorage.getItem('d-blog-privacy-access')).toBe('granted');
+    });
+    expect(probePathname).toBe('/');
   });
 
   it('Ctrl+K 跳转到搜索页', async () => {

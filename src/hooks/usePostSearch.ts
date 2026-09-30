@@ -16,6 +16,7 @@ interface UsePostSearchOptions {
   debounceMs?: number;
   scope?: PostSearchScope;
   initialQuery?: string;
+  searcher?: (query: string, options: { scope: PostSearchScope }) => Promise<PostSearchResult[]>;
 }
 
 const DEFAULT_EMPTY_RESULTS: PostMetadata[] = [];
@@ -25,6 +26,7 @@ export const usePostSearch = ({
   debounceMs = 300,
   scope = 'all',
   initialQuery = '',
+  searcher = searchPosts,
 }: UsePostSearchOptions = {}) => {
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [results, setResults] = useState<PostSearchResult[]>(emptyResults);
@@ -61,7 +63,7 @@ export const usePostSearch = ({
 
     const timeoutId = window.setTimeout(async () => {
       try {
-        const searchedPosts = await searchPosts(currentQuery, { scope });
+        const searchedPosts = await searcher(currentQuery, { scope });
 
         if (requestId !== searchRequestIdRef.current) {
           return;
@@ -87,7 +89,7 @@ export const usePostSearch = ({
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [debounceMs, scope, searchQuery]);
+  }, [debounceMs, scope, searchQuery, searcher]);
 
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
