@@ -16,7 +16,6 @@ import { ContentStatus, LoadingStatus } from '@/components/ContentStatus';
 import { usePostSearch } from '@/hooks/usePostSearch';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { getDateTimestamp } from '@/utils/date';
-import { PRIVACY_ACCESS_CHANGE_EVENT, readPrivacyAccess } from '@/utils/privacyAccess';
 
 const buildTagList = (posts: PostMetadata[]) => {
   const tagMap = new Map<string, PostMetadata[]>();
@@ -53,7 +52,6 @@ export const Tags = () => {
   const [loading, setLoading] = useState(initialPosts.length === 0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
-  const [privacyRefreshVersion, setPrivacyRefreshVersion] = useState(0);
   const shouldReduceMotion = useReducedMotion();
   const selectedTag = searchParams.get('tag');
   const queryFromUrl = searchParams.get('q') || '';
@@ -69,32 +67,16 @@ export const Tags = () => {
     });
 
   useEffect(() => {
-    const handlePrivacyAccessChange = () => {
-      setPrivacyRefreshVersion((version) => version + 1);
-    };
-
-    window.addEventListener(PRIVACY_ACCESS_CHANGE_EVENT, handlePrivacyAccessChange);
-    return () => {
-      window.removeEventListener(PRIVACY_ACCESS_CHANGE_EVENT, handlePrivacyAccessChange);
-    };
-  }, []);
-
-  useEffect(() => {
     let cancelled = false;
-    const shouldLoadPrivacyPosts = readPrivacyAccess();
-    const hasRenderablePosts = allPosts.length > 0;
-    const shouldRefreshInBackground = hasRenderablePosts && loadAttempt === 0;
 
     // 首次加载数据已由 eager glob 同步提供；仅“重新加载”（loadAttempt > 0）
     // 或初始数据缺失时才有必要走异步重取。
-    if (loadAttempt === 0 && initialPosts.length > 0 && !shouldLoadPrivacyPosts) {
+    if (loadAttempt === 0 && initialPosts.length > 0) {
       setLoading(false);
       return;
     }
 
-    if (!shouldRefreshInBackground) {
-      setLoading(true);
-    }
+    setLoading(true);
     getPosts()
       .then((posts) => {
         if (cancelled) {
@@ -113,7 +95,7 @@ export const Tags = () => {
         setLoadError('标签数据加载失败，请稍后刷新重试。');
       })
       .finally(() => {
-        if (!cancelled && !shouldRefreshInBackground) {
+        if (!cancelled) {
           setLoading(false);
         }
       });
@@ -121,7 +103,7 @@ export const Tags = () => {
     return () => {
       cancelled = true;
     };
-  }, [loadAttempt, privacyRefreshVersion]);
+  }, [loadAttempt]);
 
   const handleSearchChange = (query: string) => {
     // 单向同步守卫：本次编辑落地前（URL 尚未提交），URL → state 回写必须被

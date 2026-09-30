@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom';
 import { Home } from './Home';
-import * as postsService from '@/services/posts';
+import * as privacyPostsService from '@/services/privacyPosts';
 
 // URL 探针：MemoryRouter 不更新 window.location，断言搜索参数必须经
 // useSearchParams 读取（否则「清除搜索后参数移除」的断言恒真、无回归保护）。
@@ -50,6 +50,7 @@ describe('Home', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     probeSearch = '';
+    window.localStorage.clear();
     window.sessionStorage.clear();
     // jsdom 不实现 matchMedia：useReducedMotion/useMediaQuery 等依赖媒体查询。
     Object.defineProperty(window, 'matchMedia', {
@@ -150,18 +151,25 @@ describe('Home', () => {
       tags: ['隐藏标签'],
       needHidden: true,
     };
-    const getPostsSpy = vi.spyOn(postsService, 'getPosts').mockResolvedValue([
-      ...postsService.getInitialPosts(),
-      hiddenPost,
+    const readUnlockedPrivacyPostsSpy = vi.spyOn(privacyPostsService, 'readUnlockedPrivacyPosts').mockResolvedValue([
+      {
+        ...hiddenPost,
+        content: '仅密码通过后可见的正文',
+      },
     ]);
+    const getCachedPrivacyPostMetadataSpy = vi
+      .spyOn(privacyPostsService, 'getCachedPrivacyPostMetadata')
+      .mockReturnValue([hiddenPost]);
 
-    window.sessionStorage.setItem('d-blog-privacy-access', 'granted');
+    window.localStorage.setItem('d-blog-privacy-access', 'granted');
+    window.localStorage.setItem('d-blog-privacy-password', 'Mx179516');
     renderHome();
 
     expect(await screen.findByRole('link', { name: '阅读文章：隐藏文章' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '隐藏分类' })).toBeInTheDocument();
 
-    getPostsSpy.mockRestore();
+    readUnlockedPrivacyPostsSpy.mockRestore();
+    getCachedPrivacyPostMetadataSpy.mockRestore();
   });
 
 });

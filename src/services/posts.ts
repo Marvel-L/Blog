@@ -7,8 +7,7 @@
 import type { Post, PostMetadata } from '../types';
 import { getDateTimestamp } from '@/utils/date';
 import { stripFrontmatter } from '@/utils/markdown-core.mjs';
-import { getUnlockedPrivacyPostById, readUnlockedPrivacyPosts, searchPrivacyPosts, toPrivacyPostMetadata } from './privacyPosts';
-import { readPrivacyAccess } from '@/utils/privacyAccess';
+import { getUnlockedPrivacyPostById } from './privacyPosts';
 
 const generatedPostModules = import.meta.glob<PostMetadata[]>('../../generated/posts.json', {
   eager: true,
@@ -129,16 +128,7 @@ export const getFieldMatchScore = (value: string, terms: string[], fullQuery: st
 export const getInitialPosts = (): PostMetadata[] => initialPosts;
 
 /** 异步读取文章元数据列表（保留 async 签名与调用方兼容）。 */
-export const getPosts = async (): Promise<PostMetadata[]> => {
-  const privacyPosts = await readUnlockedPrivacyPosts();
-  if (privacyPosts.length === 0) {
-    return initialPosts;
-  }
-
-  return [...initialPosts, ...privacyPosts.map(toPrivacyPostMetadata)].sort(
-    (a, b) => getDateTimestamp(b.date) - getDateTimestamp(a.date) || a.id.localeCompare(b.id, 'zh-CN'),
-  );
-};
+export const getPosts = async (): Promise<PostMetadata[]> => initialPosts;
 
 /**
  * 按 id 读取单篇文章（含正文）：优先动态加载打包的 Markdown 原文，
@@ -312,7 +302,7 @@ export const searchPosts = async (
     return [];
   }
 
-  const cacheKey = `${readPrivacyAccess() ? 'unlocked' : 'public'}::${scope}::${normalizedQuery}`;
+  const cacheKey = `public::${scope}::${normalizedQuery}`;
   const cachedResult = searchResultsCache.get(cacheKey);
   if (cachedResult) {
     searchResultsCache.delete(cacheKey);
@@ -375,17 +365,6 @@ export const searchPosts = async (
     .sort((a, b) => b.score - a.score || b.dateTimestamp - a.dateTimestamp)
     .map(({ score, dateTimestamp, ...post }) => post);
 
-  const privacyPosts = await readUnlockedPrivacyPosts();
-  const mergedResults =
-    privacyPosts.length > 0
-      ? [
-          ...results.map(({ score, dateTimestamp, ...post }) => ({ post, score, dateTimestamp })),
-          ...searchPrivacyPosts(privacyPosts, normalizedQuery, { scope }),
-        ]
-          .sort((a, b) => b.score - a.score || b.dateTimestamp - a.dateTimestamp)
-          .map(({ post }) => post)
-      : resolvedResults;
-
-  setSearchCache(cacheKey, mergedResults);
-  return mergedResults;
+  setSearchCache(cacheKey, resolvedResults);
+  return resolvedResults;
 };

@@ -28,6 +28,7 @@ import { clearSearchQueryParams, setSearchQueryParams } from '@/utils/searchPara
 import { HeroQuote, resolveHeroQuoteSide } from '@/components/HeroQuote';
 import { getHeroQuotesConfig, type HeroQuoteSide } from '@/utils/heroQuotes';
 import { PRIVACY_ACCESS_CHANGE_EVENT, readPrivacyAccess } from '@/utils/privacyAccess';
+import { getCachedPrivacyPostMetadata, readUnlockedPrivacyPosts, toPrivacyPostMetadata } from '@/services/privacyPosts';
 
 const ShareModal = lazy(() => import('../components/ShareModal').then((m) => ({ default: m.ShareModal })));
 
@@ -39,6 +40,15 @@ const HERO_SLOTS = 3;
 const initialPosts = getInitialPosts();
 
 const getCategories = (posts: PostMetadata[]) => Array.from(new Set(posts.map((post) => post.category)));
+const mergeHomePosts = (publicPosts: PostMetadata[], hiddenPosts: PostMetadata[]) => {
+  const mergedPosts = new Map<string, PostMetadata>();
+
+  [...publicPosts, ...hiddenPosts].forEach((post) => {
+    mergedPosts.set(post.id, post);
+  });
+
+  return sortPosts(Array.from(mergedPosts.values()), 'newest');
+};
 
 const SkeletonBlock: React.FC<{ className?: string; shouldReduceMotion: boolean }> = ({
   className,
@@ -268,6 +278,21 @@ export const Home = () => {
   const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
+    if (!readPrivacyAccess()) {
+      return;
+    }
+
+    const cachedPrivacyPosts = getCachedPrivacyPostMetadata();
+    if (cachedPrivacyPosts.length === 0) {
+      return;
+    }
+
+    const mergedPosts = mergeHomePosts(initialPosts, cachedPrivacyPosts);
+    setAllPosts(mergedPosts);
+    setCategories(getCategories(mergedPosts));
+  }, []);
+
+  useEffect(() => {
     const handlePrivacyAccessChange = () => {
       setPrivacyRefreshVersion((version) => version + 1);
     };
@@ -288,7 +313,11 @@ export const Home = () => {
     // 首帧数据已由 getInitialPosts() 同步提供，水合后无需重复异步重取
     // （避免多余的一次全列表重渲染与 loading 态闪烁）；仅“重新加载”
     // （loadAttempt > 0）或初始数据缺失时才走异步加载。
-    if (loadAttempt === 0 && allPosts.length > 0 && !shouldLoadPrivacyPosts) {
+    if (loadAttempt === 0 && initialPosts.length > 0 && !shouldLoadPrivacyPosts) {
+      setAllPosts(initialPosts);
+      setCategories(getCategories(initialPosts));
+      setLoadError(null);
+      setLoading(false);
       return () => {
         cancelled = true;
       };
@@ -308,13 +337,22 @@ export const Home = () => {
         setLoading(true);
       }
       try {
-        const posts = await getPosts();
+        const publicPosts = loadAttempt > 0 || initialPosts.length === 0 ? await getPosts() : initialPosts;
         if (cancelled) {
           return;
         }
 
-        setAllPosts(posts);
-        setCategories(getCategories(posts));
+        const privacyPosts = shouldLoadPrivacyPosts ? await readUnlockedPrivacyPosts() : [];
+        if (cancelled) {
+          return;
+        }
+
+        const mergedPosts = shouldLoadPrivacyPosts
+          ? mergeHomePosts(publicPosts, privacyPosts.map(toPrivacyPostMetadata))
+          : publicPosts;
+
+        setAllPosts(mergedPosts);
+        setCategories(getCategories(mergedPosts));
         setLoadError(null);
       } catch (error) {
         console.error('首页数据加载失败:', error);

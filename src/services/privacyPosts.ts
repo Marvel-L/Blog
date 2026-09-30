@@ -5,6 +5,7 @@ import { getDateTimestamp } from '@/utils/date';
 import type { PostSearchResult, PostSearchScope } from './posts';
 import { clearPrivacyAccess, readPrivacyAccess, readPrivacySessionPassword } from '@/utils/privacyAccess';
 
+const PRIVACY_POSTS_CACHE_KEY = 'd-blog-privacy-posts-cache';
 const generatedPrivacyModules = import.meta.glob<EncryptedPrivacyPayload>('../../generated/privacy-posts.json', {
   eager: true,
   import: 'default',
@@ -66,9 +67,64 @@ const isPrivacyPost = (value: unknown): value is Post => {
   );
 };
 
+const isPrivacyPostMetadata = (value: unknown): value is PostMetadata => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as PostMetadata;
+  return (
+    typeof candidate.id === 'string' &&
+    typeof candidate.title === 'string' &&
+    typeof candidate.excerpt === 'string' &&
+    typeof candidate.date === 'string' &&
+    Array.isArray(candidate.tags) &&
+    typeof candidate.category === 'string' &&
+    typeof candidate.filePath === 'string' &&
+    typeof candidate.readTime === 'string'
+  );
+};
+
+const writeCachedPrivacyPostMetadata = (posts: Post[]) => {
+  try {
+    window.localStorage.setItem(
+      PRIVACY_POSTS_CACHE_KEY,
+      JSON.stringify(posts.map((post) => toPrivacyPostMetadata(post))),
+    );
+  } catch {
+    // 本地存储不可用时退化为仅内存缓存，不影响解锁结果。
+  }
+};
+
+const clearCachedPrivacyPostMetadata = () => {
+  try {
+    window.localStorage.removeItem(PRIVACY_POSTS_CACHE_KEY);
+  } catch {
+    // ignore
+  }
+};
+
 export const toPrivacyPostMetadata = (post: Post): PostMetadata => {
   const { content: _content, searchText: _searchText, ...metadata } = post;
   return metadata;
+};
+
+export const getCachedPrivacyPostMetadata = (): PostMetadata[] => {
+  if (!readPrivacyAccess()) {
+    return [];
+  }
+
+  try {
+    const cachedValue = window.localStorage.getItem(PRIVACY_POSTS_CACHE_KEY);
+    if (!cachedValue) {
+      return [];
+    }
+
+    const parsedValue = JSON.parse(cachedValue);
+    return Array.isArray(parsedValue) ? parsedValue.filter(isPrivacyPostMetadata) : [];
+  } catch {
+    return [];
+  }
 };
 
 export const unlockPrivacyPosts = async (password: string): Promise<Post[]> => {
@@ -84,6 +140,7 @@ export const unlockPrivacyPosts = async (password: string): Promise<Post[]> => {
   const decrypted = await decryptPrivacyPayload<{ posts?: unknown }>(password, encryptedPrivacyPayload);
   const posts = Array.isArray(decrypted.posts) ? decrypted.posts.filter(isPrivacyPost) : [];
   unlockedCache.set(password, posts);
+  writeCachedPrivacyPostMetadata(posts);
   return posts;
 };
 
@@ -101,6 +158,7 @@ export const readUnlockedPrivacyPosts = async (): Promise<Post[]> => {
   try {
     return await unlockPrivacyPosts(password);
   } catch {
+    clearCachedPrivacyPostMetadata();
     clearPrivacyAccess();
     return [];
   }

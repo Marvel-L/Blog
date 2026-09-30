@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom';
 import { Tags } from './Tags';
+import * as postsService from '@/services/posts';
 
 // URL 探针：MemoryRouter 不更新 window.location，断言搜索参数必须经
 // useSearchParams 读取（否则「清除搜索后参数移除」的断言恒真、无回归保护）。
@@ -85,5 +86,18 @@ describe('Tags', () => {
     await waitFor(() => {
       expect(probeSearch).not.toContain('q=');
     });
+  });
+
+  it('隐私访问状态变化不会让标签页加载隐藏文章或标签', async () => {
+    const getPostsSpy = vi.spyOn(postsService, 'getPosts');
+
+    renderTags();
+    const initialCallCount = getPostsSpy.mock.calls.length;
+    window.dispatchEvent(new CustomEvent('d-blog-privacy-access-change', { detail: { hasAccess: true } }));
+
+    await waitFor(() => {
+      expect(getPostsSpy).toHaveBeenCalledTimes(initialCallCount);
+    });
+    expect(screen.queryByText('隐藏标签')).not.toBeInTheDocument();
   });
 });
