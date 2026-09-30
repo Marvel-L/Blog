@@ -124,3 +124,164 @@ func fourSumCount(nums1 []int, nums2 []int, nums3 []int, nums4 []int) int {
     return cnt 
 }
 ```
+
+# 383.赎金信
+
+力扣链接 : https://leetcode.cn/problems/ransom-note/description/
+
+题目 : 给你两个字符串 ransomNote 和 magazine ，如果 ransomNote 能由 magazine 里面的字符构成，则返回 true ；否则返回 false 。
+
+## 思路
+
+这个和之前做过的的 字符串匹配 不是很像 。 因为这个允许 ==不规则数量匹配== 
+
+无非是代码上需要额外处理一下
+
+## Code 
+
+```go
+func canConstruct(ransomNote string, magazine string) bool {
+    st := make(map[rune]int)
+    for _ ,  v := range magazine {
+        st[v - 'a'] ++ 
+    }
+
+    for _, v := range ransomNote {
+        if _ , ok := st[v - 'a'] ; ok {
+            st[v - 'a']  -- 
+        }
+    }
+
+    for _, v := range ransomNote {
+        if _, ok := st[v - 'a'] ; !ok {
+            return false 
+        }
+        if st[v - 'a'] < 0 {
+            return false 
+        }
+    }
+    return true 
+}
+```
+
+# 15.三数之和
+
+题目链接 : https://leetcode.cn/problems/3sum/description/
+
+给你一个整数数组 nums ，判断是否存在三元组 [nums[i], nums[j], nums[k]] 满足 i != j、i != k 且 j != k ，同时还满足 nums[i] + nums[j] + nums[k] == 0 。请你返回所有和为 0 且不重复的三元组。
+
+注意：答案中不可以包含重复的三元组。
+
+## 思路
+
+1. 考虑枚举 i , ==那么题目就变成了 nums[j] + nums[k]  = nums[i]== , 即两数之和的版本
+
+2. 因为我们题目给出的数组是无序的，所以我们可以考虑排序优化一下，这样子对于
+
+   - nums[i] + nums[k1] + nums[k2] > 0 或者 nums[i] + nums[k1] + nums[k2] < 0 的时候可以更好的进行移动
+
+## Code
+
+```go
+func threeSum(nums []int) [][]int {
+    slices.Sort(nums)
+    n := len(nums)
+    ans := make([][]int,0)
+    for i := 0 ; i <  len(nums) - 2 ; i ++ {
+        x := nums[i]
+        if i > 0 && x == nums[i-1] {
+            continue 
+        }
+        if x + nums[i + 1] + nums[i+2] > 0 {
+            break 
+        }
+        if x + nums[n - 2] + nums[n - 1] < 0 {
+            continue 
+        }
+
+        l , r := i + 1, n - 1
+        for l < r {
+            s := x + nums[l] + nums[r]
+            if s > 0 {
+                r -- 
+            }else if s < 0 {
+                l ++ 
+            }else {
+                ans = append(ans, []int{x,nums[l],nums[r]})
+                for l ++ ; l < r && nums[l] == nums[l-1] ; l ++ {} 
+                for r -- ; l < r && nums[r] == nums[r+1] ; r -- {}
+            }
+        }
+    }
+    return ans 
+}
+```
+
+
+# 18. 四数之和
+
+题目链接 : https://leetcode.cn/problems/4sum/description/
+
+给你一个由 n 个整数组成的数组 nums ，和一个目标值 target 。请你找出并返回满足下述全部条件且不重复的四元组 [nums[a], nums[b], nums[c], nums[d]] （若两个四元组元素一一对应，则认为两个四元组重复）：
+
+0 <= a, b, c, d < n
+a、b、c 和 d 互不相同
+nums[a] + nums[b] + nums[c] + nums[d] == target
+你可以按 任意顺序 返回答案 。
+
+## 思路
+
+1. 根据三数之和的步骤， 我们可以尝试==固定 a,b== 那么就变成了 `c + d = target - a - b` 即是我们的两数之和模板
+2. 那么就是去重的问题，无非就是 Continue 一下相等的数据
+
+
+
+## Code 
+
+```go
+func fourSum(nums []int, target int) [][]int {
+    res := make([][]int, 0)
+    n := len(nums)
+    if n < 4 {
+        return res
+    }
+
+    slices.Sort(nums)
+
+    for i := 0; i < n-3; i++ {
+        if i > 0 && nums[i] == nums[i-1] {
+            continue
+        }
+
+        for j := i + 1; j < n-2; j++ {
+            if j > i+1 && nums[j] == nums[j-1] {
+                continue
+            }
+
+            l, r := j+1, n-1
+            for l < r {
+                sum := nums[i] + nums[j] + nums[l] + nums[r]
+                if sum < target {
+                    l++
+                } else if sum > target {
+                    r--
+                } else {
+                    res = append(res, []int{nums[i], nums[j], nums[l], nums[r]})
+                    l++
+                    r--
+
+                    for l < r && nums[l] == nums[l-1] {
+                        l++
+                    }
+                    for l < r && nums[r] == nums[r+1] {
+                        r--
+                    }
+                }
+            }
+        }
+    }
+
+    return res
+}
+```
+
