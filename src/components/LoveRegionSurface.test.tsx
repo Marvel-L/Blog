@@ -36,19 +36,21 @@ describe('LoveRegionSurface', () => {
 
     expect(await screen.findByRole('heading', { name: '湘潭' })).toBeInTheDocument();
     expect(screen.getByTestId('love-region-stage')).toBeInTheDocument();
+    expect(screen.getByText('雨湖区')).toBeInTheDocument();
+    expect(screen.getByText('湘潭县')).toBeInTheDocument();
   });
 
-  it('鼠标移入版图舞台后进入悬浮态', async () => {
+  it('点击版图舞台后切换为垂直立面', async () => {
     const user = userEvent.setup();
     renderLoveRegionSurface();
 
     const stage = screen.getByTestId('love-region-stage');
-    expect(stage).toHaveAttribute('data-hovered', 'false');
+    expect(stage).toHaveAttribute('data-view', 'sandtable');
 
-    await user.hover(stage);
-    expect(stage).toHaveAttribute('data-hovered', 'true');
+    await user.click(stage);
+    expect(stage).toHaveAttribute('data-view', 'plane');
 
-    await user.unhover(stage);
-    expect(stage).toHaveAttribute('data-hovered', 'false');
+    await user.click(stage);
+    expect(stage).toHaveAttribute('data-view', 'sandtable');
   });
 });
