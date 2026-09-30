@@ -704,7 +704,7 @@ export const Home = () => {
         onClick={() => setIsPrivacyDialogOpen(true)}
         onMouseEnter={() => preloadPage('/privacy')}
         onFocus={() => preloadPage('/privacy')}
-        className="fixed bottom-[calc(var(--back-to-top-bottom)+3.5rem)] right-[var(--back-to-top-right)] z-floating inline-flex h-11 w-11 items-center justify-center rounded-full border border-rose-300/40 bg-white/10 text-rose-300/50 backdrop-blur-[2px] transition-[border-color,color,background-color,transform] duration-200 hover:scale-[1.04] hover:border-rose-400/60 hover:bg-rose-50/20 hover:text-rose-500/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-300 active:scale-[0.98] dark:border-rose-300/20 dark:bg-zinc-950/10 dark:text-rose-200/40 dark:hover:border-rose-300/40 dark:hover:bg-rose-300/10 dark:hover:text-rose-200/70"
+        className="privacy-smile-button fixed bottom-[calc(var(--back-to-top-bottom)+3.5rem)] right-[var(--back-to-top-right)] z-floating inline-flex h-11 w-11 items-center justify-center rounded-full border border-rose-300/50 bg-white/18 text-rose-400/70 backdrop-blur-[3px] transition-[border-color,color,background-color,transform,box-shadow] duration-200 hover:scale-[1.06] hover:border-rose-400/70 hover:bg-rose-50/28 hover:text-rose-500/85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-300 active:scale-[0.98] dark:border-rose-300/28 dark:bg-zinc-950/18 dark:text-rose-200/62 dark:hover:border-rose-300/45 dark:hover:bg-rose-300/12 dark:hover:text-rose-200/82"
         aria-label="打开隐私页密码框"
         title="隐私页"
       >

@@ -47,6 +47,22 @@
   }
 }
 
+@keyframes privacy-smile-breathe {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    box-shadow:
+      0 0 0 0 rgba(244, 114, 182, 0.08),
+      0 0 0.45rem rgba(251, 191, 36, 0.08);
+  }
+  50% {
+    transform: translate3d(0, 0, 0) scale(1.04);
+    box-shadow:
+      0 0 0 0.3rem rgba(244, 114, 182, 0.1),
+      0 0 0.85rem rgba(251, 191, 36, 0.16);
+  }
+}
+
 .hero-quote-enter {
   animation: hero-quote-enter 0.45s ease-out both;
 }
@@ -887,6 +903,11 @@
   scroll-behavior: auto;
 }
 
+.privacy-smile-button {
+  animation: privacy-smile-breathe 3.2s ease-in-out infinite;
+  will-change: transform, box-shadow;
+}
+
 @media (min-width: 768px) {
   .back-to-top-btn {
     bottom: calc(
@@ -1196,6 +1217,11 @@ html.dark .mermaid-diagram > svg {
 
   .copy-pop {
     animation: none;
+  }
+
+  .privacy-smile-button {
+    animation: none;
+    will-change: auto;
   }
 }
 
