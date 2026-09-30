@@ -208,7 +208,7 @@ describe('Layout', () => {
     await user.click(screen.getAllByRole('button', { name: '打开地域页' })[0]);
 
     expect(await screen.findByRole('heading', { name: '湘潭' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '切换到下一个地域' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: '选择地域城市' })).toHaveValue('xiangtan');
   });
 
   it('配置 Love 面人名后，背景会铺陈该名字', async () => {

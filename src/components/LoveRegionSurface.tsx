@@ -1,119 +1,147 @@
 import React, { startTransition, useId, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Heart, Sparkles, Waves } from 'lucide-react';
+import { Heart, Sparkles, Waves } from 'lucide-react';
 import { Seo } from './Seo';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { LOVE_REGIONS, type LoveRegion } from '@/data/loveRegions.data';
 
 const REGION_VIEWBOX = '0 0 320 260';
 
-const getNextIndex = (currentIndex: number, delta: number) => (currentIndex + delta + LOVE_REGIONS.length) % LOVE_REGIONS.length;
-
 const RegionCrystalFigure = ({
   activeRegion,
+  isHovered,
   shouldReduceMotion,
 }: {
   activeRegion: LoveRegion;
+  isHovered: boolean;
   shouldReduceMotion: boolean;
 }) => {
   const gradientId = useId();
   const glowId = useId();
   const shadowId = useId();
+  const specularId = useId();
   const centroid = `${activeRegion.centroid[0]}px ${activeRegion.centroid[1]}px`;
 
   return (
     <motion.div
       key={activeRegion.id}
-      initial={shouldReduceMotion ? false : { opacity: 0, rotateX: 42, rotateY: -16, scale: 0.94, y: 18 }}
-      animate={{ opacity: 1, rotateX: 55, rotateY: -18, scale: 1, y: 0 }}
+      initial={shouldReduceMotion ? false : { opacity: 0, rotateX: 56, rotateY: -20, scale: 0.95, y: 18 }}
+      animate={{
+        opacity: 1,
+        rotateX: isHovered ? 44 : 52,
+        rotateY: isHovered ? -12 : -18,
+        scale: isHovered ? 1.035 : 1,
+        y: isHovered ? -16 : 0,
+      }}
       transition={
         shouldReduceMotion
           ? { duration: 0 }
-          : { duration: 0.68, ease: [0.22, 1, 0.36, 1] as const }
+          : { duration: 0.7, ease: [0.22, 1, 0.36, 1] as const }
       }
-      className="relative mx-auto aspect-[1.18/1] w-full max-w-[34rem] [perspective:1500px]"
+      className="relative mx-auto aspect-[1.2/1] w-full max-w-[38rem] [perspective:1800px]"
       style={{ transformStyle: 'preserve-3d' }}
     >
-      <div className="absolute inset-[10%_8%_12%] rounded-[2.4rem] border border-white/12 bg-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-[2px]" />
+      <div className="absolute inset-[9%_6%_14%] rounded-[2.6rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] backdrop-blur-[3px]" />
+      <div className="pointer-events-none absolute inset-x-[17%] bottom-[4%] h-16 rounded-full bg-[#14050f]/70 blur-2xl" />
+
       <motion.div
         aria-hidden="true"
-        animate={shouldReduceMotion ? undefined : { rotate: [0, 3, 0, -3, 0] }}
-        transition={shouldReduceMotion ? undefined : { duration: 14, repeat: Infinity, ease: 'easeInOut' }}
+        animate={shouldReduceMotion ? undefined : { rotate: [0, 2.4, 0, -2.4, 0] }}
+        transition={shouldReduceMotion ? undefined : { duration: 15, repeat: Infinity, ease: 'easeInOut' }}
         className="absolute inset-0"
-        style={{ transformOrigin: centroid, transform: 'translateZ(-90px)' }}
+        style={{ transformOrigin: centroid, transform: 'translateZ(-110px)' }}
       >
         <svg viewBox={REGION_VIEWBOX} className="h-full w-full overflow-visible">
           <path
             d={activeRegion.path}
-            fill="rgba(255, 183, 197, 0.1)"
-            stroke="rgba(255, 214, 224, 0.18)"
-            strokeWidth="3"
-            style={{ filter: 'blur(26px)' }}
-            transform="translate(14 20) scale(1.02)"
+            fill="rgba(255, 173, 201, 0.12)"
+            stroke="rgba(255, 213, 231, 0.12)"
+            strokeWidth="4"
+            style={{ filter: 'blur(28px)' }}
+            transform="translate(20 30) scale(1.04)"
           />
         </svg>
       </motion.div>
+
       <motion.div
         aria-hidden="true"
-        animate={shouldReduceMotion ? undefined : { rotate: [0, -2.5, 0, 2.5, 0] }}
-        transition={shouldReduceMotion ? undefined : { duration: 16, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }}
+        animate={shouldReduceMotion ? undefined : { rotate: [0, -2, 0, 2, 0] }}
+        transition={shouldReduceMotion ? undefined : { duration: 18, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
         className="absolute inset-0"
-        style={{ transformOrigin: centroid, transform: 'translateZ(-24px)' }}
+        style={{ transformOrigin: centroid, transform: 'translateZ(-38px)' }}
       >
         <svg viewBox={REGION_VIEWBOX} className="h-full w-full overflow-visible">
           <defs>
-            <linearGradient id={gradientId} x1="18%" x2="78%" y1="8%" y2="100%">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.82)" />
-              <stop offset="38%" stopColor="rgba(255,213,232,0.42)" />
-              <stop offset="100%" stopColor="rgba(255,132,163,0.1)" />
+            <linearGradient id={gradientId} x1="16%" x2="80%" y1="4%" y2="100%">
+              <stop offset="0%" stopColor="rgba(255,255,255,0.9)" />
+              <stop offset="42%" stopColor="rgba(255,216,232,0.5)" />
+              <stop offset="100%" stopColor="rgba(255,130,168,0.14)" />
             </linearGradient>
-            <radialGradient id={glowId} cx="50%" cy="40%" r="65%">
-              <stop offset="0%" stopColor="rgba(255,243,247,0.9)" />
-              <stop offset="55%" stopColor="rgba(255,186,214,0.28)" />
-              <stop offset="100%" stopColor="rgba(255,186,214,0)" />
+            <linearGradient id={specularId} x1="28%" x2="70%" y1="0%" y2="100%">
+              <stop offset="0%" stopColor="rgba(255,255,255,0.94)" />
+              <stop offset="52%" stopColor="rgba(255,255,255,0.18)" />
+              <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+            </linearGradient>
+            <radialGradient id={glowId} cx="48%" cy="34%" r="68%">
+              <stop offset="0%" stopColor="rgba(255,244,248,0.96)" />
+              <stop offset="54%" stopColor="rgba(255,197,219,0.32)" />
+              <stop offset="100%" stopColor="rgba(255,197,219,0)" />
             </radialGradient>
             <filter id={shadowId} x="-40%" y="-40%" width="180%" height="180%">
-              <feDropShadow dx="0" dy="22" stdDeviation="18" floodColor="rgba(18,5,13,0.38)" />
+              <feDropShadow
+                dx="0"
+                dy={isHovered ? '30' : '22'}
+                stdDeviation={isHovered ? '22' : '18'}
+                floodColor="rgba(18,5,13,0.42)"
+              />
             </filter>
           </defs>
+
           <path
             d={activeRegion.path}
             fill={`url(#${glowId})`}
-            stroke="rgba(255, 250, 252, 0.22)"
-            strokeWidth="4"
-            transform="translate(12 18)"
+            stroke="rgba(255, 245, 249, 0.18)"
+            strokeWidth="5"
+            transform="translate(16 24) scale(1.03)"
             filter={`url(#${shadowId})`}
           />
           <path
             d={activeRegion.path}
-            fill="rgba(255, 173, 196, 0.08)"
-            stroke="rgba(255, 233, 239, 0.26)"
-            strokeWidth="5"
-            transform="translate(8 10)"
+            fill="rgba(255, 176, 206, 0.06)"
+            stroke="rgba(255, 234, 240, 0.22)"
+            strokeWidth="6"
+            transform="translate(10 12) scale(1.015)"
           />
           <path
             d={activeRegion.path}
             fill={`url(#${gradientId})`}
-            fillOpacity="0.92"
-            stroke="rgba(255,255,255,0.72)"
-            strokeOpacity="0.88"
-            strokeWidth="2.8"
+            fillOpacity="0.94"
+            stroke="rgba(255,255,255,0.78)"
+            strokeOpacity="0.9"
+            strokeWidth="3"
+          />
+          <path
+            d={activeRegion.path}
+            fill={`url(#${specularId})`}
+            fillOpacity="0.44"
+            stroke="none"
+            transform="translate(-3 -8) scale(0.99)"
           />
           <path
             d={activeRegion.path}
             fill="none"
-            stroke="rgba(255,255,255,0.32)"
-            strokeWidth="1.4"
-            strokeDasharray="7 9"
-            transform="translate(-4 -5) scale(1.012)"
+            stroke="rgba(255,255,255,0.34)"
+            strokeWidth="1.5"
+            strokeDasharray="8 10"
+            transform="translate(-6 -7) scale(1.016)"
           />
-          <circle cx={activeRegion.centroid[0]} cy={activeRegion.centroid[1]} r="7" fill="rgba(255,255,255,0.96)" />
+          <circle cx={activeRegion.centroid[0]} cy={activeRegion.centroid[1]} r="7" fill="rgba(255,255,255,0.98)" />
           <circle
             cx={activeRegion.centroid[0]}
             cy={activeRegion.centroid[1]}
-            r="18"
+            r={isHovered ? '22' : '18'}
             fill="none"
-            stroke="rgba(255,255,255,0.36)"
+            stroke="rgba(255,255,255,0.42)"
             strokeWidth="2"
           />
         </svg>
@@ -125,6 +153,7 @@ const RegionCrystalFigure = ({
 export const LoveRegionSurface: React.FC = () => {
   const shouldReduceMotion = useReducedMotion();
   const [activeRegionIndex, setActiveRegionIndex] = useState(0);
+  const [isMapHovered, setIsMapHovered] = useState(false);
 
   const transition = shouldReduceMotion ? { duration: 0 } : { duration: 0.72, ease: 'easeOut' as const };
   const activeRegion = LOVE_REGIONS[activeRegionIndex]!;
@@ -135,8 +164,11 @@ export const LoveRegionSurface: React.FC = () => {
     });
   };
 
-  const cycleRegion = (delta: number) => {
-    showRegionAt(getNextIndex(activeRegionIndex, delta));
+  const handleRegionSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextIndex = LOVE_REGIONS.findIndex((region) => region.id === event.target.value);
+    if (nextIndex >= 0) {
+      showRegionAt(nextIndex);
+    }
   };
 
   return (
@@ -181,7 +213,7 @@ export const LoveRegionSurface: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_22rem]">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.28fr)_22rem]">
             <div className="relative overflow-hidden rounded-[2rem] border border-white/16 bg-black/14 p-6 backdrop-blur-md sm:p-8 md:p-10">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_16%,rgba(255,255,255,0.16),transparent_22%),linear-gradient(125deg,rgba(255,255,255,0.08),transparent_42%)]" />
               <div className="relative">
@@ -207,7 +239,7 @@ export const LoveRegionSurface: React.FC = () => {
                   transition={{ ...transition, delay: shouldReduceMotion ? 0 : 0.22 }}
                   className="mt-6 max-w-2xl text-base leading-8 text-white/82 sm:text-lg"
                 >
-                  {activeRegion.description}
+                  选择城市后直接切到完整透明版图。当前视角会保持一个更稳定的俯视透视，鼠标移上去时整块版图会整体上浮。
                 </motion.p>
 
                 <motion.div
@@ -218,8 +250,8 @@ export const LoveRegionSurface: React.FC = () => {
                 >
                   {[
                     ['Mode', 'Love / Region'],
-                    ['State', activeRegion.name],
-                    ['Focus', 'Crystal Region Model'],
+                    ['City', activeRegion.name],
+                    ['Hover', isMapHovered ? 'Floating' : 'Idle'],
                   ].map(([label, value]) => (
                     <div key={label} className="rounded-2xl border border-white/12 bg-white/[0.06] px-4 py-3 backdrop-blur-sm">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/46">{label}</p>
@@ -234,71 +266,61 @@ export const LoveRegionSurface: React.FC = () => {
                   transition={{ ...transition, delay: shouldReduceMotion ? 0 : 0.38 }}
                   className="mt-10 rounded-[1.9rem] border border-white/14 bg-[linear-gradient(155deg,rgba(255,255,255,0.14),rgba(255,255,255,0.05))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-md sm:p-5"
                 >
-                  <div className="mt-2 grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_19rem]">
-                    <div className="relative overflow-hidden rounded-[1.8rem] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.03))] px-3 py-4 sm:px-5">
-                      <div className="pointer-events-none absolute inset-x-[12%] bottom-6 h-16 rounded-full bg-[#090208]/60 blur-2xl" />
-                      <div className="pointer-events-none absolute inset-x-10 top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.3),transparent_70%)]" />
-                      <RegionCrystalFigure activeRegion={activeRegion} shouldReduceMotion={shouldReduceMotion} />
+                  <div className="grid gap-5 xl:grid-cols-[minmax(0,1.18fr)_18rem]">
+                    <div
+                      data-testid="love-region-stage"
+                      data-hovered={isMapHovered ? 'true' : 'false'}
+                      onPointerEnter={() => setIsMapHovered(true)}
+                      onPointerLeave={() => setIsMapHovered(false)}
+                      className="group relative overflow-hidden rounded-[2rem] border border-white/12 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.22),rgba(255,255,255,0.04)_52%,rgba(255,255,255,0.01)_100%)] px-3 py-5 sm:px-5"
+                    >
+                      <div className="pointer-events-none absolute inset-x-[8%] top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.34),transparent_70%)]" />
+                      <div className="pointer-events-none absolute inset-x-[14%] bottom-[6%] h-20 rounded-full bg-[#0a0307]/65 blur-2xl transition-all duration-300 group-data-[hovered=true]:bottom-[4%] group-data-[hovered=true]:scale-110" />
+                      <div className="pointer-events-none absolute inset-0 opacity-[0.12] [background-image:linear-gradient(rgba(255,255,255,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.18)_1px,transparent_1px)] [background-size:28px_28px]" />
+                      <RegionCrystalFigure
+                        activeRegion={activeRegion}
+                        isHovered={isMapHovered}
+                        shouldReduceMotion={shouldReduceMotion}
+                      />
                     </div>
 
                     <div className="flex flex-col gap-4">
                       <div className="rounded-[1.6rem] border border-white/12 bg-black/18 p-4">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/42">Switch</p>
-                        <div className="mt-4 flex gap-3">
-                          <button
-                            type="button"
-                            onClick={() => cycleRegion(-1)}
-                            aria-label="切换到上一个地域"
-                            className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-[1.2rem] border border-white/12 bg-white/[0.08] px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-white/[0.14]"
+                        <label htmlFor="love-region-city" className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/42">
+                          City Select
+                        </label>
+                        <div className="mt-4">
+                          <select
+                            id="love-region-city"
+                            aria-label="选择地域城市"
+                            value={activeRegion.id}
+                            onChange={handleRegionSelect}
+                            className="min-h-12 w-full rounded-[1.2rem] border border-white/12 bg-white/[0.08] px-4 text-sm font-semibold text-white outline-none transition-colors duration-200 focus:border-rose-200/60 focus:bg-white/[0.12]"
                           >
-                            <ArrowLeft size={16} aria-hidden="true" />
-                            上一个
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => cycleRegion(1)}
-                            aria-label="切换到下一个地域"
-                            className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-[1.2rem] border border-white/12 bg-white/[0.08] px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-white/[0.14]"
-                          >
-                            下一个
-                            <ArrowRight size={16} aria-hidden="true" />
-                          </button>
+                            {LOVE_REGIONS.map((region) => (
+                              <option key={region.id} value={region.id} className="bg-[#3d1024] text-white">
+                                {region.name} · {region.scope}
+                              </option>
+                            ))}
+                          </select>
                         </div>
+                        <p className="mt-3 text-xs leading-6 text-white/58">点击下拉后选择城市，版图会直接切换到对应的透明展示。</p>
                       </div>
 
                       <div className="rounded-[1.6rem] border border-white/12 bg-black/18 p-4">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/42">Available Regions</p>
-                        <div className="mt-4 grid gap-2.5">
-                          {LOVE_REGIONS.map((region, index) => {
-                            const active = region.id === activeRegion.id;
-                            return (
-                              <button
-                                key={region.id}
-                                type="button"
-                                onClick={() => showRegionAt(index)}
-                                aria-pressed={active}
-                                aria-label={`查看${region.name}地域`}
-                                className={
-                                  active
-                                    ? 'rounded-[1.2rem] border border-rose-100/38 bg-rose-200/16 px-4 py-3 text-left'
-                                    : 'rounded-[1.2rem] border border-white/10 bg-white/[0.04] px-4 py-3 text-left transition-colors duration-200 hover:bg-white/[0.09]'
-                                }
-                              >
-                                <span className="flex items-center justify-between gap-3">
-                                  <span>
-                                    <span className="block text-sm font-semibold text-white">{region.name}</span>
-                                    <span className="mt-1 block text-xs leading-6 text-white/56">
-                                      {region.scope} · {region.level}
-                                    </span>
-                                  </span>
-                                  <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/40">
-                                    {active ? 'Current' : 'Switch'}
-                                  </span>
-                                </span>
-                              </button>
-                            );
-                          })}
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/42">Current Region</p>
+                        <div className="mt-4 flex items-center gap-3">
+                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/14 bg-white/10 text-rose-100/88">
+                            <Waves size={18} aria-hidden="true" />
+                          </span>
+                          <div>
+                            <p className="text-sm font-semibold text-white">{activeRegion.name}</p>
+                            <p className="mt-1 text-xs uppercase tracking-[0.24em] text-white/48">
+                              {activeRegion.scope} · {activeRegion.level}
+                            </p>
+                          </div>
                         </div>
+                        <p className="mt-4 text-xs leading-6 text-white/62">{activeRegion.description}</p>
                       </div>
 
                       <div className="rounded-[1.6rem] border border-white/12 bg-black/18 p-4">
@@ -319,27 +341,26 @@ export const LoveRegionSurface: React.FC = () => {
             >
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_38%)]" />
               <div className="relative">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-rose-100/70">Current Region</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-rose-100/70">View Direction</p>
                 <div className="mt-8 rounded-[1.5rem] border border-white/12 bg-black/18 p-4">
-                  <div className="flex items-center gap-3">
-                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/14 bg-white/10 text-rose-100/88">
-                      <Waves size={18} aria-hidden="true" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold text-white">{activeRegion.name}</p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.24em] text-white/48">
-                        {activeRegion.scope} · {activeRegion.level}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="mt-4 text-xs leading-6 text-white/62">{activeRegion.switchHint}</p>
+                  <p className="text-sm font-semibold text-white">透明俯视视角</p>
+                  <p className="mt-3 text-xs leading-6 text-white/62">
+                    版图整体采用更稳定的俯视角，前后分层拉开之后，透明边缘和投影会比之前更完整，不会显得像一张被压扁的轮廓。
+                  </p>
+                </div>
+
+                <div className="mt-4 rounded-[1.5rem] border border-white/12 bg-black/18 p-4">
+                  <p className="text-sm font-semibold text-white">悬浮反馈</p>
+                  <p className="mt-3 text-xs leading-6 text-white/62">
+                    鼠标停在版图舞台上时，版图会整体上浮并加深下方阴影，形成明确的悬浮感，而不是只做轻微抖动。
+                  </p>
                 </div>
               </div>
 
               <div className="relative mt-10 border-t border-white/12 pt-5">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/40">Visual Rule</p>
                 <p className="mt-3 text-xs leading-6 text-white/62">
-                  地理轮廓使用本地静态数据渲染为透明玻璃态图形，不依赖客户端请求，因此不会影响首屏确定性和 Love 面的切换一致性。
+                  地理轮廓仍然使用本地静态数据渲染为透明玻璃态图形，不依赖客户端请求，因此不会影响 Love 面切换时的确定性。
                 </p>
               </div>
             </motion.aside>

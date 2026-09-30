@@ -31,38 +31,37 @@ describe('LoveRegionSurface', () => {
     });
   });
 
-  it('默认展示湘潭地域视图', async () => {
+  it('默认展示湘潭地域视图和城市下拉框', async () => {
     renderLoveRegionSurface();
 
     expect(await screen.findByRole('heading', { name: '湘潭' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '切换到上一个地域' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '切换到下一个地域' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: '选择地域城市' })).toHaveValue('xiangtan');
   });
 
-  it('支持左右切换不同地域', async () => {
+  it('支持通过下拉切换不同地域', async () => {
     const user = userEvent.setup();
     renderLoveRegionSurface();
 
-    await screen.findByRole('heading', { name: '湘潭' });
-
-    await user.click(screen.getByRole('button', { name: '切换到下一个地域' }));
+    const select = screen.getByRole('combobox', { name: '选择地域城市' });
+    await user.selectOptions(select, 'changsha');
     expect(await screen.findByRole('heading', { name: '长沙' })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '切换到下一个地域' }));
+    await user.selectOptions(select, 'beijing');
     expect(await screen.findByRole('heading', { name: '北京' })).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: '切换到上一个地域' }));
-    expect(await screen.findByRole('heading', { name: '长沙' })).toBeInTheDocument();
+    expect(select).toHaveValue('beijing');
   });
 
-  it('支持从列表直接切换地域', async () => {
+  it('鼠标移入版图舞台后进入悬浮态', async () => {
     const user = userEvent.setup();
     renderLoveRegionSurface();
 
-    await screen.findByRole('heading', { name: '湘潭' });
+    const stage = screen.getByTestId('love-region-stage');
+    expect(stage).toHaveAttribute('data-hovered', 'false');
 
-    await user.click(screen.getByRole('button', { name: '查看北京地域' }));
-    expect(await screen.findByRole('heading', { name: '北京' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '查看北京地域' })).toHaveAttribute('aria-pressed', 'true');
+    await user.hover(stage);
+    expect(stage).toHaveAttribute('data-hovered', 'true');
+
+    await user.unhover(stage);
+    expect(stage).toHaveAttribute('data-hovered', 'false');
   });
 });
