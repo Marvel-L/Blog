@@ -180,11 +180,12 @@ describe('Layout', () => {
 
     await user.click(screen.getByRole('button', { name: '进入 Love 面' }));
 
-    expect(await screen.findByRole('heading', { name: 'Love 面' })).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: '打开地域系统，当前湘潭' }).length).toBeGreaterThanOrEqual(1);
+    expect(await screen.findByRole('region', { name: 'Love 首页' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: '打开地域页' }).length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByRole('link', { name: '文章' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '打开更多菜单' })).not.toBeInTheDocument();
     expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument();
+    expect(document.querySelector('canvas')).not.toBeInTheDocument();
   });
 
   it('启动阶段已标记 Love 模式时，首帧直接进入 Love 面', async () => {
@@ -193,8 +194,21 @@ describe('Layout', () => {
     window.localStorage.setItem('d-blog-love-mode', 'true');
     renderLayout();
 
-    expect(await screen.findByRole('heading', { name: 'Love 面' })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'Love 首页' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '退出 Love 面' })).toBeInTheDocument();
+  });
+
+  it('Love 面点击导航栏地域按钮后进入地域页', async () => {
+    const user = userEvent.setup();
+    renderLayout();
+
+    await user.click(screen.getByRole('button', { name: '进入 Love 面' }));
+    await screen.findByRole('region', { name: 'Love 首页' });
+
+    await user.click(screen.getAllByRole('button', { name: '打开地域页' })[0]);
+
+    expect(await screen.findByRole('heading', { name: '湘潭' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '切换到下一个地域' })).toBeInTheDocument();
   });
 
   it('配置 Love 面人名后，背景会铺陈该名字', async () => {
@@ -203,7 +217,7 @@ describe('Layout', () => {
     renderLayout();
 
     await user.click(screen.getByRole('button', { name: '进入 Love 面' }));
-    await screen.findByRole('heading', { name: 'Love 面' });
+    await screen.findByRole('region', { name: 'Love 首页' });
 
     expect(screen.getAllByText(/刘宇/).length).toBeGreaterThan(0);
     expect(screen.getByTestId('love-name-marquee')).toBeInTheDocument();
@@ -215,7 +229,7 @@ describe('Layout', () => {
     renderLayout();
 
     await user.click(screen.getByRole('button', { name: '进入 Love 面' }));
-    await screen.findByRole('heading', { name: 'Love 面' });
+    await screen.findByRole('region', { name: 'Love 首页' });
     expect(screen.getByTestId('love-name-marquee')).toBeInTheDocument();
     expect(screen.queryByTestId('love-name-rain')).not.toBeInTheDocument();
 

@@ -54,6 +54,7 @@ import { hasOpenOverlay, lockBodyScroll, unlockBodyScroll } from '@/hooks/useMod
 import { useReadingMode, ReadingModeProvider } from './ReadingModeContext';
 import { LoveModeProvider, useLoveMode } from './LoveModeContext';
 import { LoveSurface } from './LoveSurface';
+import { LoveRegionSurface } from './LoveRegionSurface';
 import { routeTransition } from '@/utils/motion';
 
 const BackToTop = lazy(() => import('./BackToTop').then((m) => ({ default: m.BackToTop })));
@@ -82,8 +83,24 @@ type NavPathItem = { path: string; label: string; hint: string; icon: NavIcon; k
 type NavHrefItem = { href: string; label: string; hint: string; icon: NavIcon; key?: string };
 type NavItem = NavPathItem | NavHrefItem;
 type LoveNameEffect = 'marquee' | 'rain';
+type LoveView = 'home' | 'region';
 
 const LOVE_NAME_EFFECT_STORAGE_KEY = 'd-blog-love-name-effect';
+const LOVE_VIEW_QUERY_KEY = 'love-view';
+
+const readLoveViewFromSearch = (search: string): LoveView =>
+  new URLSearchParams(search).get(LOVE_VIEW_QUERY_KEY) === 'region' ? 'region' : 'home';
+
+const buildLoveViewSearch = (search: string, view: LoveView) => {
+  const params = new URLSearchParams(search);
+  if (view === 'home') {
+    params.delete(LOVE_VIEW_QUERY_KEY);
+  } else {
+    params.set(LOVE_VIEW_QUERY_KEY, view);
+  }
+  const nextSearch = params.toString();
+  return nextSearch ? `?${nextSearch}` : '';
+};
 
 const shuoshuoNavItem: NavPathItem = {
   path: '/shuoshuo',
@@ -531,6 +548,8 @@ const Navbar = ({
   onParticleEffectChange,
   isLoveMode,
   onToggleLoveMode,
+  loveView,
+  onLoveViewChange,
   loveNameEffect,
   onLoveNameEffectChange,
 }: {
@@ -539,6 +558,8 @@ const Navbar = ({
   onParticleEffectChange: (effect: ParticleEffectId) => void;
   isLoveMode: boolean;
   onToggleLoveMode: () => void;
+  loveView: LoveView;
+  onLoveViewChange: (view: LoveView) => void;
   loveNameEffect: LoveNameEffect;
   onLoveNameEffectChange: (effect: LoveNameEffect) => void;
 }) => {
@@ -1117,18 +1138,29 @@ const Navbar = ({
           <div className="hidden min-w-0 shrink items-center gap-4 lg:flex">
             {isLoveMode ? (
               <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onLoveViewChange('region')}
+                  aria-current={loveView === 'region' ? 'page' : undefined}
+                  aria-label="打开地域页"
+                  className={`group relative inline-flex h-10 items-center px-2 py-1 text-sm font-semibold tracking-wide transition-colors ${
+                    loveView === 'region' ? 'text-white' : 'text-white/72 hover:text-white'
+                  }`}
+                >
+                  <span className="relative z-10">地域</span>
+                  <span
+                    aria-hidden="true"
+                    className={`absolute bottom-[2px] left-2 right-2 h-[2px] origin-center rounded-none bg-white transition-[transform,opacity] duration-[250ms] ${
+                      loveView === 'region'
+                        ? 'scale-x-100 opacity-100'
+                        : 'scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-70'
+                    }`}
+                  />
+                </button>
                 <LoveEffectToggle
                   loveNameEffect={loveNameEffect}
                   onLoveNameEffectChange={onLoveNameEffectChange}
                 />
-                <button
-                  type="button"
-                  aria-label="地域（暂未开放）"
-                  className="inline-flex min-h-11 items-center gap-2 rounded-full border border-rose-200/80 bg-white/70 px-4 text-sm font-semibold text-zinc-800 transition-colors hover:bg-rose-50 dark:border-rose-900/80 dark:bg-white/5 dark:text-zinc-100 dark:hover:bg-rose-950/30"
-                >
-                  <MapIcon size={16} aria-hidden="true" className="text-rose-400 dark:text-rose-300" />
-                  <span>地域</span>
-                </button>
               </div>
             ) : (
               <>
@@ -1256,18 +1288,29 @@ const Navbar = ({
             {/* 移动端顶栏保留主题切换与待补完入口：搜索/导航入口下沉到底部标签栏 */}
             {isLoveMode ? (
               <>
+                <button
+                  type="button"
+                  onClick={() => onLoveViewChange('region')}
+                  aria-current={loveView === 'region' ? 'page' : undefined}
+                  aria-label="打开地域页"
+                  className={`group relative inline-flex h-10 items-center px-2 py-1 text-sm font-semibold tracking-wide transition-colors ${
+                    loveView === 'region' ? 'text-white' : 'text-white/72 hover:text-white'
+                  }`}
+                >
+                  <span className="relative z-10">地域</span>
+                  <span
+                    aria-hidden="true"
+                    className={`absolute bottom-[2px] left-2 right-2 h-[2px] origin-center rounded-none bg-white transition-[transform,opacity] duration-[250ms] ${
+                      loveView === 'region'
+                        ? 'scale-x-100 opacity-100'
+                        : 'scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-70'
+                    }`}
+                  />
+                </button>
                 <LoveEffectToggle
                   loveNameEffect={loveNameEffect}
                   onLoveNameEffectChange={onLoveNameEffectChange}
                 />
-                <button
-                  type="button"
-                  aria-label="地域（暂未开放）"
-                  className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-rose-200/80 bg-white/70 px-3 text-sm font-semibold text-zinc-800 dark:border-rose-900/80 dark:bg-white/5 dark:text-zinc-100"
-                >
-                  <MapIcon size={15} aria-hidden="true" className="text-rose-400 dark:text-rose-300" />
-                  <span>地域</span>
-                </button>
               </>
             ) : (
               <>
@@ -1587,9 +1630,10 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const location = useLocation();
   const navigate = useNavigate();
   const { isReadingMode } = useReadingMode();
-  const { isLoveMode, toggleLoveMode } = useLoveMode();
+  const { isLoveMode, setLoveMode } = useLoveMode();
   const [particleEffect, setParticleEffect] = useState<ParticleEffectId>(DEFAULT_PARTICLE_EFFECT);
   const [loveNameEffect, setLoveNameEffect] = useState<LoveNameEffect>('marquee');
+  const loveView = readLoveViewFromSearch(location.search);
   // 搜索为独立页面（/search）：所有搜索入口（顶栏按钮、Ctrl+K、移动端抽屉快捷动作）
   // 统一跳转到搜索页。
   const goToSearch = useCallback(() => {
@@ -1609,8 +1653,8 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const viewTransitionRouteVariants = { initial: { opacity: 1 }, animate: { opacity: 1 } } as const;
   // 仅 query 变化时保持组件挂载，避免搜索输入导致首页动画重启。
   const routeContentKey = location.pathname;
-  const visibleContent = isLoveMode ? <LoveSurface /> : children;
-  const surfaceTransitionKey = isLoveMode ? `love:${routeContentKey}` : `default:${routeContentKey}`;
+  const visibleContent = isLoveMode ? (loveView === 'region' ? <LoveRegionSurface /> : <LoveSurface />) : children;
+  const surfaceTransitionKey = isLoveMode ? `love:${routeContentKey}:${loveView}` : `default:${routeContentKey}`;
   const surfaceSwitchVariants = prefersReducedMotion
     ? { initial: { opacity: 1, y: 0, scale: 1 }, animate: { opacity: 1, y: 0, scale: 1 }, exit: { opacity: 1, y: 0, scale: 1 } }
     : {
@@ -1670,6 +1714,28 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
     }
   }, []);
 
+  const handleLoveViewChange = useCallback(
+    (view: LoveView) => {
+      const nextSearch = buildLoveViewSearch(location.search, view);
+      if (nextSearch === location.search) {
+        return;
+      }
+      navigate({ pathname: location.pathname, search: nextSearch }, { replace: false });
+    },
+    [location.pathname, location.search, navigate],
+  );
+
+  const handleToggleLoveMode = useCallback(() => {
+    const nextLoveMode = !isLoveMode;
+    const nextSearch = buildLoveViewSearch(location.search, 'home');
+
+    setLoveMode(nextLoveMode);
+
+    if (nextSearch !== location.search) {
+      navigate({ pathname: location.pathname, search: nextSearch }, { replace: true });
+    }
+  }, [isLoveMode, location.pathname, location.search, navigate, setLoveMode]);
+
   // 不蒜子统计：路由变化即上报当前页访问并回填计数 span（适配 SPA 客户端导航，
   // 替代官方 <script> 仅首屏执行一次、无法为新路由上报/回填的局限）。
   useEffect(() => {
@@ -1686,14 +1752,16 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
       data-particle-front={isParticleFrontRoute ? 'true' : undefined}
     >
       <BackgroundWithEffect isLoveMode={isLoveMode} loveNameEffect={loveNameEffect} />
-      {!isReadingMode && <ParticleField effect={particleEffect} />}
+      {!isReadingMode && !isLoveMode && <ParticleField effect={particleEffect} />}
       {!isReadingMode && (
         <Navbar
           onSearchNavigate={goToSearch}
           particleEffect={particleEffect}
           onParticleEffectChange={handleParticleEffectChange}
           isLoveMode={isLoveMode}
-          onToggleLoveMode={toggleLoveMode}
+          onToggleLoveMode={handleToggleLoveMode}
+          loveView={loveView}
+          onLoveViewChange={handleLoveViewChange}
           loveNameEffect={loveNameEffect}
           onLoveNameEffectChange={handleLoveNameEffectChange}
         />
