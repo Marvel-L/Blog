@@ -43,6 +43,7 @@ describe('Privacy', () => {
     expect(screen.getByRole('heading', { name: '隐私页' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '输入密码' })).toBeInTheDocument();
     expect(screen.queryByText('内容暂未放入')).not.toBeInTheDocument();
+    expect(screen.getByText('入口现在收在首页页脚版权行的右侧。点击透明笑脸后会先弹出密码框，只有验证通过才会进入这里。')).toBeInTheDocument();
   });
 
   it('密码校验通过后显示隐私内容占位', async () => {

@@ -1498,9 +1498,11 @@ const Footer = ({
 const BackgroundWithEffect = ({
   isLoveMode,
   loveNameEffect,
+  isPrivacyRoute,
 }: {
   isLoveMode: boolean;
   loveNameEffect: LoveNameEffect;
+  isPrivacyRoute: boolean;
 }) => {
   const lovePersonName = siteConfig.loveMode?.personName?.trim() || '';
   const nameRows = lovePersonName ? Array.from({ length: 9 }, (_, rowIndex) => rowIndex) : [];
@@ -1510,9 +1512,15 @@ const BackgroundWithEffect = ({
   return (
     <div
       className={`pointer-events-none fixed inset-0 z-[-1] overflow-hidden transition-[background,color] duration-700 ${
-        isLoveMode ? 'bg-[#42162a]' : 'bg-paper dark:bg-void'
+        isLoveMode ? 'bg-[#42162a]' : isPrivacyRoute ? 'bg-[#020202]' : 'bg-paper dark:bg-void'
       }`}
     >
+      {isPrivacyRoute && !isLoveMode ? (
+        <>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_26%),radial-gradient(circle_at_18%_22%,rgba(148,163,184,0.09),transparent_24%),radial-gradient(circle_at_82%_16%,rgba(255,255,255,0.05),transparent_18%),linear-gradient(180deg,#010101_0%,#050505_48%,#020202_100%)]" />
+          <div className="absolute inset-0 opacity-[0.16] [background-image:linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] [background-size:32px_32px]" />
+        </>
+      ) : null}
       {isLoveMode ? (
         <>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,rgba(255,240,224,0.28),transparent_30%),radial-gradient(circle_at_84%_18%,rgba(255,196,218,0.24),transparent_26%),radial-gradient(circle_at_50%_100%,rgba(255,156,124,0.28),transparent_38%),linear-gradient(180deg,#4d1830_0%,#7a2948_36%,#b1476c_72%,#31111c_100%)]" />
@@ -1596,6 +1604,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const navigate = useNavigate();
   const { isReadingMode } = useReadingMode();
   const { isLoveMode, setLoveMode } = useLoveMode();
+  const isPrivacyRoute = location.pathname === '/privacy';
   const [particleEffect, setParticleEffect] = useState<ParticleEffectId>(DEFAULT_PARTICLE_EFFECT);
   const [loveNameEffect, setLoveNameEffect] = useState<LoveNameEffect>('marquee');
   const [isPrivacyDialogOpen, setIsPrivacyDialogOpen] = useState(false);
@@ -1623,13 +1632,18 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const surfaceSwitchVariants = prefersReducedMotion
     ? { initial: { opacity: 1, y: 0, scale: 1 }, animate: { opacity: 1, y: 0, scale: 1 }, exit: { opacity: 1, y: 0, scale: 1 } }
     : {
-        initial: { opacity: 0, y: isLoveMode ? 20 : 10, scale: isLoveMode ? 0.985 : 1 },
-        animate: { opacity: 1, y: 0, scale: 1, transition: { duration: isLoveMode ? 0.6 : 0.34, ease: 'easeOut' as const } },
+        initial: { opacity: 0, y: isLoveMode ? 20 : isPrivacyRoute ? 14 : 10, scale: isLoveMode ? 0.985 : isPrivacyRoute ? 0.992 : 1 },
+        animate: {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          transition: { duration: isLoveMode ? 0.6 : isPrivacyRoute ? 0.46 : 0.34, ease: 'easeOut' as const },
+        },
         exit: {
           opacity: 0,
-          y: isLoveMode ? -10 : 8,
+          y: isLoveMode ? -10 : isPrivacyRoute ? 6 : 8,
           scale: isLoveMode ? 1.01 : 0.995,
-          transition: { duration: isLoveMode ? 0.32 : 0.22, ease: 'easeInOut' as const },
+          transition: { duration: isLoveMode ? 0.32 : isPrivacyRoute ? 0.24 : 0.22, ease: 'easeInOut' as const },
         },
       };
 
@@ -1704,9 +1718,9 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
       data-love-mode={isLoveMode ? 'true' : undefined}
       data-particle-front={isParticleFrontRoute ? 'true' : undefined}
     >
-      <BackgroundWithEffect isLoveMode={isLoveMode} loveNameEffect={loveNameEffect} />
-      {!isReadingMode && !isLoveMode && <ParticleField effect={particleEffect} />}
-      {!isReadingMode && (
+      <BackgroundWithEffect isLoveMode={isLoveMode} loveNameEffect={loveNameEffect} isPrivacyRoute={isPrivacyRoute} />
+      {!isReadingMode && !isLoveMode && !isPrivacyRoute && <ParticleField effect={particleEffect} />}
+      {!isReadingMode && !isPrivacyRoute && (
         <Navbar
           onSearchNavigate={goToSearch}
           particleEffect={particleEffect}
@@ -1721,6 +1735,9 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
           因 safe-area-inset-top 增高的部分，避免内容被顶高的导航遮挡。 */}
       <main
         className={`relative min-w-0 w-full flex-grow px-3 sm:px-6 ${
+          isPrivacyRoute
+            ? 'pt-4 sm:pt-5 md:pt-6 pb-0'
+            :
           isReadingMode
             ? 'pt-6 sm:pt-8 md:pt-10'
             : 'pt-[calc(5rem+env(safe-area-inset-top,0px))] sm:pt-[calc(6rem+env(safe-area-inset-top,0px))] md:pt-[calc(6rem+env(safe-area-inset-top,0px))] pb-[calc(var(--tab-bar-height,0px)+0.75rem)] lg:pb-0'
@@ -1762,12 +1779,12 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
           </motion.div>
         </AnimatePresence>
       </main>
-      {!isReadingMode && (
+      {!isReadingMode && !isPrivacyRoute && (
         <Suspense fallback={null}>
           <BackToTop />
         </Suspense>
       )}
-      {!isReadingMode && !isLoveMode && (
+      {!isReadingMode && !isLoveMode && !isPrivacyRoute && (
         <Footer showPrivacyEntry={location.pathname === '/'} onOpenPrivacy={() => setIsPrivacyDialogOpen(true)} />
       )}
       <PrivacyPasswordModal

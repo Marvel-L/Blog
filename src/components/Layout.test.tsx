@@ -179,6 +179,15 @@ describe('Layout', () => {
     await waitFor(() => expect(probePathname).toBe('/privacy'));
   });
 
+  it('隐私页隐藏站点导航与页脚，保持独立壳层', () => {
+    renderLayout(['/privacy']);
+
+    expect(screen.queryByRole('link', { name: '文章' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /外观与氛围/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '打开更多菜单' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument();
+  });
+
   it('Ctrl+K 跳转到搜索页', async () => {
     const user = userEvent.setup();
     renderLayout();
