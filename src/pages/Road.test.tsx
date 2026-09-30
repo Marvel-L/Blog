@@ -32,6 +32,9 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
+const getStage = () => document.querySelector('[data-road-stage]') as HTMLElement;
+const getViewport = () => document.querySelector('[data-road-viewport]') as HTMLElement;
+
 describe('Road', () => {
   it('视图 id 与根节点不同时，子节点排在根节点下方', async () => {
     const user = userEvent.setup();
@@ -59,5 +62,34 @@ describe('Road', () => {
     expect(screen.getByRole('button', { name: '程序员' })).toHaveClass('bg-zinc-900');
     expect(screen.getByRole('button', { name: 'Golang' })).not.toHaveClass('bg-zinc-900');
     expect(document.querySelector('[data-road-node="程序员的一生"]')).toBeTruthy();
+  });
+
+  it('不再渲染 Paths 面板', () => {
+    renderPage();
+    expect(screen.queryByText('Paths')).not.toBeInTheDocument();
+  });
+
+  it('刷新后恢复同一 Root 的画布缩放与位置', async () => {
+    const user = userEvent.setup();
+    const first = renderPage();
+    await user.click(screen.getByRole('button', { name: '程序员' }));
+
+    const viewport = getViewport();
+    Object.defineProperty(viewport, 'clientWidth', { configurable: true, value: 1000 });
+    Object.defineProperty(viewport, 'clientHeight', { configurable: true, value: 700 });
+
+    await user.click(screen.getByRole('button', { name: '放大' }));
+    await user.pointer([
+      { target: viewport, keys: '[MouseLeft>]', coords: { x: 200, y: 220 } },
+      { target: viewport, coords: { x: 280, y: 310 } },
+      { target: viewport, keys: '[/MouseLeft]' },
+    ]);
+
+    const persistedTransform = getStage().style.transform;
+    first.unmount();
+
+    renderPage();
+    expect(screen.getByRole('button', { name: '程序员' })).toHaveClass('bg-zinc-900');
+    expect(getStage().style.transform).toBe(persistedTransform);
   });
 });

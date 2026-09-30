@@ -88,40 +88,6 @@ export const computeLevels = (nodes: RoadNodeConfig[], rootId: string): Map<stri
   return levels;
 };
 
-/** 枚举从 root 到所有叶节点的完整路径（节点 id 序列）。 */
-export const enumeratePaths = (nodes: RoadNodeConfig[], rootId: string): string[][] => {
-  const children = new Map<string, string[]>();
-  for (const node of nodes) {
-    for (const parent of node.parents ?? []) {
-      const list = children.get(parent) ?? [];
-      list.push(node.id);
-      children.set(parent, list);
-    }
-  }
-
-  const paths: string[][] = [];
-  const walk = (nodeId: string, trail: string[]) => {
-    const next = children.get(nodeId) ?? [];
-    const path = [...trail, nodeId];
-    if (next.length === 0) {
-      paths.push(path);
-      return;
-    }
-    for (const child of next) {
-      if (trail.includes(child)) {
-        continue;
-      }
-      walk(child, path);
-    }
-  };
-
-  const resolvedRootId = resolveGraphRootId(nodes, rootId);
-  if (nodes.some((node) => node.id === resolvedRootId)) {
-    walk(resolvedRootId, []);
-  }
-  return paths;
-};
-
 /** 计算节点中心坐标与边端点，供 SVG 渲染。 */
 export const layoutRoadGraph = (nodes: RoadNodeConfig[], rootId: string): RoadLayout => {
   if (nodes.length === 0) {

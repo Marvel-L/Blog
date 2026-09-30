@@ -1,12 +1,12 @@
 /**
- * Road 页：全画布沉浸式有向图；左侧 Root、底部 Paths 为浮层，无页面大标题。
+ * Road 页：全画布沉浸式有向图；左侧 Root 为浮层，无页面大标题。
  */
 import { useLayoutEffect, useMemo, useState } from 'react';
 import { siteConfig } from '@config/site.config';
 import { Seo, buildSiteSchemas } from '@/components/Seo';
 import { absoluteSiteUrl } from '@/utils/siteUrl';
-import { formatPathLabels, getRoadGraphs, readActiveRoadGraphId, writeActiveRoadGraphId } from '@/services/road';
-import { enumeratePaths, resolveGraphRootId } from '@/pages/road/layout';
+import { getRoadGraphs, readActiveRoadGraphId, writeActiveRoadGraphId } from '@/services/road';
+import { resolveGraphRootId } from '@/pages/road/layout';
 import { RoadGraph } from '@/pages/road/RoadGraph';
 import { NodeArticlesModal } from '@/pages/road/NodeArticlesModal';
 import type { RoadNodeConfig } from '@config/road.config';
@@ -17,7 +17,6 @@ export const Road = () => {
   const graphs = useMemo(() => getRoadGraphs(), []);
   const [activeGraphId, setActiveGraphId] = useState(graphs[0]?.id ?? '');
   const [selectedNode, setSelectedNode] = useState<RoadNodeConfig | null>(null);
-  const [activePathIndex, setActivePathIndex] = useState<number | null>(null);
 
   useLayoutEffect(() => {
     const saved = readActiveRoadGraphId(graphs);
@@ -29,9 +28,6 @@ export const Road = () => {
   const activeGraph = graphs.find((graph) => graph.id === activeGraphId) ?? graphs[0];
   const nodes = activeGraph?.nodes ?? [];
   const rootId = activeGraph ? resolveGraphRootId(nodes, activeGraph.id) : '';
-
-  const paths = useMemo(() => (rootId ? enumeratePaths(nodes, rootId) : []), [nodes, rootId]);
-  const highlightedPath = activePathIndex !== null && paths[activePathIndex] ? paths[activePathIndex] : null;
 
   const schema = {
     '@context': 'https://schema.org',
@@ -50,7 +46,6 @@ export const Road = () => {
   const handleSelectGraph = (graphId: string) => {
     setActiveGraphId(graphId);
     writeActiveRoadGraphId(graphId);
-    setActivePathIndex(null);
     setSelectedNode(null);
   };
 
@@ -100,43 +95,13 @@ export const Road = () => {
 
           <div className="absolute inset-0 z-0">
             <RoadGraph
+              graphId={activeGraph.id}
               nodes={nodes}
               rootId={rootId}
               selectedNodeId={selectedNode?.id}
-              highlightedPath={highlightedPath}
               onSelectNode={setSelectedNode}
             />
           </div>
-
-          <aside className="absolute bottom-3 left-3 right-3 z-20 sm:bottom-4 sm:left-auto sm:right-4 sm:w-72">
-            <div className="rounded-lg border border-zinc-200/80 bg-paper/95 p-2 shadow-sm backdrop-blur dark:border-zinc-700/80 dark:bg-zinc-900/95">
-              <p className="px-2 pb-1.5 text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-400">Paths</p>
-              {paths.length === 0 ? (
-                <p className="px-2 py-2 text-xs text-zinc-400">暂无路径</p>
-              ) : (
-                <ul className="max-h-36 space-y-0.5 overflow-y-auto sm:max-h-48">
-                  {paths.map((path, index) => {
-                    const active = activePathIndex === index;
-                    return (
-                      <li key={`${path.join('-')}-${index}`}>
-                        <button
-                          type="button"
-                          onClick={() => setActivePathIndex(active ? null : index)}
-                          className={`w-full rounded-md px-2 py-1.5 text-left text-[12px] leading-snug transition-colors ${
-                            active
-                              ? 'bg-zinc-100 font-medium text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
-                              : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200'
-                          }`}
-                        >
-                          {formatPathLabels(path, nodes)}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-          </aside>
         </>
       )}
 

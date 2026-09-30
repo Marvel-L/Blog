@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeLevels, enumeratePaths, layoutRoadGraph, resolveGraphRootId } from './layout';
+import { computeLevels, layoutRoadGraph, resolveGraphRootId } from './layout';
 import type { RoadNodeConfig } from '@config/road.config';
 
 const sampleNodes: RoadNodeConfig[] = [
@@ -16,17 +16,6 @@ describe('road layout', () => {
     expect(levels.get('channel')).toBe(1);
     expect(levels.get('goroutine')).toBe(1);
     expect(levels.get('pool')).toBe(2);
-  });
-
-  it('enumerates all root-to-leaf paths', () => {
-    const paths = enumeratePaths(sampleNodes, 'golang');
-    expect(paths).toHaveLength(2);
-    expect(paths).toEqual(
-      expect.arrayContaining([
-        ['golang', 'channel', 'pool'],
-        ['golang', 'goroutine', 'pool'],
-      ]),
-    );
   });
 
   it('uses the parentless node when the view id is not a node id', () => {

@@ -1,41 +1,34 @@
 /**
  * Road 画布：全幅点阵底 + 直线连边 + HTML 节点（Obsidian 风格）。
- * 空白拖拽平移；节点点击打开文章，不与拖拽冲突。
+ * 空白拖拽平移；滚轮以鼠标位置为锚点缩放；位置与缩放持久化。
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RoadNodeConfig } from '@config/road.config';
-import { resolveNodeArticles } from '@/services/road';
-import { layoutRoadGraph, ROAD_NODE_HEIGHT, ROAD_NODE_WIDTH, type RoadLayoutEdge } from './layout';
+import { readRoadViewport, resolveNodeArticles, type RoadViewportState, writeRoadViewport } from '@/services/road';
+import { layoutRoadGraph, ROAD_NODE_HEIGHT, ROAD_NODE_WIDTH } from './layout';
 
 interface RoadGraphProps {
+  graphId: string;
   nodes: RoadNodeConfig[];
   rootId: string;
   selectedNodeId?: string | null;
-  highlightedPath?: string[] | null;
   onSelectNode: (node: RoadNodeConfig) => void;
 }
 
-const isEdgeHighlighted = (edge: RoadLayoutEdge, path: string[] | null | undefined) => {
-  if (!path || path.length < 2) {
-    return false;
-  }
-  for (let i = 0; i < path.length - 1; i += 1) {
-    if (path[i] === edge.from && path[i + 1] === edge.to) {
-      return true;
-    }
-  }
-  return false;
-};
+const MIN_SCALE = 0.5;
+const MAX_SCALE = 1.8;
+const clampScale = (value: number) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, value));
 
 export const RoadGraph: React.FC<RoadGraphProps> = ({
+  graphId,
   nodes,
   rootId,
   selectedNodeId,
-  highlightedPath,
   onSelectNode,
 }) => {
   const layout = useMemo(() => layoutRoadGraph(nodes, rootId), [nodes, rootId]);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const viewportSizeRef = useRef<{ width: number; height: number } | null>(null);
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [ready, setReady] = useState(false);
@@ -47,38 +40,123 @@ export const RoadGraph: React.FC<RoadGraphProps> = ({
     originY: number;
   } | null>(null);
 
-  const centerGraph = useCallback(() => {
-    const el = viewportRef.current;
-    if (!el || layout.width === 0) {
-      return;
-    }
-    const nextScale = Math.min(1.15, Math.max(0.7, (el.clientWidth - 48) / layout.width));
-    setScale(nextScale);
+  const buildCenteredViewport = useCallback(
+    (el: HTMLDivElement): RoadViewportState | null => {
+      if (layout.width === 0) {
+        return null;
+      }
+      const nextScale = Math.min(1.15, Math.max(0.7, (el.clientWidth - 48) / layout.width));
+      return {
+        scale: nextScale,
+        offsetX: (el.clientWidth - layout.width * nextScale) / 2,
+        offsetY: Math.max(32, (el.clientHeight - layout.height * nextScale) / 2),
+      };
+    },
+    [layout.height, layout.width],
+  );
+
+  const applyViewport = useCallback((nextViewport: RoadViewportState) => {
+    setScale(nextViewport.scale);
     setOffset({
-      x: (el.clientWidth - layout.width * nextScale) / 2,
-      y: Math.max(32, (el.clientHeight - layout.height * nextScale) / 2),
+      x: nextViewport.offsetX,
+      y: nextViewport.offsetY,
     });
     setReady(true);
-  }, [layout.height, layout.width]);
+  }, []);
+
+  const centerGraph = useCallback(() => {
+    const el = viewportRef.current;
+    if (!el) {
+      return;
+    }
+    const nextViewport = buildCenteredViewport(el);
+    if (!nextViewport) {
+      return;
+    }
+    applyViewport(nextViewport);
+  }, [applyViewport, buildCenteredViewport]);
+
+  const scaleAroundPoint = useCallback(
+    (nextScale: number, anchorX: number, anchorY: number) => {
+      const clampedScale = clampScale(nextScale);
+      if (clampedScale === scale) {
+        return;
+      }
+      const graphX = (anchorX - offset.x) / scale;
+      const graphY = (anchorY - offset.y) / scale;
+      setScale(clampedScale);
+      setOffset({
+        x: anchorX - graphX * clampedScale,
+        y: anchorY - graphY * clampedScale,
+      });
+      setReady(true);
+    },
+    [offset.x, offset.y, scale],
+  );
 
   useEffect(() => {
-    centerGraph();
-  }, [centerGraph, rootId]);
+    const el = viewportRef.current;
+    if (!el) {
+      return;
+    }
+    const savedViewport = readRoadViewport(graphId);
+    const nextViewport = savedViewport ?? buildCenteredViewport(el);
+    if (!nextViewport) {
+      return;
+    }
+    viewportSizeRef.current = { width: el.clientWidth, height: el.clientHeight };
+    applyViewport(nextViewport);
+  }, [applyViewport, buildCenteredViewport, graphId, rootId]);
 
   useEffect(() => {
     const el = viewportRef.current;
     if (!el || typeof ResizeObserver === 'undefined') {
       return;
     }
-    const observer = new ResizeObserver(() => centerGraph());
+    const observer = new ResizeObserver(() => {
+      const previous = viewportSizeRef.current;
+      const next = { width: el.clientWidth, height: el.clientHeight };
+      viewportSizeRef.current = next;
+
+      if (!previous) {
+        const nextViewport = readRoadViewport(graphId) ?? buildCenteredViewport(el);
+        if (nextViewport) {
+          applyViewport(nextViewport);
+        }
+        return;
+      }
+
+      const deltaX = (next.width - previous.width) / 2;
+      const deltaY = (next.height - previous.height) / 2;
+      if (deltaX === 0 && deltaY === 0) {
+        return;
+      }
+
+      setOffset((current) => ({
+        x: current.x + deltaX,
+        y: current.y + deltaY,
+      }));
+    });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [centerGraph]);
+  }, [applyViewport, buildCenteredViewport, graphId]);
+
+  useEffect(() => {
+    if (!ready) {
+      return;
+    }
+    writeRoadViewport(graphId, {
+      scale,
+      offsetX: offset.x,
+      offsetY: offset.y,
+    });
+  }, [graphId, offset.x, offset.y, ready, scale]);
 
   const handleWheel = (event: React.WheelEvent) => {
     event.preventDefault();
     const delta = event.deltaY > 0 ? -0.06 : 0.06;
-    setScale((prev) => Math.min(1.8, Math.max(0.5, prev + delta)));
+    const rect = event.currentTarget.getBoundingClientRect();
+    scaleAroundPoint(scale + delta, event.clientX - rect.left, event.clientY - rect.top);
   };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -96,7 +174,9 @@ export const RoadGraph: React.FC<RoadGraphProps> = ({
       originX: offset.x,
       originY: offset.y,
     };
-    event.currentTarget.setPointerCapture(event.pointerId);
+    if (typeof event.currentTarget.setPointerCapture === 'function') {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -126,6 +206,7 @@ export const RoadGraph: React.FC<RoadGraphProps> = ({
   return (
     <div
       ref={viewportRef}
+      data-road-viewport
       className="road-canvas relative h-full w-full cursor-grab touch-none overflow-hidden active:cursor-grabbing"
       onWheel={handleWheel}
       onPointerDown={handlePointerDown}
@@ -138,7 +219,13 @@ export const RoadGraph: React.FC<RoadGraphProps> = ({
       <div className="absolute right-3 top-3 z-10 flex items-center gap-0.5 rounded-md border border-zinc-200/80 bg-paper/90 p-0.5 text-zinc-500 backdrop-blur dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:text-zinc-400">
         <button
           type="button"
-          onClick={() => setScale((prev) => Math.min(1.8, prev + 0.1))}
+          onClick={() => {
+            const el = viewportRef.current;
+            if (!el) {
+              return;
+            }
+            scaleAroundPoint(scale + 0.1, el.clientWidth / 2, el.clientHeight / 2);
+          }}
           className="h-7 w-7 rounded text-sm hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
           aria-label="放大"
         >
@@ -146,7 +233,13 @@ export const RoadGraph: React.FC<RoadGraphProps> = ({
         </button>
         <button
           type="button"
-          onClick={() => setScale((prev) => Math.max(0.5, prev - 0.1))}
+          onClick={() => {
+            const el = viewportRef.current;
+            if (!el) {
+              return;
+            }
+            scaleAroundPoint(scale - 0.1, el.clientWidth / 2, el.clientHeight / 2);
+          }}
           className="h-7 w-7 rounded text-sm hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
           aria-label="缩小"
         >
@@ -162,6 +255,7 @@ export const RoadGraph: React.FC<RoadGraphProps> = ({
       </div>
 
       <div
+        data-road-stage
         className="absolute left-0 top-0 origin-top-left will-change-transform"
         style={{
           transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
@@ -195,7 +289,6 @@ export const RoadGraph: React.FC<RoadGraphProps> = ({
             </marker>
           </defs>
           {layout.edges.map((edge) => {
-            const active = isEdgeHighlighted(edge, highlightedPath);
             return (
               <line
                 key={edge.id}
@@ -203,10 +296,10 @@ export const RoadGraph: React.FC<RoadGraphProps> = ({
                 y1={edge.y1}
                 x2={edge.x2}
                 y2={edge.y2}
-                markerEnd={active ? 'url(#road-arrow-hi)' : 'url(#road-arrow)'}
+                markerEnd="url(#road-arrow)"
                 stroke="currentColor"
-                strokeWidth={active ? 1.75 : 1.15}
-                className={active ? 'text-zinc-800 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}
+                strokeWidth={1.15}
+                className="text-zinc-300 dark:text-zinc-600"
               />
             );
           })}
@@ -214,7 +307,6 @@ export const RoadGraph: React.FC<RoadGraphProps> = ({
 
         {layout.nodes.map((node) => {
           const selected = selectedNodeId === node.id;
-          const onPath = Boolean(highlightedPath?.includes(node.id));
           const postCount = resolveNodeArticles(node).articles.filter((article) => article.post).length;
           return (
             <button
@@ -226,9 +318,7 @@ export const RoadGraph: React.FC<RoadGraphProps> = ({
               className={`absolute flex items-center justify-center rounded-full border text-[13px] font-medium shadow-sm transition-colors ${
                 selected
                   ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
-                  : onPath
-                    ? 'border-zinc-800 bg-paper text-zinc-900 dark:border-zinc-200 dark:bg-zinc-900 dark:text-zinc-100'
-                    : 'border-zinc-300/90 bg-paper text-zinc-800 hover:border-zinc-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-400'
+                  : 'border-zinc-300/90 bg-paper text-zinc-800 hover:border-zinc-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-400'
               }`}
               style={{
                 left: node.x - ROAD_NODE_WIDTH / 2,

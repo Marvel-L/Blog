@@ -1,5 +1,5 @@
 /**
- * Road 数据辅助：读取配置、解析文章元数据、格式化路径文案。
+ * Road 数据辅助：读取配置、解析文章元数据、持久化浏览状态。
  */
 import { roadConfig, type RoadGraphConfig, type RoadNodeConfig } from '@config/road.config';
 import { getInitialPosts } from '@/services/posts';
@@ -7,6 +7,7 @@ import type { PostMetadata } from '@/types';
 import { getDateTimestamp } from '@/utils/date';
 
 const ROAD_ACTIVE_GRAPH_KEY = 'd-blog-road-active-graph-v1';
+const ROAD_VIEWPORT_KEY_PREFIX = 'd-blog-road-viewport-v1:';
 
 export const getRoadGraphs = (): RoadGraphConfig[] => roadConfig.graphs ?? [];
 
@@ -41,6 +42,54 @@ export const writeActiveRoadGraphId = (graphId: string): void => {
 
 export const getRoadGraphById = (id: string): RoadGraphConfig | undefined =>
   getRoadGraphs().find((graph) => graph.id === id);
+
+export interface RoadViewportState {
+  scale: number;
+  offsetX: number;
+  offsetY: number;
+}
+
+const getRoadViewportKey = (graphId: string) => `${ROAD_VIEWPORT_KEY_PREFIX}${graphId}`;
+
+const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+
+/** 读取某个 Root 的画布位置与缩放；存储缺失/损坏时返回 null。 */
+export const readRoadViewport = (graphId: string): RoadViewportState | null => {
+  if (typeof window === 'undefined' || !graphId) {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(getRoadViewportKey(graphId));
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as Partial<RoadViewportState>;
+    if (!isFiniteNumber(parsed.scale) || !isFiniteNumber(parsed.offsetX) || !isFiniteNumber(parsed.offsetY)) {
+      return null;
+    }
+    return {
+      scale: parsed.scale,
+      offsetX: parsed.offsetX,
+      offsetY: parsed.offsetY,
+    };
+  } catch {
+    return null;
+  }
+};
+
+/** 记住某个 Root 的画布位置与缩放，刷新后恢复当前阅读位置。 */
+export const writeRoadViewport = (graphId: string, viewport: RoadViewportState): void => {
+  if (typeof window === 'undefined' || !graphId) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(getRoadViewportKey(graphId), JSON.stringify(viewport));
+  } catch {
+    // 写入失败时仅影响下次恢复，不打断当前浏览。
+  }
+};
 
 export interface RoadNodeArticle {
   id: string;
@@ -116,8 +165,3 @@ export const resolveNodeArticles = (
 /** 解析节点关联文章；缺失 id 保留占位，便于配置期可见。 */
 export const resolveNodePosts = (node: RoadNodeConfig, sourcePosts?: PostMetadata[]): RoadNodeArticle[] =>
   resolveNodeArticles(node, sourcePosts).articles;
-
-export const formatPathLabels = (path: string[], nodes: RoadNodeConfig[]): string => {
-  const titleById = new Map(nodes.map((node) => [node.id, node.title]));
-  return path.map((id) => titleById.get(id) ?? id).join(' → ');
-};

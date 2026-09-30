@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { RoadGraphConfig } from '@config/road.config';
-import { readActiveRoadGraphId, resolveNodeArticles, writeActiveRoadGraphId } from './road';
+import { readActiveRoadGraphId, readRoadViewport, resolveNodeArticles, writeActiveRoadGraphId, writeRoadViewport } from './road';
 import type { PostMetadata } from '@/types';
 
 const graphs: RoadGraphConfig[] = [
@@ -42,6 +42,18 @@ describe('road active graph', () => {
   it('配置里已删除的 Root 回退到第一张图', () => {
     writeActiveRoadGraphId('missing');
     expect(readActiveRoadGraphId(graphs)).toBe('golang');
+  });
+});
+
+describe('road viewport persistence', () => {
+  it('写入后能读回 Root 对应的画布位置与缩放', () => {
+    writeRoadViewport('程序员', { scale: 1.2, offsetX: 180, offsetY: 96 });
+    expect(readRoadViewport('程序员')).toEqual({ scale: 1.2, offsetX: 180, offsetY: 96 });
+  });
+
+  it('损坏的存储值回退为 null', () => {
+    window.localStorage.setItem('d-blog-road-viewport-v1:程序员', '{"scale":"bad"}');
+    expect(readRoadViewport('程序员')).toBeNull();
   });
 });
 
