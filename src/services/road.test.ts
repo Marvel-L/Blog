@@ -69,18 +69,18 @@ describe('resolveNodeArticles', () => {
     expect(resolved.articles.map((article) => article.id)).toEqual(['beijing', 'go-job']);
   });
 
-  it('标签和分类都省略时，按节点名补上相关文章的全部标签和分类', () => {
+  it('标签和分类都省略时，不按节点名自动推断', () => {
     const resolved = resolveNodeArticles({ id: '工作', title: '工作' }, samplePosts);
-    expect(resolved.tags).toEqual(['工作', 'life']);
-    expect(resolved.categories).toEqual(['求职心得', '重要决策']);
-    expect(resolved.articles.map((article) => article.id)).toEqual(['beijing', 'go-job']);
+    expect(resolved.tags).toEqual([]);
+    expect(resolved.categories).toEqual([]);
+    expect(resolved.articles).toEqual([]);
   });
 
-  it('只省略标签时，补上相关文章带出的其他标签内容', () => {
+  it('只配分类时，仅按显式分类匹配，不自动补标签', () => {
     const resolved = resolveNodeArticles({ id: '算法', title: '算法', category: ['求职心得'] }, samplePosts);
     expect(resolved.categories).toEqual(['求职心得']);
-    expect(resolved.tags).toEqual(['工作']);
-    expect(resolved.articles.map((article) => article.id)).toEqual(['beijing', 'go-job']);
+    expect(resolved.tags).toEqual([]);
+    expect(resolved.articles.map((article) => article.id)).toEqual(['go-job']);
   });
 
   it('显式文章 id 会合并进来，找不到的 id 保留占位', () => {

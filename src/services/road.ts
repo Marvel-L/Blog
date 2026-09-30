@@ -49,9 +49,9 @@ export interface RoadNodeArticle {
 
 export interface RoadNodeArticles {
   articles: RoadNodeArticle[];
-  /** 实际用于收录的标签；列表省略时为自动补上的相关标签。 */
+  /** 实际用于收录的标签；仅来自节点显式配置。 */
   tags: string[];
-  /** 实际用于收录的分类；列表省略时为自动补上的相关分类。 */
+  /** 实际用于收录的分类；仅来自节点显式配置。 */
   categories: string[];
 }
 
@@ -86,38 +86,15 @@ const matchesAssociation = (post: PostMetadata, tagKeys: Set<string>, categoryKe
 
 /**
  * 解析节点要展示的文章。
- * tags、category 命中任一即收录，并与 posts 里的文章 id 合并。
- * 省略 tags 或 category 时，先用已写出的另一项圈定相关文章（两项都省略时用节点 id 与 title），
- * 再把这些文章上的标签和分类全部补上，并收录对应内容。
+ * 仅使用节点显式写出的 tags、category、posts 进行关联，命中任一即收录。
  */
 export const resolveNodeArticles = (
   node: RoadNodeConfig,
   sourcePosts: PostMetadata[] = getInitialPosts(),
 ): RoadNodeArticles => {
   const explicitIds = (node.posts ?? []).map((postId) => postId.trim()).filter(Boolean);
-  const specifiedTags = asAssociationList(node.tags);
-  const specifiedCategories = asAssociationList(node.category);
-
-  const identityKeys = new Set([node.id, node.title].map(associationKey).filter(Boolean));
-  const specifiedTagKeys = new Set((specifiedTags ?? []).map(associationKey));
-  const specifiedCategoryKeys = new Set((specifiedCategories ?? []).map(associationKey));
-  const bothOmitted = specifiedTags === undefined && specifiedCategories === undefined;
-
-  const seed = sourcePosts.filter((post) => {
-    if (specifiedTags && tagKeysOf(post).some((tag) => specifiedTagKeys.has(tag))) {
-      return true;
-    }
-    if (specifiedCategories && specifiedCategoryKeys.has(associationKey(post.category))) {
-      return true;
-    }
-    if (!bothOmitted) {
-      return false;
-    }
-    return tagKeysOf(post).some((tag) => identityKeys.has(tag)) || identityKeys.has(associationKey(post.category));
-  });
-
-  const tags = specifiedTags ?? uniqueLabels(seed.flatMap((post) => post.tags));
-  const categories = specifiedCategories ?? uniqueLabels(seed.map((post) => post.category));
+  const tags = uniqueLabels(asAssociationList(node.tags) ?? []);
+  const categories = uniqueLabels(asAssociationList(node.category) ?? []);
   const tagKeys = new Set(tags.map(associationKey));
   const categoryKeys = new Set(categories.map(associationKey));
 
