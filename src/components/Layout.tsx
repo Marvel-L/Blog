@@ -468,14 +468,14 @@ const LoveEffectToggle = ({
       <button
         type="button"
         onClick={() => setIsMenuOpen((open) => !open)}
-        className="group relative inline-flex h-11 w-11 items-center justify-center rounded-icon border border-white/14 bg-white/8 text-white transition-colors hover:border-white/28 hover:bg-white/14"
+        className="group relative inline-flex h-11 w-11 items-center justify-center rounded-icon border border-white/22 bg-white/14 text-white transition-colors hover:border-white/36 hover:bg-white/22"
         aria-label={`Love 面特效，当前${currentEffectLabel}`}
         aria-haspopup="dialog"
         aria-expanded={isMenuOpen}
         aria-controls={menuId}
       >
         <Sparkles size={18} aria-hidden="true" />
-        <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-control border border-white/18 bg-[rgba(35,8,24,0.92)] px-2 py-1 text-xs text-rose-100 opacity-0 transition-opacity group-hover:opacity-100 group-aria-expanded:opacity-0">
+        <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-control border border-white/24 bg-[rgba(96,34,62,0.88)] px-2 py-1 text-xs text-rose-50 opacity-0 transition-opacity group-hover:opacity-100 group-aria-expanded:opacity-0">
           特效
         </span>
       </button>
@@ -485,7 +485,7 @@ const LoveEffectToggle = ({
           id={menuId}
           role="dialog"
           aria-label="Love 面特效"
-          className="absolute right-0 top-full z-popover mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-surface border border-white/14 bg-[rgba(35,8,24,0.94)] p-3 text-white shadow-lg backdrop-blur-xl"
+          className="absolute right-0 top-full z-popover mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-surface border border-white/22 bg-[rgba(108,38,70,0.84)] p-3 text-white shadow-lg backdrop-blur-xl"
         >
           <div>
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">Love Effect</p>
@@ -1056,7 +1056,7 @@ const Navbar = ({
       <nav
         className={`site-navbar fixed left-0 right-0 top-0 ${isMobileNavMounted ? 'z-nav-panel' : 'z-nav'} border-b ${
           isLoveMode
-            ? 'border-white/12 bg-[rgba(35,8,24,0.62)] text-white backdrop-blur-xl lg:border-white/10 lg:bg-[rgba(35,8,24,0.52)]'
+            ? 'border-white/18 bg-[rgba(126,52,84,0.46)] text-white backdrop-blur-xl lg:border-white/16 lg:bg-[rgba(126,52,84,0.34)]'
             : 'border-zinc-200/80 bg-paper/95 dark:border-zinc-800 dark:bg-void/95 lg:border-transparent lg:bg-paper lg:dark:border-transparent lg:dark:bg-void'
         }`}
       >
@@ -1097,7 +1097,7 @@ const Navbar = ({
               aria-label={isLoveMode ? '退出 Love 面' : '进入 Love 面'}
               className={`group relative z-50 ml-2 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-[opacity,background-color,border-color,color,transform] duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/80 active:scale-[0.97] sm:h-10 sm:w-10 ${
                 isLoveMode
-                  ? 'border-rose-200/30 bg-white/10 text-rose-100 opacity-100'
+                  ? 'border-rose-100/42 bg-white/16 text-rose-50 opacity-100'
                   : 'border-rose-200/45 bg-rose-100/10 text-rose-300/70 opacity-35 hover:border-rose-300/80 hover:bg-rose-100/35 hover:text-rose-500 hover:opacity-100 dark:border-rose-500/20 dark:bg-rose-500/5 dark:text-rose-300/55 dark:hover:border-rose-400/45 dark:hover:bg-rose-500/10 dark:hover:text-rose-200'
               }`}
             >
@@ -1105,7 +1105,7 @@ const Navbar = ({
               <span
                 className={`pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-control border px-2 py-1 text-xs opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 ${
                   isLoveMode
-                    ? 'border-white/18 bg-[rgba(35,8,24,0.92)] text-rose-100'
+                    ? 'border-white/24 bg-[rgba(96,34,62,0.88)] text-rose-50'
                     : 'border-rose-300/70 bg-white/95 text-rose-500 dark:border-rose-500/40 dark:bg-zinc-950/95 dark:text-rose-200'
                 }`}
               >
@@ -1486,14 +1486,14 @@ const BackgroundWithEffect = ({
   return (
     <div
       className={`pointer-events-none fixed inset-0 z-[-1] overflow-hidden transition-[background,color] duration-700 ${
-        isLoveMode ? 'bg-[#200815]' : 'bg-paper dark:bg-void'
+        isLoveMode ? 'bg-[#42162a]' : 'bg-paper dark:bg-void'
       }`}
     >
       {isLoveMode ? (
         <>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,rgba(255,228,202,0.22),transparent_28%),radial-gradient(circle_at_84%_18%,rgba(250,167,194,0.18),transparent_24%),radial-gradient(circle_at_50%_100%,rgba(255,119,87,0.24),transparent_36%),linear-gradient(180deg,#200815_0%,#3f0f24_38%,#6d1b37_72%,#1b0c14_100%)]" />
-          <div className="absolute inset-0 opacity-[0.16] [background-image:linear-gradient(rgba(255,255,255,0.22)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.16)_1px,transparent_1px)] [background-size:72px_72px]" />
-          <div className="absolute inset-x-0 top-0 h-56 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),transparent)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,rgba(255,240,224,0.28),transparent_30%),radial-gradient(circle_at_84%_18%,rgba(255,196,218,0.24),transparent_26%),radial-gradient(circle_at_50%_100%,rgba(255,156,124,0.28),transparent_38%),linear-gradient(180deg,#4d1830_0%,#7a2948_36%,#b1476c_72%,#31111c_100%)]" />
+          <div className="absolute inset-0 opacity-[0.2] [background-image:linear-gradient(rgba(255,255,255,0.26)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.18)_1px,transparent_1px)] [background-size:72px_72px]" />
+          <div className="absolute inset-x-0 top-0 h-56 bg-[linear-gradient(180deg,rgba(255,255,255,0.18),transparent)]" />
           {lovePersonName && loveNameEffect === 'marquee' ? (
             <div
               data-testid="love-name-marquee"
