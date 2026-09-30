@@ -51,6 +51,15 @@
   animation: hero-quote-enter 0.45s ease-out both;
 }
 
+.love-name-text {
+  font-family: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  font-size: clamp(1.6rem, 4.6vw, 5rem);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: 0.24em;
+  color: rgb(255 241 242 / 0.78);
+}
+
 .love-marquee-row {
   animation-name: love-marquee-drift;
   animation-duration: var(--love-marquee-duration, 12s);
@@ -70,6 +79,7 @@
   animation-iteration-count: infinite;
   transform: translate3d(0, var(--love-rain-from, -140%), 0);
   will-change: transform;
+  line-height: 1.12;
 }
 
 @media (prefers-reduced-motion: reduce) {

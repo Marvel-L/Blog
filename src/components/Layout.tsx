@@ -1508,7 +1508,7 @@ const BackgroundWithEffect = ({
                   <p
                     key={rowIndex}
                     aria-hidden="true"
-                    className="love-marquee-row whitespace-nowrap font-serif text-[clamp(1.6rem,4.6vw,5rem)] font-semibold tracking-[0.24em] text-rose-100/78"
+                    className="love-name-text love-marquee-row whitespace-nowrap"
                     style={
                       {
                         '--love-marquee-from': fromX,
@@ -1536,7 +1536,7 @@ const BackgroundWithEffect = ({
                   <pre
                     key={columnIndex}
                     aria-hidden="true"
-                    className="love-rain-column absolute top-0 whitespace-pre font-mono text-[clamp(0.78rem,1.7vw,1.14rem)] font-semibold leading-[1.42] tracking-[0.16em] text-rose-100/75"
+                    className="love-name-text love-rain-column absolute top-0 whitespace-pre"
                     style={
                       {
                         left: `${(columnIndex / rainColumns.length) * 100}%`,
