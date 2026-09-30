@@ -1496,15 +1496,44 @@ const Footer = ({
 };
 
 const PrivacyNavbar = () => {
+  const location = useLocation();
+  const currentHash = location.hash || '#privacy-posts';
+  const privacyNavItems = [
+    { href: '#privacy-posts', label: TEXT.navPosts },
+    { href: '#privacy-stats', label: TEXT.navStats },
+  ] as const;
+
   return (
     <header className="fixed inset-x-0 top-0 z-nav border-b border-white/10 bg-black/72 backdrop-blur-2xl">
-      <div className="mx-auto flex h-16 w-full max-w-7xl items-center px-3 sm:px-6">
+      <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-3 sm:px-6">
         <Link
           to="/"
-          className="inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold tracking-[0.18em] text-white transition-colors hover:text-zinc-300"
+          className="inline-flex min-h-11 items-center rounded-control px-3 font-serif text-lg font-bold tracking-tight text-white transition-colors hover:text-zinc-300"
         >
-          Blog
+          {siteConfig.title}
         </Link>
+        <nav className="flex items-center gap-2" aria-label="隐私页导航">
+          {privacyNavItems.map((item) => {
+            const isActive = currentHash === item.href;
+            return (
+              <a
+                key={item.href}
+                href={item.href}
+                className={`group relative inline-flex h-10 items-center px-2 py-1 text-sm font-semibold tracking-wide transition-colors ${
+                  isActive ? 'text-white' : 'text-zinc-300 hover:text-white'
+                }`}
+              >
+                <span className="relative z-10">{item.label}</span>
+                <span
+                  aria-hidden="true"
+                  className={`absolute bottom-[2px] left-2 right-2 h-[2px] origin-center bg-white transition-[transform,opacity] duration-[250ms] ${
+                    isActive ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-70'
+                  }`}
+                />
+              </a>
+            );
+          })}
+        </nav>
       </div>
     </header>
   );

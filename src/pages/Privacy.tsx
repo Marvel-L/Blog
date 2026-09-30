@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { LockKeyhole } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Seo } from '@/components/Seo';
 import { PrivacyPasswordModal } from '@/components/PrivacyPasswordModal';
 import { ProgressiveImage } from '@/components/ProgressiveImage';
+import { PrivacyPostCard } from '@/components/PrivacyPostCard';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { unlockPrivacyPosts } from '@/services/privacyPosts';
 import type { PrivacyPost } from '@/types';
@@ -15,6 +16,8 @@ import {
   readPrivacyAccess,
   readPrivacySessionPassword,
 } from '@/utils/privacyAccess';
+
+const ShareModal = lazy(() => import('../components/ShareModal').then((m) => ({ default: m.ShareModal })));
 
 const formatDateText = (value?: string) => {
   if (!value) {
@@ -39,10 +42,28 @@ export const Privacy: React.FC = () => {
   const [posts, setPosts] = useState<PrivacyPost[]>([]);
   const [activePostId, setActivePostId] = useState<string | null>(null);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [sharePost, setSharePost] = useState<PrivacyPost | null>(null);
 
   const activePost = useMemo(
     () => posts.find((post) => post.id === activePostId) ?? posts[0] ?? null,
     [activePostId, posts],
+  );
+  const featuredPost = posts[0] ?? null;
+  const remainingPosts = featuredPost ? posts.slice(1) : [];
+  const stats = useMemo(
+    () => ({
+      totalPosts: posts.length,
+      totalCategories: new Set(posts.map((post) => post.category)).size,
+      totalTags: new Set(posts.flatMap((post) => post.tags)).size,
+      latestUpdatedAt: posts.reduce<string | null>((latest, post) => {
+        const value = post.updatedAt || post.date;
+        if (!latest || value > latest) {
+          return value;
+        }
+        return latest;
+      }, null),
+    }),
+    [posts],
   );
 
   const markdownComponents = useMemo(
@@ -69,6 +90,13 @@ export const Privacy: React.FC = () => {
     setActivePostId((current) => current ?? unlockedPosts[0]?.id ?? null);
     setHasAccess(true);
     setIsPasswordDialogOpen(false);
+  }, []);
+
+  const handleOpenPost = useCallback((post: PrivacyPost) => {
+    setActivePostId(post.id);
+    window.requestAnimationFrame(() => {
+      document.getElementById('privacy-article')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    });
   }, []);
 
   useEffect(() => {
@@ -151,64 +179,115 @@ export const Privacy: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="grid min-h-[calc(100vh-8rem)] gap-4 px-3 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-            <aside className="rounded-[24px] border border-white/10 bg-white/[0.04] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-3xl">
+          <div className="space-y-10 px-3 sm:px-6">
+            <section className="px-4 pb-2 pt-2 text-center md:px-0">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">Private Archive</p>
+              <h2 className="text-balance font-serif text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl">
+                只展示隐私文章
+              </h2>
+              <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-zinc-400 md:text-base">
+                这里沿用首页的文章卡片节奏，但数据源完全独立，只读取隐私文章包中的内容和统计。
+              </p>
+            </section>
+
+            <section id="privacy-posts" className="space-y-7 scroll-mt-28" aria-labelledby="privacy-posts-title">
+              <div className="border-y border-white/10 py-3">
+                <h2 id="privacy-posts-title" className="text-sm font-semibold tracking-[0.16em] text-zinc-300">
+                  文章
+                </h2>
+              </div>
+
               {posts.length > 0 ? (
-                <div className="space-y-2">
-                  {posts.map((post) => {
-                    const isActive = post.id === activePost?.id;
-                    return (
-                      <button
+                <div className="space-y-7" aria-live="polite">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {featuredPost ? (
+                      <PrivacyPostCard
+                        key={featuredPost.id}
+                        post={featuredPost}
+                        featured
+                        active={featuredPost.id === activePost?.id}
+                        onOpen={handleOpenPost}
+                      />
+                    ) : null}
+                    {remainingPosts.map((post) => (
+                      <PrivacyPostCard
                         key={post.id}
-                        type="button"
-                        onClick={() => setActivePostId(post.id)}
-                        className={`w-full rounded-[18px] border px-4 py-3 text-left transition-colors ${
-                          isActive
-                            ? 'border-white/24 bg-white/[0.12] text-white'
-                            : 'border-white/8 bg-transparent text-zinc-300 hover:border-white/14 hover:bg-white/[0.05]'
-                        }`}
-                      >
-                        <p className="text-sm font-semibold">{post.title}</p>
-                        <p className="mt-2 text-xs text-zinc-500">{formatDateText(post.updatedAt || post.date)}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="flex min-h-40 items-center justify-center rounded-[18px] border border-dashed border-white/12 bg-black/20 text-sm text-zinc-500">
-                  暂无文章
-                </div>
-              )}
-            </aside>
-
-            <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] shadow-[0_24px_80px_rgba(0,0,0,0.4)] backdrop-blur-3xl">
-              {activePost ? (
-                <article className="px-5 py-6 sm:px-7 sm:py-8">
-                  <header className="border-b border-white/10 pb-5">
-                    <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">{activePost.category}</p>
-                    <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                      {activePost.title}
-                    </h2>
-                    <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-zinc-400">
-                      <time dateTime={activePost.updatedAt || activePost.date}>
-                        {formatDateText(activePost.updatedAt || activePost.date)}
-                      </time>
-                      <span>{activePost.readTime}</span>
-                    </div>
-                  </header>
-
-                  <div className="mt-6 prose prose-invert max-w-none prose-headings:text-white prose-p:text-zinc-200 prose-strong:text-white prose-a:text-zinc-100 prose-code:text-zinc-100 prose-pre:border prose-pre:border-white/10 prose-pre:bg-black/40 prose-blockquote:border-l-white/30 prose-blockquote:text-zinc-300">
-                    <ReactMarkdown remarkPlugins={remarkCommonPlugins} components={markdownComponents}>
-                      {activePost.content}
-                    </ReactMarkdown>
+                        post={post}
+                        active={post.id === activePost?.id}
+                        onOpen={handleOpenPost}
+                      />
+                    ))}
                   </div>
-                </article>
+                </div>
               ) : (
-                <div className="flex min-h-[calc(100vh-12rem)] items-center justify-center px-5 text-sm text-zinc-500 sm:px-7">
+                <div className="border-y border-white/10 py-14 text-center">
                   暂无文章
                 </div>
               )}
-            </div>
+            </section>
+
+            <section id="privacy-stats" className="space-y-4 scroll-mt-28" aria-labelledby="privacy-stats-title">
+              <div className="border-y border-white/10 py-3">
+                <h2 id="privacy-stats-title" className="text-sm font-semibold tracking-[0.16em] text-zinc-300">
+                  统计
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                {[
+                  { label: '文章数', value: String(stats.totalPosts) },
+                  { label: '分类数', value: String(stats.totalCategories) },
+                  { label: '标签数', value: String(stats.totalTags) },
+                  { label: '最近更新', value: stats.latestUpdatedAt ? formatDateText(stats.latestUpdatedAt) : '—' },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-surface border border-white/10 bg-white/[0.04] px-4 py-5 backdrop-blur-2xl"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">{item.label}</p>
+                    <p className="mt-3 text-2xl font-semibold text-white">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section id="privacy-article" className="scroll-mt-28">
+              <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] shadow-[0_24px_80px_rgba(0,0,0,0.4)] backdrop-blur-3xl">
+                {activePost ? (
+                  <article className="px-5 py-6 sm:px-7 sm:py-8">
+                    <header className="border-b border-white/10 pb-5">
+                      <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">{activePost.category}</p>
+                      <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                        {activePost.title}
+                      </h2>
+                      <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-zinc-400">
+                        <time dateTime={activePost.updatedAt || activePost.date}>
+                          {formatDateText(activePost.updatedAt || activePost.date)}
+                        </time>
+                        <span>{activePost.readTime}</span>
+                        <button
+                          type="button"
+                          onClick={() => setSharePost(activePost)}
+                          className="inline-flex min-h-11 items-center rounded-control border border-white/12 px-3 text-sm font-medium text-zinc-200 transition-colors hover:border-white/20 hover:bg-white/[0.05]"
+                        >
+                          分享
+                        </button>
+                      </div>
+                    </header>
+
+                    <div className="mt-6 prose prose-invert max-w-none prose-headings:text-white prose-p:text-zinc-200 prose-strong:text-white prose-a:text-zinc-100 prose-code:text-zinc-100 prose-pre:border prose-pre:border-white/10 prose-pre:bg-black/40 prose-blockquote:border-l-white/30 prose-blockquote:text-zinc-300">
+                      <ReactMarkdown remarkPlugins={remarkCommonPlugins} components={markdownComponents}>
+                        {activePost.content}
+                      </ReactMarkdown>
+                    </div>
+                  </article>
+                ) : (
+                  <div className="flex min-h-[calc(100vh-12rem)] items-center justify-center px-5 text-sm text-zinc-500 sm:px-7">
+                    暂无文章
+                  </div>
+                )}
+              </div>
+            </section>
           </div>
         )}
       </motion.section>
@@ -220,6 +299,17 @@ export const Privacy: React.FC = () => {
         title="验证隐私页密码"
         description="输入密码后才能解锁隐私文章。"
       />
+      {sharePost ? (
+        <Suspense fallback={null}>
+          <ShareModal
+            isOpen
+            onClose={() => setSharePost(null)}
+            title={sharePost.title}
+            excerpt={sharePost.excerpt}
+            url={`${window.location.origin}/privacy#privacy-article`}
+          />
+        </Suspense>
+      ) : null}
     </div>
   );
 };

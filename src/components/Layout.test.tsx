@@ -179,11 +179,12 @@ describe('Layout', () => {
     await waitFor(() => expect(probePathname).toBe('/privacy'));
   });
 
-  it('隐私页切换为仅含 Blog 返回入口的最小壳层', () => {
+  it('隐私页切换为仅含站点标题、文章和统计的最小壳层', () => {
     renderLayout(['/privacy']);
 
     expect(screen.getByRole('link', { name: 'Blog' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: '文章' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '文章' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '统计' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /外观与氛围/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '打开更多菜单' })).not.toBeInTheDocument();
     expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument();
