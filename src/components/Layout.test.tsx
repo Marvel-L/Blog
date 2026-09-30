@@ -179,9 +179,10 @@ describe('Layout', () => {
     await waitFor(() => expect(probePathname).toBe('/privacy'));
   });
 
-  it('隐私页隐藏站点导航与页脚，保持独立壳层', () => {
+  it('隐私页切换为仅含 Blog 返回入口的最小壳层', () => {
     renderLayout(['/privacy']);
 
+    expect(screen.getByRole('link', { name: 'Blog' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '文章' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /外观与氛围/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '打开更多菜单' })).not.toBeInTheDocument();

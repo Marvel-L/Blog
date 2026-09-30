@@ -54,6 +54,19 @@ export interface Post extends PostMetadata {
   content: string;
 }
 
+export interface PrivacyPost {
+  id: string;
+  title: string;
+  excerpt: string;
+  date: string;
+  updatedAt?: string;
+  tags: string[];
+  category: string;
+  filePath: string;
+  readTime: string;
+  content: string;
+}
+
 export interface Friend {
   name: string;
   description: string;

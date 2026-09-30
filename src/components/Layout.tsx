@@ -1495,6 +1495,21 @@ const Footer = ({
   );
 };
 
+const PrivacyNavbar = () => {
+  return (
+    <header className="fixed inset-x-0 top-0 z-nav border-b border-white/10 bg-black/72 backdrop-blur-2xl">
+      <div className="mx-auto flex h-16 w-full max-w-7xl items-center px-3 sm:px-6">
+        <Link
+          to="/"
+          className="inline-flex min-h-11 items-center rounded-control px-3 text-sm font-semibold tracking-[0.18em] text-white transition-colors hover:text-zinc-300"
+        >
+          Blog
+        </Link>
+      </div>
+    </header>
+  );
+};
+
 const BackgroundWithEffect = ({
   isLoveMode,
   loveNameEffect,
@@ -1697,8 +1712,8 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
     setLoveMode(!isLoveMode);
   }, [isLoveMode, setLoveMode]);
 
-  const handlePrivacyAccessGranted = useCallback(() => {
-    grantPrivacyAccess();
+  const handlePrivacyAccessGranted = useCallback((password: string) => {
+    grantPrivacyAccess(password);
     setIsPrivacyDialogOpen(false);
     navigate('/privacy', { state: { privacyUnlocked: true } });
   }, [navigate]);
@@ -1720,6 +1735,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
     >
       <BackgroundWithEffect isLoveMode={isLoveMode} loveNameEffect={loveNameEffect} isPrivacyRoute={isPrivacyRoute} />
       {!isReadingMode && !isLoveMode && !isPrivacyRoute && <ParticleField effect={particleEffect} />}
+      {!isReadingMode && isPrivacyRoute && !isLoveMode && <PrivacyNavbar />}
       {!isReadingMode && !isPrivacyRoute && (
         <Navbar
           onSearchNavigate={goToSearch}
@@ -1736,7 +1752,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
       <main
         className={`relative min-w-0 w-full flex-grow px-3 sm:px-6 ${
           isPrivacyRoute
-            ? 'pt-4 sm:pt-5 md:pt-6 pb-0'
+            ? 'pt-[calc(4.5rem+env(safe-area-inset-top,0px))] pb-0'
             :
           isReadingMode
             ? 'pt-6 sm:pt-8 md:pt-10'

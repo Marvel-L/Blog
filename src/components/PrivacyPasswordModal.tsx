@@ -6,7 +6,7 @@ import { verifyPrivacyPassword } from '@/utils/privacyAccess';
 interface PrivacyPasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (password: string) => void | Promise<void>;
   title?: string;
   description?: string;
 }
@@ -21,25 +21,38 @@ export const PrivacyPasswordModal: React.FC<PrivacyPasswordModalProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
       setPassword('');
       setError(null);
+      setIsSubmitting(false);
     }
   }, [isOpen]);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (isSubmitting) {
+      return;
+    }
 
     if (!verifyPrivacyPassword(password)) {
       setError('密码错误，请重新输入。');
       return;
     }
 
-    setError(null);
-    setPassword('');
-    onSuccess();
+    try {
+      setIsSubmitting(true);
+      await onSuccess(password);
+      setError(null);
+      setPassword('');
+    } catch {
+      setError('隐私内容解锁失败，请重试。');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -103,15 +116,17 @@ export const PrivacyPasswordModal: React.FC<PrivacyPasswordModalProps> = ({
             <button
               type="button"
               onClick={onClose}
+              disabled={isSubmitting}
               className="inline-flex min-h-11 items-center justify-center rounded-control border border-zinc-300 px-4 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-500 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
             >
               取消
             </button>
             <button
               type="submit"
+              disabled={isSubmitting}
               className="inline-flex min-h-11 items-center justify-center rounded-control border border-zinc-900 bg-zinc-900 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
             >
-              验证并进入
+              {isSubmitting ? '解锁中...' : '验证并进入'}
             </button>
           </div>
         </form>

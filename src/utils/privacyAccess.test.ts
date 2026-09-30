@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { clearPrivacyAccess, grantPrivacyAccess, readPrivacyAccess, verifyPrivacyPassword } from './privacyAccess';
+import {
+  clearPrivacyAccess,
+  grantPrivacyAccess,
+  readPrivacyAccess,
+  readPrivacySessionPassword,
+  verifyPrivacyPassword,
+} from './privacyAccess';
 
 describe('privacyAccess', () => {
   beforeEach(() => {
@@ -14,11 +20,14 @@ describe('privacyAccess', () => {
 
   it('会话内可读写访问状态', () => {
     expect(readPrivacyAccess()).toBe(false);
+    expect(readPrivacySessionPassword()).toBe(null);
 
-    grantPrivacyAccess();
+    grantPrivacyAccess('Mx179516');
     expect(readPrivacyAccess()).toBe(true);
+    expect(readPrivacySessionPassword()).toBe('Mx179516');
 
     clearPrivacyAccess();
     expect(readPrivacyAccess()).toBe(false);
+    expect(readPrivacySessionPassword()).toBe(null);
   });
 });
