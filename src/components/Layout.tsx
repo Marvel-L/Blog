@@ -1137,31 +1137,35 @@ const Navbar = ({
 
           <div className="hidden min-w-0 shrink items-center gap-4 lg:flex">
             {isLoveMode ? (
-              <div className="flex shrink-0 items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => onLoveViewChange('region')}
-                  aria-current={loveView === 'region' ? 'page' : undefined}
-                  aria-label="打开地域页"
-                  className={`group relative inline-flex h-10 items-center px-2 py-1 text-sm font-semibold tracking-wide transition-colors ${
-                    loveView === 'region' ? 'text-white' : 'text-white/72 hover:text-white'
-                  }`}
-                >
-                  <span className="relative z-10">地域</span>
-                  <span
-                    aria-hidden="true"
-                    className={`absolute bottom-[2px] left-2 right-2 h-[2px] origin-center rounded-none bg-white transition-[transform,opacity] duration-[250ms] ${
-                      loveView === 'region'
-                        ? 'scale-x-100 opacity-100'
-                        : 'scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-70'
+              <>
+                <div className="flex min-w-0 shrink gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onLoveViewChange('region')}
+                    aria-current={loveView === 'region' ? 'page' : undefined}
+                    aria-label="打开地域页"
+                    className={`group relative inline-flex h-10 items-center px-2 py-1 text-sm font-semibold tracking-wide transition-colors ${
+                      loveView === 'region' ? 'text-white' : 'text-white/72 hover:text-white'
                     }`}
+                  >
+                    <span className="relative z-10">地域</span>
+                    <span
+                      aria-hidden="true"
+                      className={`absolute bottom-[2px] left-2 right-2 h-[2px] origin-center rounded-none bg-white transition-[transform,opacity] duration-[250ms] ${
+                        loveView === 'region'
+                          ? 'scale-x-100 opacity-100'
+                          : 'scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-70'
+                      }`}
+                    />
+                  </button>
+                </div>
+                <div className="flex shrink-0 items-center gap-2 border-l border-white/16 pl-4">
+                  <LoveEffectToggle
+                    loveNameEffect={loveNameEffect}
+                    onLoveNameEffectChange={onLoveNameEffectChange}
                   />
-                </button>
-                <LoveEffectToggle
-                  loveNameEffect={loveNameEffect}
-                  onLoveNameEffectChange={onLoveNameEffectChange}
-                />
-              </div>
+                </div>
+              </>
             ) : (
               <>
                 <div className="flex min-w-0 shrink gap-2">
@@ -1287,7 +1291,7 @@ const Navbar = ({
           <div className="flex items-center gap-1.5 lg:hidden">
             {/* 移动端顶栏保留主题切换与待补完入口：搜索/导航入口下沉到底部标签栏 */}
             {isLoveMode ? (
-              <>
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => onLoveViewChange('region')}
@@ -1307,11 +1311,13 @@ const Navbar = ({
                     }`}
                   />
                 </button>
-                <LoveEffectToggle
-                  loveNameEffect={loveNameEffect}
-                  onLoveNameEffectChange={onLoveNameEffectChange}
-                />
-              </>
+                <div className="flex shrink-0 items-center border-l border-white/16 pl-2.5">
+                  <LoveEffectToggle
+                    loveNameEffect={loveNameEffect}
+                    onLoveNameEffectChange={onLoveNameEffectChange}
+                  />
+                </div>
+              </div>
             ) : (
               <>
                 <ThemeToggle particleEffect={particleEffect} onParticleEffectChange={onParticleEffectChange} />
