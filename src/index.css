@@ -47,22 +47,6 @@
   }
 }
 
-@keyframes privacy-smile-breathe {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-    box-shadow:
-      0 0 0 0 rgba(244, 114, 182, 0.08),
-      0 0 0.45rem rgba(251, 191, 36, 0.08);
-  }
-  50% {
-    transform: translate3d(0, 0, 0) scale(1.04);
-    box-shadow:
-      0 0 0 0.3rem rgba(244, 114, 182, 0.1),
-      0 0 0.85rem rgba(251, 191, 36, 0.16);
-  }
-}
-
 .hero-quote-enter {
   animation: hero-quote-enter 0.45s ease-out both;
 }
@@ -915,8 +899,6 @@
   );
   right: max(1rem, calc(env(safe-area-inset-right, 0px) + 1rem));
   z-index: 40;
-  animation: privacy-smile-breathe 3.2s ease-in-out infinite;
-  will-change: transform, box-shadow;
 }
 
 @media (min-width: 768px) {
@@ -928,9 +910,8 @@
   }
 
   .privacy-smile-button {
-    /* 对齐页脚内容区右侧：与「Marvel-L 的技术分享和生活随笔」所在块保持接近同一水平带。 */
-    bottom: 6.5rem;
-    right: max(2rem, calc((100vw - min(100vw, 80rem)) / 2 + 1.5rem));
+    bottom: 2rem;
+    right: 2rem;
   }
 }
 
@@ -1234,11 +1215,6 @@ html.dark .mermaid-diagram > svg {
 
   .copy-pop {
     animation: none;
-  }
-
-  .privacy-smile-button {
-    animation: none;
-    will-change: auto;
   }
 }
 
