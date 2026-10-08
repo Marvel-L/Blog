@@ -6,6 +6,7 @@ import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
+import sharp from 'sharp';
 import { fileURLToPath } from 'url';
 import { loadSiteConfig } from './site-config-loader.mjs';
 import { createBuildLogger } from './build-logger.mjs';
@@ -14,6 +15,7 @@ import {
   DEFAULT_STATIC_ROUTES,
   findDuplicatePostIds,
   parseMarkdownImages,
+  resolveLocalImageTarget,
   validatePostContent,
 } from './post-content-validator.mjs';
 import { extractMarkdownHeadings } from '../src/utils/headings-core.mjs';
@@ -200,6 +202,35 @@ const countWords = (markdown) => countReadingUnits(markdown);
 // 正文图片数量统计：外链图床图片无法在构建期读取尺寸（由前端 CSS aspect-ratio
 // 兜底）；本地 posts-img/ 路径仍被 post-content-validator 校验（文件必须存在）。
 const countImages = (markdown) => parseMarkdownImages(markdown).length;
+
+const readCoverImageDimensions = async (coverImage) => {
+  if (!coverImage) {
+    return undefined;
+  }
+
+  const resolved = resolveLocalImageTarget(coverImage, { imageRoot: IMAGE_ROOT });
+  if (!resolved?.exists) {
+    return undefined;
+  }
+
+  try {
+    const metadata = await sharp(resolved.filePath, { animated: true }).metadata();
+    if (
+      typeof metadata.width === 'number' &&
+      metadata.width > 0 &&
+      typeof metadata.height === 'number' &&
+      metadata.height > 0
+    ) {
+      return { width: metadata.width, height: metadata.height };
+    }
+  } catch (error) {
+    logger.warn(
+      `Skip cover dimensions for ${coverImage}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
+  return undefined;
+};
 
 const generateSiteStats = (postsWithSearch) => {
   const totalPosts = postsWithSearch.length;
@@ -603,7 +634,7 @@ postRecords.forEach((record) => {
 
 const normalizeTagsStrict = (value) => (Array.isArray(value) ? value.map((tag) => tag.trim()) : []);
 
-const buildPost = (record) => {
+const buildPost = async (record) => {
   const { filename, content, data, restData, id, formattedDate, formattedUpdatedAt, draft, tbd } = record;
   const buildDay = buildTodayUtc();
   const normalizedAuthors = normalizeAuthors(data.author, data.authors);
@@ -612,6 +643,7 @@ const buildPost = (record) => {
   const rank = normalizeRank(data.rank);
   // coverImage 保留外部协议字符串（图床链接）；本地路径（已废弃）原样透传供校验器拦截。
   const normalizedCoverImage = data.coverImage ? String(data.coverImage) : undefined;
+  const coverDimensions = await readCoverImageDimensions(normalizedCoverImage);
   const isSeries = data.series === true;
   const seriesName = isSeries && typeof data['series-name'] === 'string' ? data['series-name'].trim() : undefined;
   const seriesOrder = isSeries && Number.isInteger(data['series-order']) ? data['series-order'] : undefined;
@@ -634,6 +666,8 @@ const buildPost = (record) => {
         ...(data.needHidden === true ? { needHidden: true } : {}),
         ...(isSeries ? { series: true, seriesName, seriesOrder } : {}),
         coverImage: normalizedCoverImage,
+        coverWidth: coverDimensions?.width,
+        coverHeight: coverDimensions?.height,
         category,
         tags,
         ...(rank ? { rank } : {}),
@@ -841,8 +875,7 @@ if (copiedSummaryImages > 0) {
   logger.step('Copied summary images', `files=${copiedSummaryImages} dest=public/summary-img`);
 }
 
-const builtPostsWithSearch = postRecords
-  .map(buildPost)
+const builtPostsWithSearch = (await Promise.all(postRecords.map(buildPost)))
   .filter(Boolean)
   .sort((a, b) => new Date(b.date) - new Date(a.date) || a.id.localeCompare(b.id));
 

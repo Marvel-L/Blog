@@ -13,6 +13,7 @@ import { ProgressiveImage } from '@/components/ProgressiveImage';
 import { isPinnedFeaturedPost } from '@/utils/postSelection';
 import { CoverSheen, RankBadge, flashSurfaceProps } from '@/components/RankFlash';
 import { isPostRank } from '@/utils/postRank';
+import { getCoverObjectFit } from '@/utils/coverImageFit';
 
 // 组件 props 类型（全仓库仅本文件使用，不导出避免公共 API 承诺）。
 interface PostCardProps {
@@ -71,6 +72,8 @@ const PostCardImpl: React.FC<PostCardProps> = ({
 }) => {
   const flash = flashSurfaceProps(post.rank, 'card');
   const postHref = getPostHref ? getPostHref(post) : `/post/${post.id}`;
+  const coverObjectFit = getCoverObjectFit(post.coverWidth, post.coverHeight);
+  const coverImageClass = `h-full w-full ${coverObjectFit === 'contain' ? 'object-contain' : 'object-cover'}`;
   const handleShareClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
@@ -109,7 +112,7 @@ const PostCardImpl: React.FC<PostCardProps> = ({
                 aspectRatio="16/9"
                 sizes="(max-width: 767px) 100vw, 60vw"
                 wrapperClassName="h-full w-full"
-                className="h-full w-full object-cover"
+                className={coverImageClass}
                 effect="fade"
               />
               <CoverSheen rank={post.rank} />
@@ -193,7 +196,7 @@ const PostCardImpl: React.FC<PostCardProps> = ({
               aspectRatio="16/10"
               sizes="(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 33vw"
               wrapperClassName="h-full w-full"
-              className="h-full w-full object-cover"
+              className={coverImageClass}
               effect="fade"
             />
             <CoverSheen rank={post.rank} />

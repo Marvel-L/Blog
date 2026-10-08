@@ -12,6 +12,7 @@ import { ProgressiveImage } from '@/components/ProgressiveImage';
 import { preloadPage } from '@/utils/preload';
 import { CoverSheen, RankBadge, flashSurfaceProps } from '@/components/RankFlash';
 import { isPostRank } from '@/utils/postRank';
+import { getCoverObjectFit } from '@/utils/coverImageFit';
 
 const formatMetaDate = (dateText?: string) => {
   if (!dateText) {
@@ -31,6 +32,8 @@ interface CompactPostCardProps {
 
 export const CompactPostCard: React.FC<CompactPostCardProps> = ({ post }) => {
   const flash = flashSurfaceProps(post.rank, 'card');
+  const coverObjectFit = getCoverObjectFit(post.coverWidth, post.coverHeight);
+  const coverImageClass = `h-full w-full ${coverObjectFit === 'contain' ? 'object-contain' : 'object-cover'}`;
 
   return (
     <Link
@@ -53,7 +56,7 @@ export const CompactPostCard: React.FC<CompactPostCardProps> = ({ post }) => {
             width={post.coverWidth}
             height={post.coverHeight}
             wrapperClassName="h-full w-full"
-            className="h-full w-full object-cover"
+            className={coverImageClass}
           />
           <CoverSheen rank={post.rank} />
         </span>

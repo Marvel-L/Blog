@@ -98,6 +98,26 @@ describe('PostCard', () => {
     expect(img).toHaveAttribute('alt', '测试文章标题');
   });
 
+  it('极端比例封面在首页卡片中使用 contain，避免裁切过多', () => {
+    renderWithRouter(
+      <PostCard
+        post={makePost({ coverImage: '/covers/test.png', coverWidth: 684, coverHeight: 284 })}
+        {...baseProps}
+      />,
+    );
+    expect(screen.getByRole('img')).toHaveClass('object-contain');
+  });
+
+  it('常规比例封面在首页卡片中保持 cover', () => {
+    renderWithRouter(
+      <PostCard
+        post={makePost({ coverImage: '/covers/test.png', coverWidth: 1280, coverHeight: 720 })}
+        {...baseProps}
+      />,
+    );
+    expect(screen.getByRole('img')).toHaveClass('object-cover');
+  });
+
   it('未分级文章不展示段位徽标', () => {
     renderWithRouter(<PostCard post={makePost()} {...baseProps} />);
     expect(screen.queryByText('黄金')).not.toBeInTheDocument();
