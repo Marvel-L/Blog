@@ -72,8 +72,10 @@ const PostCardImpl: React.FC<PostCardProps> = ({
 }) => {
   const flash = flashSurfaceProps(post.rank, 'card');
   const postHref = getPostHref ? getPostHref(post) : `/post/${post.id}`;
+  const hasCover = Boolean(post.coverImage);
   const coverObjectFit = getCoverObjectFit(post.coverWidth, post.coverHeight);
   const coverImageClass = `h-full w-full ${coverObjectFit === 'contain' ? 'object-contain' : 'object-cover'}`;
+  const textOnlyCard = !hasCover;
   const handleShareClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
@@ -84,8 +86,6 @@ const PostCardImpl: React.FC<PostCardProps> = ({
   };
 
   if (featured) {
-    const hasCover = Boolean(post.coverImage);
-
     return (
       <article className="col-span-full w-full" onMouseEnter={() => preloadPage(postHref)}>
         <div
@@ -173,13 +173,18 @@ const PostCardImpl: React.FC<PostCardProps> = ({
   }
 
   return (
-    <article className="flex h-full min-w-0 flex-col" onMouseEnter={() => preloadPage(postHref)}>
+    <article className="flex min-w-0 flex-col self-start" onMouseEnter={() => preloadPage(postHref)}>
       <div
-        className={`relative flex h-full flex-col overflow-hidden rounded-surface border border-zinc-200 bg-white transition-colors hover:border-zinc-400 focus-within:border-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600 dark:focus-within:border-zinc-500 ${flash.className}`}
+        data-layout={textOnlyCard ? 'text-only' : 'with-cover'}
+        className={`relative flex h-full flex-col overflow-hidden rounded-surface border border-zinc-200 bg-white transition-colors hover:border-zinc-400 focus-within:border-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600 dark:focus-within:border-zinc-500 ${
+          textOnlyCard
+            ? 'bg-[linear-gradient(180deg,rgba(250,250,250,0.98)_0%,rgba(244,244,245,0.94)_100%)] dark:bg-[linear-gradient(180deg,rgba(24,24,27,0.98)_0%,rgba(18,18,20,0.94)_100%)]'
+            : ''
+        } ${flash.className}`}
         onPointerMove={flash.onPointerMove}
         onPointerLeave={flash.onPointerLeave}
       >
-        {post.coverImage ? (
+        {hasCover ? (
           <Link
             to={postHref}
             onClick={handlePostNavigate}
@@ -187,7 +192,7 @@ const PostCardImpl: React.FC<PostCardProps> = ({
             aria-label={`阅读文章：${post.title}`}
           >
             <ProgressiveImage
-              src={assetUrl(post.coverImage)}
+              src={assetUrl(post.coverImage!)}
               alt={post.title}
               loading="lazy"
               fetchPriority="auto"
@@ -203,6 +208,12 @@ const PostCardImpl: React.FC<PostCardProps> = ({
           </Link>
         ) : null}
         <div className="flex flex-grow flex-col p-3.5 md:p-5">
+          {textOnlyCard && (
+            <div aria-hidden="true" className="mb-3 flex items-center gap-2 md:mb-4">
+              <span className="h-1 w-9 rounded-full bg-zinc-900 dark:bg-zinc-100" />
+              <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+            </div>
+          )}
           <div className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider md:mb-2 text-zinc-500 dark:text-zinc-400">
             <span>{post.category}</span>
             {isPostRank(post.rank) && <RankBadge rank={post.rank} />}
@@ -214,11 +225,21 @@ const PostCardImpl: React.FC<PostCardProps> = ({
             )}
           </div>
           <Link to={postHref} onClick={handlePostNavigate} aria-label={`阅读文章：${post.title}`}>
-            <h3 className="mb-1.5 line-clamp-2 min-h-11 text-base font-bold leading-snug md:mb-2 text-ink hover:underline dark:text-zinc-100 md:text-lg">
+            <h3
+              className={`mb-1.5 text-base font-bold leading-snug text-ink hover:underline dark:text-zinc-100 md:mb-2 md:text-lg ${
+                hasCover ? 'line-clamp-2 min-h-11' : 'line-clamp-2'
+              }`}
+            >
               {post.title}
             </h3>
           </Link>
-          <p className="mb-2 line-clamp-1 text-sm leading-5 text-zinc-600 md:mb-3 dark:text-zinc-300">{post.excerpt}</p>
+          <p
+            className={`mb-2 text-sm leading-5 text-zinc-600 dark:text-zinc-300 md:mb-3 ${
+              hasCover ? 'line-clamp-1' : 'line-clamp-2'
+            }`}
+          >
+            {post.excerpt}
+          </p>
           <PostCardTags tags={post.tags} getTagHref={getTagHref} />
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-zinc-200 pt-2.5 text-[11px] md:mt-4 md:pt-3 text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
             <span className="flex items-center gap-1">

@@ -79,6 +79,7 @@ describe('Home', () => {
     // 首页应有至少一个文章链接（卡片标题链接）
     const postLinks = screen.getAllByRole('link', { name: /阅读文章：/ });
     expect(postLinks.length).toBeGreaterThan(0);
+    expect(document.getElementById('posts-grid')).toHaveClass('items-start');
   });
 
   it('分类筛选：点击分类按钮后该分类被选中', async () => {

@@ -109,7 +109,7 @@ const LoadingGrid: React.FC<{ heroSlots: number; label: string; hasFeatured: boo
   const regularSkeletonCount = Math.max(0, POSTS_PER_PAGE - featuredSlots);
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3" aria-busy="true">
+    <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 lg:grid-cols-3" aria-busy="true">
       <LoadingStatus label={label} className="col-span-full" />
       {hasFeatured && <FeaturedPostSkeleton shouldReduceMotion={shouldReduceMotion} />}
       {Array.from({ length: regularSkeletonCount }).map((_, index) => (
@@ -704,7 +704,7 @@ export const Home = () => {
               </div>
             )}
 
-            <div id="posts-grid" className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div id="posts-grid" className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
               {featuredPost && <PostCard key={featuredPost.id} post={featuredPost} featured onShare={setSharePost} />}
               {remainingPosts.length > 0 ? (
                 remainingPosts.map((post) => <PostCard key={post.id} post={post} onShare={setSharePost} />)

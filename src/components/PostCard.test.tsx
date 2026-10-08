@@ -83,6 +83,7 @@ describe('PostCard', () => {
     renderWithRouter(<PostCard post={makePost({ coverImage: undefined })} {...baseProps} />);
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(screen.getByText('测试文章标题')).toBeInTheDocument();
+    expect(screen.getByText('测试文章标题').closest('[data-layout="text-only"]')).not.toBeNull();
   });
 
   it('无封面的精选卡片仅展示文字内容', () => {
@@ -90,6 +91,11 @@ describe('PostCard', () => {
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(screen.getByText('精选')).toBeInTheDocument();
     expect(screen.getByText('测试文章标题')).toBeInTheDocument();
+  });
+
+  it('有封面图时保持封面卡片布局标记', () => {
+    renderWithRouter(<PostCard post={makePost({ coverImage: '/covers/test.png' })} {...baseProps} />);
+    expect(screen.getByRole('img').closest('[data-layout="with-cover"]')).not.toBeNull();
   });
 
   it('有封面图时渲染带 alt 的图片', () => {
