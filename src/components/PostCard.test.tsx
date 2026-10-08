@@ -84,6 +84,7 @@ describe('PostCard', () => {
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(screen.getByText('测试文章标题')).toBeInTheDocument();
     expect(screen.getByText('测试文章标题').closest('[data-layout="text-only"]')).not.toBeNull();
+    expect(document.querySelector('.h-1.w-9.rounded-full')).toBeNull();
   });
 
   it('无封面的精选卡片仅展示文字内容', () => {
