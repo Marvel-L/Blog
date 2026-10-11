@@ -2,6 +2,18 @@
   "version": 1,
   "profileId": "v1",
   "files": {
+    "posts/golang/For 循环/循环语法错误/example.png": {
+      "hash": "36f1e39e79623806cf27ec2721682a9bfe1b21262212db8be885f272782285a2",
+      "profileId": "v1",
+      "bytes": 29711,
+      "originalBytes": 120030
+    },
+    "posts/golang/For 循环/循环语法错误/string-not-change.png": {
+      "hash": "603942d05e686ff40849f263d673b4dabba3e3f222e8652a0cae655ade784d1c",
+      "profileId": "v1",
+      "bytes": 25213,
+      "originalBytes": 85474
+    },
     "posts/life/choose/26年新跑鞋/adidas.png": {
       "hash": "dec6f85c5628240447150adde368fb95afef40a9f172925d4237cd6e95e298ed",
       "profileId": "v1",
@@ -154,6 +166,54 @@
       "profileId": "v1",
       "bytes": 222342,
       "originalBytes": 755835
+    },
+    "posts/健身/单哑铃/0x01.png": {
+      "hash": "3899eb98d72511f68412243b9de8c3b4050ed4c2384ca3c128c3983aae025a16",
+      "profileId": "v1",
+      "bytes": 188209,
+      "originalBytes": 698225
+    },
+    "posts/健身/单哑铃/0x02.png": {
+      "hash": "b640156ae8246c414847198adbabdfa9e986fb528658857d7904dfd4f0ddd6e5",
+      "profileId": "v1",
+      "bytes": 164466,
+      "originalBytes": 642393
+    },
+    "posts/健身/单哑铃/0x03.png": {
+      "hash": "97da810ff16b57b3d994217f667bbd6a7899e6c6b3c97a217cdfbcde382aca50",
+      "profileId": "v1",
+      "bytes": 274671,
+      "originalBytes": 1194067
+    },
+    "posts/健身/单哑铃/0x04.png": {
+      "hash": "1c868f66a9aac9116e021d3e3ef97ab690b8e758909617c669bc67f35d9e5b48",
+      "profileId": "v1",
+      "bytes": 275169,
+      "originalBytes": 1133912
+    },
+    "posts/健身/双哑铃/0x01.png": {
+      "hash": "b67a5c7f0c855b81ce88fbadd50d36edf118f8e08600f08e98fa14951b09b4ee",
+      "profileId": "v1",
+      "bytes": 737037,
+      "originalBytes": 2685810
+    },
+    "posts/健身/双哑铃/0x02.png": {
+      "hash": "dd53e1eff46f8650a89097ce1c3adfcc0f7108b1a06717df7ea4ce736c97c0df",
+      "profileId": "v1",
+      "bytes": 730417,
+      "originalBytes": 2660625
+    },
+    "posts/健身/双哑铃/0x03.png": {
+      "hash": "5550369c9eec04199eb55c8de0a437f427a7e78e15faca6458fad2e2aaf7c7ed",
+      "profileId": "v1",
+      "bytes": 507794,
+      "originalBytes": 1671257
+    },
+    "posts/健身/双哑铃/0x04.png": {
+      "hash": "ae05b7846de155091f40671600649b8b879c7efdd6af3cb63480bd3794e6ff54",
+      "profileId": "v1",
+      "bytes": 240570,
+      "originalBytes": 815763
     },
     "posts/杂谈/同时期的人/yanghongyi_wangyi.jpg": {
       "hash": "de9f8604b22d6f4a3ff6cb34628c4f47f3a8e31b3304dc04ee4de9ddb1e37e40",
