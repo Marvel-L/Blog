@@ -1,6 +1,6 @@
 ---
 id: xiaolin_algo_week1_day2
-title: 算法打卡冲刺 day2
+title: 算法打卡冲刺 week1 day2
 excerpt: 我能复刻的路吗
 category: 算法
 tags:
@@ -11,6 +11,7 @@ rank: 青铜
 featured: false
 series: false
 draft: false
+coverImage: /posts-img/算法/小林_冲刺weekly/leetcode.png
 ---
 
 # 203.移除链表元素

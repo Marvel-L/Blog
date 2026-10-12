@@ -10,6 +10,7 @@ author: Marvel-L
 rank: 白银
 series: false
 draft: false
+coverImage: /posts-img/算法/小林_冲刺weekly/leetcode.png
 ---
 
 # 144. 二叉树的前序遍历

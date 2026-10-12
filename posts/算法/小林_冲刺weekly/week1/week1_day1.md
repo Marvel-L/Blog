@@ -1,6 +1,6 @@
 ---
 id: xiaolin_algo_week1_day1
-title: 算法打卡冲刺 day1
+title: 算法打卡冲刺 week1 day1
 excerpt: 我能复刻的路吗
 category: 算法
 tags:
@@ -10,6 +10,7 @@ author: Marvel-L
 rank: 青铜
 series: false
 draft: false
+coverImage: /posts-img/算法/小林_冲刺weekly/leetcode.png
 ---
 
 

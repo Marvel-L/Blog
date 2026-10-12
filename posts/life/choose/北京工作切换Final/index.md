@@ -49,3 +49,7 @@ coverImage: /posts-img/life/choose/北京工作切换Final/img.png
 # 我有不得不离开的理由
 
 我的女朋友
+
+# 遗留问题
+
+进了外包就没有未来了吗

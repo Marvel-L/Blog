@@ -10,6 +10,7 @@ author: Marvel-L
 rank: 青铜
 series: false
 draft: false
+coverImage: /posts-img/算法/小林_冲刺weekly/leetcode.png
 ---
 
 # 459.重复的子字符串
