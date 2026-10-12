@@ -12,6 +12,7 @@ author: Marvel-L
 rank: 白银
 featured: false
 series: false
+coverImage: /posts-img/golang/golang.png
 draft: false
 ---
 
