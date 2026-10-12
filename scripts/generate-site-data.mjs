@@ -27,6 +27,7 @@ import { SHUOSHUO_IMAGE_OPTIONS, siblingContentImageUrl, siblingImageRelative } 
 import { getGitFileDates, resolvePostDates } from './lib/git-file-dates.mjs';
 import { listMarkdownFiles } from './lib/list-markdown-files.mjs';
 import { runCompressContentImagesCli, writeImageCompressReport } from './compress-content-images.mjs';
+import { copyContentImages } from './lib/copy-content-images.mjs';
 
 const logger = createBuildLogger('gen:data');
 logger.start('Generate site data');
@@ -78,43 +79,7 @@ const SHUOSHUO_DIR = path.join(__dirname, '../shuoshuo');
 const SUMMARY_DIR = path.join(__dirname, '../Summary');
 const OUTPUT_JSON_DIR = path.join(__dirname, '../generated');
 const PUBLIC_DIR = path.join(__dirname, '../public');
-const POST_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.svg']);
 const PRIVACY_POSTS_PASSWORD = 'Mx179516';
-
-/** 把内容目录旁的图片复制到 public/<publicSubdir>/，生产构建才能当静态资源发出。 */
-const copySiblingImages = (sourceDir, publicSubdir) => {
-  const destRoot = path.join(PUBLIC_DIR, publicSubdir);
-  if (!fs.existsSync(sourceDir)) {
-    return 0;
-  }
-  let count = 0;
-  const walk = (dir) => {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        walk(full);
-        continue;
-      }
-      if (!POST_IMAGE_EXT.has(path.extname(entry.name).toLowerCase())) {
-        continue;
-      }
-      const dest = path.join(destRoot, path.relative(sourceDir, full));
-      fs.mkdirSync(path.dirname(dest), { recursive: true });
-      // 覆盖只读残留（偶发来自外部工具/旧产物），避免 EACCES 阻断 gen:data。
-      if (fs.existsSync(dest)) {
-        try {
-          fs.chmodSync(dest, 0o644);
-        } catch {
-          // ignore
-        }
-      }
-      fs.copyFileSync(full, dest);
-      count += 1;
-    }
-  };
-  walk(sourceDir);
-  return count;
-};
 
 /**
  * 单篇文章文件大小上限（字节）：5 MiB。
@@ -862,15 +827,19 @@ await runCompressContentImagesCli({
   },
 });
 
-const copiedPostImages = copySiblingImages(POSTS_DIR, 'posts-img');
+const copiedPostImages = copyContentImages(POSTS_DIR, path.join(PUBLIC_DIR, 'posts-img'));
 if (copiedPostImages > 0) {
   logger.step('Copied post images', `files=${copiedPostImages} dest=public/posts-img`);
 }
-const copiedShuoShuoImages = copySiblingImages(SHUOSHUO_DIR, 'shuoshuo-img');
+const copiedManagedPostImages = copyContentImages(IMAGE_ROOT, path.join(PUBLIC_DIR, 'posts-img'));
+if (copiedManagedPostImages > 0) {
+  logger.step('Copied managed post images', `files=${copiedManagedPostImages} dest=public/posts-img`);
+}
+const copiedShuoShuoImages = copyContentImages(SHUOSHUO_DIR, path.join(PUBLIC_DIR, 'shuoshuo-img'));
 if (copiedShuoShuoImages > 0) {
   logger.step('Copied shuoshuo images', `files=${copiedShuoShuoImages} dest=public/shuoshuo-img`);
 }
-const copiedSummaryImages = copySiblingImages(SUMMARY_DIR, 'summary-img');
+const copiedSummaryImages = copyContentImages(SUMMARY_DIR, path.join(PUBLIC_DIR, 'summary-img'));
 if (copiedSummaryImages > 0) {
   logger.step('Copied summary images', `files=${copiedSummaryImages} dest=public/summary-img`);
 }
