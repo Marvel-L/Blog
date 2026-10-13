@@ -152,3 +152,86 @@ func mergeNodes(head *ListNode) *ListNode {
     return newList.Next
 }
 ```
+
+
+# 725. 分隔链表
+
+题目链接 : https://leetcode.cn/problems/split-linked-list-in-parts/description/
+
+
+给你一个头结点为 head 的单链表和一个整数 k ，请你设计一个算法将链表分隔为 k 个连续的部分。
+
+每部分的长度应该尽可能的相等：任意两部分的长度差距不能超过 1 。这可能会导致有些部分为 null 。
+
+这 k 个部分应该按照在链表中出现的顺序排列，并且排在前面的部分的长度应该大于或等于排在后面的长度。
+
+返回一个由上述 k 部分组成的数组。
+
+## 思路
+
+直接 ==模拟== 的题目
+
+1. 先计算出每一个 chunk , 同时计算出每一个余数
+
+2. 定义 ==临时结果变量，需要注意的是需要额外定义 dummy== 
+
+3. 每次跑完一个切片的时候 额外开一个新切片
+
+4. 记录数据
+
+5. 额外处理一下 k > n  的情况
+
+## Code 
+
+```go
+func splitListToParts(head *ListNode, k int) []*ListNode {
+    lenDummdy := head
+
+    n := 0
+    for lenDummdy != nil {
+        n++
+        lenDummdy = lenDummdy.Next
+    }
+
+    base := n / k
+    extr := n % k
+
+    ans := make([]*ListNode, 0)
+
+    idx := 0
+    var node *ListNode = nil
+    var dummyNode *ListNode
+    for head != nil {
+        idx++
+        if node == nil {
+            node = &ListNode{
+                Val: head.Val,
+            }
+            dummyNode = node
+        } else {
+            dummyNode.Next = &ListNode{
+                Val: head.Val,
+            }
+            dummyNode = dummyNode.Next
+        }
+
+        if extr != 0 && idx%(base+1) == 0 {
+            ans = append(ans, node)
+            extr--
+            idx = 0
+            node = nil
+        } else if extr == 0 && idx%base == 0 {
+            ans = append(ans, node)
+            idx = 0
+            node = nil
+        }
+        head = head.Next
+    }
+    if k > n {
+        for i := k - n; i > 0; i-- {
+            ans = append(ans, nil)
+        }
+    }
+    return ans
+}
+```
