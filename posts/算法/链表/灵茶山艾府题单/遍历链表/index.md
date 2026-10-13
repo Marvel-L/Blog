@@ -11,7 +11,7 @@ author: Marvel-L
 rank: 黄金
 series: false
 draft: false
-coverImage: /posts-img/算法/遍历链表.png
+coverImage: /posts-img/算法/芝麻凛学链表.jpeg
 ---
 
 # 1290. 二进制链表转整数

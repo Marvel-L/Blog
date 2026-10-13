@@ -9,6 +9,7 @@ author: Marvel-L
 rank: 王者
 series: false
 draft: false
+coverImage: /posts-img/life/芝麻凛节假日形象设计.jpeg
 ---
 
 # 22:27 的感想

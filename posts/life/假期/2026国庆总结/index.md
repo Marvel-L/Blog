@@ -11,4 +11,5 @@ rank: 星耀
 tbd: true
 series: false
 draft: false
+coverImage: /posts-img/life/芝麻凛节假日形象设计.jpeg
 ---

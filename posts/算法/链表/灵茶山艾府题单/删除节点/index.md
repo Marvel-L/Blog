@@ -11,7 +11,7 @@ author: Marvel-L
 rank: 黄金
 series: false
 draft: false
-coverImage: /posts-img/算法/删除链表.png
+coverImage: /posts-img/算法/芝麻凛学链表.jpeg
 ---
 
 # 203. 移除链表元素

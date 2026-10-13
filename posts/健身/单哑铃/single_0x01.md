@@ -10,6 +10,7 @@ author: Marvel-L
 rank: 白银
 series: false
 draft: false
+coverImage: /posts-img/健身/芝麻凛风格健身女孩形象设计.jpeg
 ---
 
 # 锻炼动作
