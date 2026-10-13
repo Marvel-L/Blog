@@ -11,6 +11,7 @@ author: Marvel-L
 rank: 星耀
 series: false
 draft: false
+coverImage: /posts-img/志摩凛城市十字路口.png
 ---
 
 # 标准

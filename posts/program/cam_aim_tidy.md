@@ -10,7 +10,7 @@ author: Marvel-L
 rank: 青铜
 series: false
 draft: false
-coverImage: /posts-img/life/choose/北京工作切换Final/img.png
+coverImage: /posts-img/life/choose/北京工作切换Final/芝麻凛风格Golang项目开发图.jpeg
 ---
 
 

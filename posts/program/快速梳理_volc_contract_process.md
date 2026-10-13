@@ -12,6 +12,7 @@ author: Marvel-L
 rank: 黄金
 series: false
 draft: false
+coverImage: /posts-img/life/choose/北京工作切换Final/芝麻凛风格Golang项目开发图.jpeg
 ---
 
 # 先定目标
