@@ -56,6 +56,9 @@ import { useReadingMode, ReadingModeProvider } from './ReadingModeContext';
 import { LoveModeProvider, useLoveMode } from './LoveModeContext';
 import { LoveSurface } from './LoveSurface';
 import { routeTransition } from '@/utils/motion';
+import { TypographyToggle } from './TypographyToggle';
+import { useResumeTypography } from '@/hooks/useResumeTypography';
+import '@/styles/resumeTypography.css';
 import { PrivacyPasswordModal } from './PrivacyPasswordModal';
 import { grantPrivacyAccess } from '@/utils/privacyAccess';
 
@@ -435,7 +438,8 @@ const LoveEffectToggle = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const menuId = 'love-effect-menu';
-  const currentEffectLabel = LOVE_EFFECT_OPTIONS.find((option) => option.id === loveNameEffect)?.label ?? loveNameEffect;
+  const currentEffectLabel =
+    LOVE_EFFECT_OPTIONS.find((option) => option.id === loveNameEffect)?.label ?? loveNameEffect;
 
   useEffect(() => {
     if (!isMenuOpen) {
@@ -512,7 +516,9 @@ const LoveEffectToggle = ({
                     }`}
                   >
                     <span>{option.label}</span>
-                    <span className={`text-[10px] font-normal ${active ? 'text-[#7a3149]' : 'text-white/54'}`}>{option.hint}</span>
+                    <span className={`text-[10px] font-normal ${active ? 'text-[#7a3149]' : 'text-white/54'}`}>
+                      {option.hint}
+                    </span>
                   </button>
                 );
               })}
@@ -530,6 +536,8 @@ const MOBILE_NAV_ANIMATION_DURATION_MS = 340;
 
 const Navbar = ({
   onSearchNavigate,
+  resumeTypography,
+  onToggleTypography,
   particleEffect,
   onParticleEffectChange,
   isLoveMode,
@@ -538,6 +546,8 @@ const Navbar = ({
   onLoveNameEffectChange,
 }: {
   onSearchNavigate: () => void;
+  resumeTypography: boolean;
+  onToggleTypography: () => void;
   particleEffect: ParticleEffectId;
   onParticleEffectChange: (effect: ParticleEffectId) => void;
   isLoveMode: boolean;
@@ -1120,10 +1130,7 @@ const Navbar = ({
           <div className="hidden min-w-0 shrink items-center gap-4 lg:flex">
             {isLoveMode ? (
               <div className="flex shrink-0 items-center gap-2">
-                <LoveEffectToggle
-                  loveNameEffect={loveNameEffect}
-                  onLoveNameEffectChange={onLoveNameEffectChange}
-                />
+                <LoveEffectToggle loveNameEffect={loveNameEffect} onLoveNameEffectChange={onLoveNameEffectChange} />
               </div>
             ) : (
               <>
@@ -1241,6 +1248,7 @@ const Navbar = ({
                     <Search size={18} />
                   </button>
                   <ThemeToggle particleEffect={particleEffect} onParticleEffectChange={onParticleEffectChange} />
+                  <TypographyToggle enabled={resumeTypography} onToggle={onToggleTypography} />
                   <TbdPostsButton />
                 </div>
               </>
@@ -1251,14 +1259,12 @@ const Navbar = ({
             {/* 移动端顶栏保留主题切换与待补完入口：搜索/导航入口下沉到底部标签栏 */}
             {isLoveMode ? (
               <div className="flex items-center">
-                <LoveEffectToggle
-                  loveNameEffect={loveNameEffect}
-                  onLoveNameEffectChange={onLoveNameEffectChange}
-                />
+                <LoveEffectToggle loveNameEffect={loveNameEffect} onLoveNameEffectChange={onLoveNameEffectChange} />
               </div>
             ) : (
               <>
                 <ThemeToggle particleEffect={particleEffect} onParticleEffectChange={onParticleEffectChange} />
+                <TypographyToggle enabled={resumeTypography} onToggle={onToggleTypography} />
                 <TbdPostsButton />
               </>
             )}
@@ -1441,13 +1447,7 @@ const Navbar = ({
   );
 };
 
-const Footer = ({
-  showPrivacyEntry,
-  onOpenPrivacy,
-}: {
-  showPrivacyEntry: boolean;
-  onOpenPrivacy: () => void;
-}) => {
+const Footer = ({ showPrivacyEntry, onOpenPrivacy }: { showPrivacyEntry: boolean; onOpenPrivacy: () => void }) => {
   return (
     <footer className="site-footer mt-8 hidden md:mt-12 lg:block">
       <WaveFishDivider variant="fish" className="mx-auto max-w-7xl px-3 sm:px-6" />
@@ -1593,6 +1593,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const location = useLocation();
   const navigate = useNavigate();
   const { isReadingMode } = useReadingMode();
+  const { enabled: resumeTypography, toggle: toggleTypography } = useResumeTypography();
   const { isLoveMode, setLoveMode } = useLoveMode();
   const [particleEffect, setParticleEffect] = useState<ParticleEffectId>(DEFAULT_PARTICLE_EFFECT);
   const [loveNameEffect, setLoveNameEffect] = useState<LoveNameEffect>('marquee');
@@ -1619,7 +1620,11 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const visibleContent = isLoveMode ? <LoveSurface /> : children;
   const surfaceTransitionKey = isLoveMode ? `love:${routeContentKey}` : `default:${routeContentKey}`;
   const surfaceSwitchVariants = prefersReducedMotion
-    ? { initial: { opacity: 1, y: 0, scale: 1 }, animate: { opacity: 1, y: 0, scale: 1 }, exit: { opacity: 1, y: 0, scale: 1 } }
+    ? {
+        initial: { opacity: 1, y: 0, scale: 1 },
+        animate: { opacity: 1, y: 0, scale: 1 },
+        exit: { opacity: 1, y: 0, scale: 1 },
+      }
     : {
         initial: { opacity: 0, y: isLoveMode ? 20 : 10, scale: isLoveMode ? 0.985 : 1 },
         animate: {
@@ -1629,7 +1634,9 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
           transition: { duration: isLoveMode ? 0.6 : 0.34, ease: 'easeOut' as const },
         },
         exit: {
-          opacity: 0, y: isLoveMode ? -10 : 8, scale: isLoveMode ? 1.01 : 0.995,
+          opacity: 0,
+          y: isLoveMode ? -10 : 8,
+          scale: isLoveMode ? 1.01 : 0.995,
           transition: { duration: isLoveMode ? 0.32 : 0.22, ease: 'easeInOut' as const },
         },
       };
@@ -1700,6 +1707,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   return (
     <div
       className={`site-shell relative flex min-h-screen flex-col ${isReadingMode ? 'reading-mode-shell' : ''}`}
+      data-typography={resumeTypography ? 'resume' : undefined}
       data-reading-mode={isReadingMode ? 'true' : undefined}
       data-love-mode={isLoveMode ? 'true' : undefined}
       data-particle-front={isParticleFrontRoute ? 'true' : undefined}
@@ -1709,6 +1717,8 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
       {!isReadingMode && (
         <Navbar
           onSearchNavigate={goToSearch}
+          resumeTypography={resumeTypography}
+          onToggleTypography={toggleTypography}
           particleEffect={particleEffect}
           onParticleEffectChange={handleParticleEffectChange}
           isLoveMode={isLoveMode}

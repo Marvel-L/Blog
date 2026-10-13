@@ -1,0 +1,135 @@
+/* 取自 Resume 的 Lapis CV Serif 字体，压缩为 WOFF2；仅启用排版时按需加载。 */
+@font-face {
+  font-family: 'Resume Sans';
+  src: url('../assets/resume-fonts/SourceHanSansCN-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Resume Serif';
+  src: url('../assets/resume-fonts/SourceHanSerifCN-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Resume Mono';
+  src: url('../assets/resume-fonts/JetBrainsMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Resume Sans';
+  src: url('../assets/resume-fonts/JetBrainsMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  unicode-range: U+00-52F, U+1E00-1FFF, U+2200-22FF;
+  font-display: swap;
+}
+
+/* 不复制简历的纸张尺寸与打印分页，保留博客响应式布局和 Markdown 功能。 */
+@media screen {
+  .site-shell[data-typography='resume'] .prose {
+    --resume-accent: #4870ad;
+    --resume-border: #a2b6d4;
+    --tw-prose-body: #353a42;
+    --tw-prose-headings: #353a42;
+    --tw-prose-bold: #121418;
+    --tw-prose-links: var(--resume-accent);
+    font-family: 'Resume Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    font-size: 1rem;
+    line-height: 1.8;
+    letter-spacing: 0;
+    color: var(--tw-prose-body);
+  }
+
+  .dark .site-shell[data-typography='resume'] .prose {
+    --resume-accent: #9ab9e8;
+    --resume-border: #4c6485;
+    --tw-prose-body: #dce1e8;
+    --tw-prose-headings: #eef2f7;
+    --tw-prose-bold: #f5f7fa;
+    --tw-prose-links: var(--resume-accent);
+  }
+
+  .site-shell[data-typography='resume'] .prose :where(p, li, blockquote) {
+    line-height: 1.8;
+    text-align: left;
+  }
+
+  .site-shell[data-typography='resume'] .prose p {
+    margin-block: 0 0.8em;
+  }
+
+  .site-shell[data-typography='resume'] .prose :where(h1, h2, h3, h4, h5, h6) {
+    font-family: 'Resume Serif', 'Source Han Serif SC', 'Songti SC', serif;
+    font-weight: 700;
+    color: var(--tw-prose-headings);
+    letter-spacing: 0;
+    line-height: 1.5;
+    margin-block: 1.4em 0.5em;
+  }
+
+  .site-shell[data-typography='resume'] .prose h1 {
+    font-size: 2em;
+    border: 0;
+    padding: 0;
+  }
+
+  .site-shell[data-typography='resume'] .prose h2 {
+    font-size: 1.4em;
+    color: var(--resume-accent);
+    border-bottom: 1px solid var(--resume-border);
+    padding-bottom: 0.25em;
+  }
+
+  .site-shell[data-typography='resume'] .prose :where(h3, h4, h5, h6) {
+    font-size: 1.15em;
+  }
+
+  .site-shell[data-typography='resume'] .prose :where(ul, ol) {
+    margin-block: 0.6em 1em;
+    padding-inline-start: 1.5em;
+  }
+
+  .site-shell[data-typography='resume'] .prose li {
+    margin-block: 0.2em;
+    padding-inline-start: 0.25em;
+  }
+
+  .site-shell[data-typography='resume'] .prose li p {
+    margin-block: 0.25em;
+  }
+
+  .site-shell[data-typography='resume'] .prose strong {
+    color: var(--tw-prose-bold);
+  }
+
+  .site-shell[data-typography='resume'] .prose a {
+    color: var(--resume-accent);
+    font-weight: 400;
+  }
+
+  .site-shell[data-typography='resume'] .prose blockquote {
+    font-family: inherit;
+    font-size: 0.95em;
+    font-style: normal;
+    font-weight: 400;
+    border-inline-start: 0;
+    padding: 0;
+    margin-block: 1em;
+    background: transparent;
+    color: var(--tw-prose-body);
+  }
+
+  .site-shell[data-typography='resume'] .prose :where(code, pre) {
+    font-family: 'Resume Mono', ui-monospace, monospace;
+  }
+
+  .site-shell[data-typography='resume'] .prose hr {
+    border-color: var(--resume-border);
+    border-top-width: 1px;
+    margin-block: 2em;
+  }
+}

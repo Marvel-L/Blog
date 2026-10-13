@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { Layout } from './Layout';
 import { siteConfig } from '@config/site.config';
+import { RESUME_TYPOGRAPHY_KEY } from '@/hooks/useResumeTypography';
 
 // 懒加载子组件用简单 stub 替代，避免测试中等待 dynamic import 与动画。
 // 注意：Layout 以命名导出方式解构（import('./X').then(m => m.X)），mock 需提供同名导出。
@@ -94,6 +95,34 @@ describe('Layout', () => {
   it('渲染主题切换按钮（桌面端与移动端顶栏各一个）', () => {
     renderLayout();
     expect(screen.getAllByRole('button', { name: /外观与氛围/ }).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('桌面与移动端排版开关同步，关闭后恢复原样式', async () => {
+    const user = userEvent.setup();
+    renderLayout();
+    const toggles = screen.getAllByRole('button', { name: 'Resume 排版' });
+    expect(toggles).toHaveLength(2);
+    expect(document.querySelector('.site-shell')).not.toHaveAttribute('data-typography');
+    await user.click(toggles[0]);
+    expect(document.querySelector('.site-shell')).toHaveAttribute('data-typography', 'resume');
+    toggles.forEach((toggle) => expect(toggle).toHaveAttribute('aria-pressed', 'true'));
+    expect(window.localStorage.getItem(RESUME_TYPOGRAPHY_KEY)).toBe('true');
+    await user.click(toggles[1]);
+    expect(document.querySelector('.site-shell')).not.toHaveAttribute('data-typography');
+    toggles.forEach((toggle) => expect(toggle).toHaveAttribute('aria-pressed', 'false'));
+    expect(window.localStorage.getItem(RESUME_TYPOGRAPHY_KEY)).toBe('false');
+  });
+
+  it('恢复排版选择，导航到其他页面仍保持新排版', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(RESUME_TYPOGRAPHY_KEY, 'true');
+    renderLayout();
+    await waitFor(() => expect(document.querySelector('.site-shell')).toHaveAttribute('data-typography', 'resume'));
+    await user.click(screen.getByRole('link', { name: '文章' }));
+    expect(document.querySelector('.site-shell')).toHaveAttribute('data-typography', 'resume');
+    await user.click(screen.getAllByRole('button', { name: '打开搜索页' })[0]);
+    await waitFor(() => expect(probePathname).toBe('/search'));
+    expect(document.querySelector('.site-shell')).toHaveAttribute('data-typography', 'resume');
   });
 
   it('渲染待补完文章入口按钮', () => {
