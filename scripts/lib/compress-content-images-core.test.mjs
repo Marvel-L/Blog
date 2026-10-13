@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import sharp from 'sharp';
 import {
   IMAGE_COMPRESS_PROFILE,
+  buildImageCompressReport,
   compressContentImageFile,
   compressContentImages,
   loadImageCompressManifest,
@@ -113,5 +114,61 @@ describe('compress-content-images-core', () => {
       manifest,
     });
     expect(result.status).toBe('compressed');
+  });
+
+  it('默认也会压缩 posts-img 下的文章封面', async () => {
+    const root = makeTempRoot();
+    const imagePath = path.join(root, 'posts-img', 'covers', 'hero.jpg');
+    const before = await writeBigJpeg(imagePath);
+    const manifestPath = path.join(root, 'manifest.json');
+
+    const result = await compressContentImages({
+      rootDir: root,
+      manifestPath,
+      concurrency: 1,
+    });
+
+    expect(result.compressed).toBe(1);
+    expect(fs.statSync(imagePath).size).toBeLessThan(before);
+    expect(result.manifest.files['posts-img/covers/hero.jpg']).toBeTruthy();
+  });
+
+  it('压缩报告会把 posts-img 封面映射回文章标题', () => {
+    const report = buildImageCompressReport(
+      {
+        profileId: IMAGE_COMPRESS_PROFILE.id,
+        files: {
+          'posts-img/算法/leetcode.png': {
+            profileId: IMAGE_COMPRESS_PROFILE.id,
+            hash: 'hash',
+            originalBytes: 300,
+            bytes: 120,
+          },
+        },
+      },
+      [
+        {
+          id: 'week1-day1',
+          title: '小林冲刺 weekly day1',
+          filePath: '/posts/算法/小林_冲刺weekly/week1/week1_day1.md',
+          coverImage: '/posts-img/算法/leetcode.png',
+        },
+        {
+          id: 'week1-day2',
+          title: '小林冲刺 weekly day2',
+          filePath: '/posts/算法/小林_冲刺weekly/week1/week1_day2.md',
+          coverImage: '/posts-img/算法/leetcode.png',
+        },
+      ],
+    );
+
+    expect(report.items).toEqual([
+      expect.objectContaining({
+        path: 'posts-img/算法/leetcode.png',
+        article: '小林冲刺 weekly day1 等2篇文章',
+        articleId: '',
+        savedBytes: 180,
+      }),
+    ]);
   });
 });

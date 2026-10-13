@@ -1,5 +1,5 @@
 /**
- * 内容旁路图片幂等压缩（posts / shuoshuo / Summary）。
+ * 内容旁路图片幂等压缩（posts / posts-img / shuoshuo / Summary）。
  *
  * 跳过条件：当前文件 sha256 已在清单中，且 profileId 与现行配置一致。
  * 这样已压缩过的文件不会被再次有损压缩；换图或升级 profile 会重新处理。
@@ -226,7 +226,7 @@ const runPool = async (items, concurrency, worker) => {
 export const compressContentImages = async ({
   rootDir,
   manifestPath,
-  contentDirs = ['posts', 'shuoshuo', 'Summary'],
+  contentDirs = ['posts', 'posts-img', 'shuoshuo', 'Summary'],
   concurrency = 4,
   profile = IMAGE_COMPRESS_PROFILE,
 } = {}) => {
@@ -260,13 +260,41 @@ export const compressContentImages = async ({
   };
 };
 
+const normalizeManagedCoverPath = (coverImage) => {
+  if (typeof coverImage !== 'string') {
+    return '';
+  }
+  const trimmed = coverImage.trim();
+  if (!trimmed) {
+    return '';
+  }
+  if (trimmed.startsWith('/posts-img/')) {
+    return trimmed.slice(1);
+  }
+  if (trimmed.startsWith('posts-img/')) {
+    return trimmed;
+  }
+  return '';
+};
+
 /**
  * 把清单整理成前端可读报告（按节省字节降序）。
- * postsMeta: Array<{ id, title, filePath }>
+ * postsMeta: Array<{ id, title, filePath, coverImage }>
  */
 export const buildImageCompressReport = (manifest, postsMeta = []) => {
   const posts = Array.isArray(postsMeta) ? postsMeta : [];
   const items = [];
+  const managedCoverOwners = new Map();
+
+  posts.forEach((post) => {
+    const coverPath = normalizeManagedCoverPath(post.coverImage);
+    if (!coverPath) {
+      return;
+    }
+    const owners = managedCoverOwners.get(coverPath) || [];
+    owners.push(post);
+    managedCoverOwners.set(coverPath, owners);
+  });
 
   for (const [relPath, entry] of Object.entries(manifest.files || {})) {
     if (!entry || entry.skipped || entry.unchanged) continue;
@@ -287,6 +315,16 @@ export const buildImageCompressReport = (manifest, postsMeta = []) => {
       if (matched) {
         article = matched.title || matched.id || article;
         articleId = matched.id || '';
+      } else {
+        const parts = relPath.split('/');
+        article = parts.length >= 2 ? parts[parts.length - 2] : article;
+      }
+    } else if (relPath.startsWith('posts-img/')) {
+      const owners = managedCoverOwners.get(relPath) || [];
+      if (owners.length > 0) {
+        const [firstOwner] = owners;
+        article = owners.length === 1 ? firstOwner.title || firstOwner.id || article : `${firstOwner.title || firstOwner.id || article} 等${owners.length}篇文章`;
+        articleId = owners.length === 1 ? firstOwner.id || '' : '';
       } else {
         const parts = relPath.split('/');
         article = parts.length >= 2 ? parts[parts.length - 2] : article;

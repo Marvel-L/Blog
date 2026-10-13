@@ -886,7 +886,7 @@ fs.writeFileSync(path.join(OUTPUT_JSON_DIR, 'privacy-posts.json'), JSON.stringif
 logger.step('Generated privacy-posts.json', `posts=${privacyPosts.length} sourceFiles=${hiddenPostsWithSearch.length}`);
 
 const compressReport = writeImageCompressReport(
-  posts.map((post) => ({ id: post.id, title: post.title, filePath: post.filePath })),
+  posts.map((post) => ({ id: post.id, title: post.title, filePath: post.filePath, coverImage: post.coverImage })),
 );
 logger.step('Generated image-compress-report.json', `items=${compressReport.items.length}`);
 

@@ -2,6 +2,54 @@
   "version": 1,
   "profileId": "v1",
   "files": {
+    "posts-img/golang/golang.png": {
+      "hash": "d4d7939201fc455c25f55ae06dbbe8adbffcbe1e13f60751b5ac44fcd89f1a2b",
+      "profileId": "v1",
+      "bytes": 782864,
+      "originalBytes": 4302248
+    },
+    "posts-img/life/choose/北京工作切换Final/img.png": {
+      "hash": "4c5ff4389073676e991b34a033a07096d0de72380e8b1f1e5c69d9e4d29944e7",
+      "profileId": "v1",
+      "bytes": 12823,
+      "originalBytes": 42242
+    },
+    "posts-img/life/find_my_road.png": {
+      "hash": "b07d81e0aa17d6c5086f9da9ed999db9e6328a0aeb29c0df1bbf1b59d8adc3ac",
+      "profileId": "v1",
+      "bytes": 1281914,
+      "originalBytes": 7208072
+    },
+    "posts-img/life/weapon.png": {
+      "hash": "94cdf210e35237ed902ae14e65c554c3899c57258064b7e2b51699bfd6d8ab91",
+      "profileId": "v1",
+      "bytes": 1275809,
+      "originalBytes": 5838331
+    },
+    "posts-img/life/芝麻凛节假日形象设计.jpeg": {
+      "hash": "bd31c2c42d1f5a666e183e1c6f1209d00da8aafd2b02fc4da5cb41799a596e3e",
+      "profileId": "v1",
+      "bytes": 333257,
+      "originalBytes": 6193542
+    },
+    "posts-img/健身/芝麻凛风格健身女孩形象设计.jpeg": {
+      "hash": "34e926968195aac9ab653458e981f7c72d2597d5cd520b2d3342d4bcff07917e",
+      "profileId": "v1",
+      "bytes": 191486,
+      "originalBytes": 3964007
+    },
+    "posts-img/算法/小林_冲刺weekly/leetcode.png": {
+      "hash": "79762d11703e0d77d305cf35cc08ce03973ee2e3f49c16a43395921d6651676f",
+      "profileId": "v1",
+      "bytes": 877326,
+      "originalBytes": 4387441
+    },
+    "posts-img/算法/芝麻凛学链表.jpeg": {
+      "hash": "6f01e9088913ac645b082f2c04c0d54858e2ac226daff8427c0c06f228aa8aec",
+      "profileId": "v1",
+      "bytes": 217707,
+      "originalBytes": 4420958
+    },
     "posts/golang/For 循环/循环语法错误/example.png": {
       "hash": "36f1e39e79623806cf27ec2721682a9bfe1b21262212db8be885f272782285a2",
       "profileId": "v1",

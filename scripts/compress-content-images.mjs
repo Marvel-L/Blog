@@ -1,5 +1,5 @@
 /**
- * CLI：幂等压缩 posts / shuoshuo / Summary 旁路图片。
+ * CLI：幂等压缩 posts / posts-img / shuoshuo / Summary 旁路图片。
  *
  *   node scripts/compress-content-images.mjs
  *   SKIP_IMAGE_COMPRESS=1  — 跳过（调试用）
