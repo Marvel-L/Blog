@@ -62,6 +62,34 @@
       "bytes": 12823,
       "originalBytes": 42242
     },
+    "posts/life/yuean/入职第三天/crm_360.png": {
+      "hash": "8481aa5c0dca9308e4f8745371f5f54c7a187e37144a229399ea9bedb9f544cb",
+      "profileId": "v1",
+      "bytes": 379127,
+      "originalBytes": 379127,
+      "unchanged": true
+    },
+    "posts/life/yuean/入职第三天/crm_404.png": {
+      "hash": "25a1b9f129cdeccf319137be8c6ccbbb26657f8066ea13749fc949bf16b9cef6",
+      "profileId": "v1",
+      "bytes": 139435,
+      "originalBytes": 139435,
+      "unchanged": true
+    },
+    "posts/life/yuean/入职第三天/crm_blank.png": {
+      "hash": "b3858d755964e265b7d6ff2f9712baf34230482fe7736b54fd7b22c7057a34b7",
+      "profileId": "v1",
+      "bytes": 39789,
+      "originalBytes": 39789,
+      "unchanged": true
+    },
+    "posts/life/yuean/入职第二天/img.png": {
+      "hash": "cb059fcb8904e37a4e2684c9adfc7935bc5f3343154027dbc6ca2cdc254a8fbb",
+      "profileId": "v1",
+      "bytes": 222342,
+      "originalBytes": 222342,
+      "unchanged": true
+    },
     "posts/life/假期/2026国庆安排/feiji.jpg": {
       "hash": "ce9f00cbe47fc1f2db1486613c3bfc68ceb60a63f3f4d9693452e31e60ecaafd",
       "profileId": "v1",
@@ -148,30 +176,6 @@
       "profileId": "v1",
       "bytes": 751267,
       "originalBytes": 2399212
-    },
-    "posts/yuean/入职第三天/crm_360.png": {
-      "hash": "8481aa5c0dca9308e4f8745371f5f54c7a187e37144a229399ea9bedb9f544cb",
-      "profileId": "v1",
-      "bytes": 379127,
-      "originalBytes": 1639251
-    },
-    "posts/yuean/入职第三天/crm_404.png": {
-      "hash": "25a1b9f129cdeccf319137be8c6ccbbb26657f8066ea13749fc949bf16b9cef6",
-      "profileId": "v1",
-      "bytes": 139435,
-      "originalBytes": 317849
-    },
-    "posts/yuean/入职第三天/crm_blank.png": {
-      "hash": "b3858d755964e265b7d6ff2f9712baf34230482fe7736b54fd7b22c7057a34b7",
-      "profileId": "v1",
-      "bytes": 39789,
-      "originalBytes": 160755
-    },
-    "posts/yuean/入职第二天/img.png": {
-      "hash": "cb059fcb8904e37a4e2684c9adfc7935bc5f3343154027dbc6ca2cdc254a8fbb",
-      "profileId": "v1",
-      "bytes": 222342,
-      "originalBytes": 755835
     },
     "posts/健身/单哑铃/0x01.png": {
       "hash": "3899eb98d72511f68412243b9de8c3b4050ed4c2384ca3c128c3983aae025a16",
