@@ -2,7 +2,7 @@
 id: volc-contract-process-reading-0x01
 title: 如何快速梳理 volc_contract_process
 excerpt: 不从 service 目录硬读，先拿下一条合同状态变化链路
-category: Golang
+category: 项目
 tags:
   - Go
   - 项目阅读
