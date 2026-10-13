@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { StrictMode } from 'react';
+import { useReadingMode } from './ReadingModeContext';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { Layout } from './Layout';
 import { siteConfig } from '@config/site.config';
@@ -25,23 +27,32 @@ vi.mock('@/services/busuanzi', () => ({
 let probePathname = '';
 const LocationProbe = () => {
   probePathname = useLocation().pathname;
-  return null;
+  const { toggleReadingMode, exitReadingMode } = useReadingMode();
+  return (
+    <>
+      <button onClick={toggleReadingMode}>进入专注阅读</button>
+      <button onClick={exitReadingMode}>退出专注阅读</button>
+    </>
+  );
 };
 
 const renderLayout = (initialEntries: string[] = ['/']) =>
   render(
-    <MemoryRouter initialEntries={initialEntries}>
-      <Layout>
-        <LocationProbe />
-        <div>页面内容</div>
-      </Layout>
-    </MemoryRouter>,
+    <StrictMode>
+      <MemoryRouter initialEntries={initialEntries}>
+        <Layout>
+          <LocationProbe />
+          <div>页面内容</div>
+        </Layout>
+      </MemoryRouter>
+    </StrictMode>,
   );
 
 describe('Layout', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
+    document.documentElement.classList.remove('dark');
     delete document.documentElement.dataset.loveMode;
     delete document.documentElement.dataset.loveModeBoot;
     siteConfig.loveMode = { personName: '' };
@@ -64,6 +75,8 @@ describe('Layout', () => {
   afterEach(() => {
     // 移动端导航锁定 body 滚动：重置避免跨用例污染。
     document.body.style.overflow = '';
+    document.documentElement.classList.remove('dark');
+    Reflect.deleteProperty(document, 'startViewTransition');
     delete document.documentElement.dataset.loveMode;
     delete document.documentElement.dataset.loveModeBoot;
     siteConfig.loveMode = { personName: '' };
@@ -95,6 +108,36 @@ describe('Layout', () => {
   it('渲染主题切换按钮（桌面端与移动端顶栏各一个）', () => {
     renderLayout();
     expect(screen.getAllByRole('button', { name: /外观与氛围/ }).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it.each(['saved', 'selected'])('%s 深色外观在退出专注阅读后保持，且不会被延迟的主题动画覆盖', async (source) => {
+    const pendingUpdates: Array<() => void> = [];
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      value: vi.fn((update: () => void) => pendingUpdates.push(update)),
+    });
+    if (source === 'saved') {
+      window.localStorage.setItem('theme', 'dark');
+    }
+    const user = userEvent.setup();
+    renderLayout(['/post/test']);
+    if (source === 'selected') {
+      await user.click(screen.getAllByRole('button', { name: /外观与氛围/ })[0]);
+      await user.click(screen.getByRole('button', { name: '深色' }));
+    }
+    await act(async () => pendingUpdates.splice(0).forEach((update) => update()));
+    expect(document.documentElement).toHaveClass('dark');
+
+    await user.click(screen.getByRole('button', { name: '进入专注阅读' }));
+    expect(screen.queryByRole('button', { name: /外观与氛围/ })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '退出专注阅读' }));
+    await act(async () => pendingUpdates.splice(0).forEach((update) => update()));
+
+    expect(document.documentElement).toHaveClass('dark');
+    screen.getAllByRole('button', { name: /外观与氛围/ }).forEach((button) => {
+      expect(button).toHaveAccessibleName(/当前深色/);
+    });
+    expect(window.localStorage.getItem('theme')).toBe('dark');
   });
 
   it('桌面与移动端排版开关同步，关闭后恢复原样式', async () => {

@@ -184,20 +184,13 @@ const isEditableTarget = (target: EventTarget | null) => {
   return target.isContentEditable || tagName === 'input' || tagName === 'textarea' || tagName === 'select';
 };
 
-const ThemeToggle = ({
-  particleEffect,
-  onParticleEffectChange,
-}: {
-  particleEffect: ParticleEffectId;
-  onParticleEffectChange: (effect: ParticleEffectId) => void;
-}) => {
-  type Theme = 'light' | 'dark';
+type Theme = 'light' | 'dark';
+
+// 布局持续持有主题，导航栏因专注阅读或 Love 面卸载时不会丢失外观状态。
+const useTheme = () => {
   const hasInitializedThemeRef = useRef(false);
   const prefersReducedMotion = useSiteReducedMotion();
-  const [theme, setTheme] = useState<Theme>('light');
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  const menuId = 'theme-atmosphere-menu';
+  const [theme, setTheme] = useState<Theme | null>(null);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -205,8 +198,8 @@ const ThemeToggle = ({
 
     // 水合后确定实际主题：优先恢复用户保存的显式亮/暗选择；无保存值（或旧版
     // 'system'）时按系统偏好解析初始明暗，即“打开网页自动检测系统”。
-    // 该解析只在首次挂载（水合恢复）时生效，后续切换不会被旧值反向覆盖。
-    let effectiveTheme: Theme = theme;
+    // 未初始化时解析；StrictMode 重放 effect 时仍恢复同一主题，避免默认浅色覆盖深色。
+    let effectiveTheme: Theme = theme ?? 'light';
     let saved: string | null = null;
     try {
       saved = localStorage.getItem('theme');
@@ -214,7 +207,7 @@ const ThemeToggle = ({
       // 浏览器存储不可用时，主题持久化为可选能力。
     }
 
-    if (!hasInitializedThemeRef.current) {
+    if (theme === null) {
       if (saved === 'light' || saved === 'dark') {
         effectiveTheme = saved;
       } else {
@@ -271,6 +264,39 @@ const ThemeToggle = ({
     hasInitializedThemeRef.current = true;
   }, [prefersReducedMotion, theme]);
 
+  const setThemePreference = (next: Theme) => {
+    if (next === theme) {
+      return;
+    }
+    setTheme(next);
+    // 仅显式点击才持久化：系统检测出的默认值不落盘，保证每次打开页面都
+    // 重新按系统偏好检测；用户点击一次后，该选择稳定沿用。
+    try {
+      localStorage.setItem('theme', next);
+    } catch {
+      // 浏览器存储不可用时，主题持久化为可选能力。
+    }
+  };
+
+  return { theme: theme ?? 'light', setThemePreference };
+};
+
+const ThemeToggle = ({
+  theme,
+  setThemePreference,
+  particleEffect,
+  onParticleEffectChange,
+}: {
+  theme: Theme;
+  setThemePreference: (theme: Theme) => void;
+  particleEffect: ParticleEffectId;
+  onParticleEffectChange: (effect: ParticleEffectId) => void;
+}) => {
+  const prefersReducedMotion = useSiteReducedMotion();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const menuId = 'theme-atmosphere-menu';
+
   useEffect(() => {
     if (!isMenuOpen) {
       return;
@@ -299,20 +325,6 @@ const ThemeToggle = ({
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isMenuOpen]);
-
-  const setThemePreference = (next: Theme) => {
-    if (next === theme) {
-      return;
-    }
-    setTheme(next);
-    // 仅显式点击才持久化：系统检测出的默认值不落盘，保证每次打开页面都
-    // 重新按系统偏好检测；用户点击一次后，该选择稳定沿用。
-    try {
-      localStorage.setItem('theme', next);
-    } catch {
-      // 浏览器存储不可用时，主题持久化为可选能力。
-    }
-  };
 
   const currentThemeLabel = theme === 'light' ? TEXT.themeLight : TEXT.themeDark;
   const currentEffectLabel =
@@ -538,6 +550,8 @@ const Navbar = ({
   onSearchNavigate,
   resumeTypography,
   onToggleTypography,
+  theme,
+  setThemePreference,
   particleEffect,
   onParticleEffectChange,
   isLoveMode,
@@ -548,6 +562,8 @@ const Navbar = ({
   onSearchNavigate: () => void;
   resumeTypography: boolean;
   onToggleTypography: () => void;
+  theme: Theme;
+  setThemePreference: (theme: Theme) => void;
   particleEffect: ParticleEffectId;
   onParticleEffectChange: (effect: ParticleEffectId) => void;
   isLoveMode: boolean;
@@ -1247,7 +1263,12 @@ const Navbar = ({
                   >
                     <Search size={18} />
                   </button>
-                  <ThemeToggle particleEffect={particleEffect} onParticleEffectChange={onParticleEffectChange} />
+                  <ThemeToggle
+                    theme={theme}
+                    setThemePreference={setThemePreference}
+                    particleEffect={particleEffect}
+                    onParticleEffectChange={onParticleEffectChange}
+                  />
                   <TypographyToggle enabled={resumeTypography} onToggle={onToggleTypography} />
                   <TbdPostsButton />
                 </div>
@@ -1263,7 +1284,12 @@ const Navbar = ({
               </div>
             ) : (
               <>
-                <ThemeToggle particleEffect={particleEffect} onParticleEffectChange={onParticleEffectChange} />
+                <ThemeToggle
+                  theme={theme}
+                  setThemePreference={setThemePreference}
+                  particleEffect={particleEffect}
+                  onParticleEffectChange={onParticleEffectChange}
+                />
                 <TypographyToggle enabled={resumeTypography} onToggle={onToggleTypography} />
                 <TbdPostsButton />
               </>
@@ -1593,6 +1619,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const location = useLocation();
   const navigate = useNavigate();
   const { isReadingMode } = useReadingMode();
+  const { theme, setThemePreference } = useTheme();
   const { enabled: resumeTypography, toggle: toggleTypography } = useResumeTypography();
   const { isLoveMode, setLoveMode } = useLoveMode();
   const [particleEffect, setParticleEffect] = useState<ParticleEffectId>(DEFAULT_PARTICLE_EFFECT);
@@ -1716,6 +1743,8 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
       {!isReadingMode && !isLoveMode && <ParticleField effect={particleEffect} />}
       {!isReadingMode && (
         <Navbar
+          theme={theme}
+          setThemePreference={setThemePreference}
           onSearchNavigate={goToSearch}
           resumeTypography={resumeTypography}
           onToggleTypography={toggleTypography}
