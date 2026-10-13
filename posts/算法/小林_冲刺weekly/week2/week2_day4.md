@@ -1,7 +1,7 @@
 ---
 id: xiaolin_algo_week2_day4
 title: 算法打卡冲刺 week2 day4
-excerpt: 树的遍历
+excerpt: 二叉树的相关操作
 category: 算法
 tags:
   - 日常
@@ -13,178 +13,86 @@ draft: false
 coverImage: /posts-img/算法/小林_冲刺weekly/leetcode.png
 ---
 
-## 110.平衡二叉树
+# 226. 翻转二叉树
 
-力扣链接： https://leetcode.cn/problems/balanced-binary-tree/
-    
-题目： 判断是不是平衡，左右子树高度差不超过1
+力扣链接： https://leetcode.cn/problems/invert-binary-tree/
+
+题目：给你一个树，翻转一下。
 
 ## 思路
 
-后序遍历，我们需要先计算出 左右子树的高度
+按后序遍历处理，先递归左右子树，再在当前节点交换左右孩子。
 
-在当前节点的时候判断 ，左右子树高度是否相差较大 如果很大 那么返回 -1 
-
-## Code 
+## Code
 
 ```go
-func dfs(root *TreeNode) int {
+func dfs(root *TreeNode) *TreeNode {
     if root == nil {
-        return 0 
+        return nil
     }
     left := dfs(root.Left)
-    if left == -1 {
-        return -1
-    }
-
     right := dfs(root.Right)
-    if right == -1  {
-        return -1 
-    }
-
-    if left - right > 1 || right - left > 1 {
-        return -1
-    }
-    if left > right {
-        return left + 1
-    }
-    return right  + 1
+    root.Left = right
+    root.Right = left
+    return root
 }
 
-
-func isBalanced(root *TreeNode) bool {
-    return dfs(root) != -1
-}
-```
-# 257. 二叉树的所有路径
-
-力扣链接：  https://leetcode.cn/problems/binary-tree-paths/
-
-题目： 返回根节点到叶子节点的所有路径
-     
-## 思路
-
-我们先序遍历
-
-1. 对于当前节点，如果左右节点都等于 nil  我们计算答案
-2. 否则我们递归左右子树，并且下传答案
-
-## Code
-
-```go
-var (
-    res []string 
-)
-
-func dfs(node *TreeNode, path string)  {
-    if node == nil {
-        return 
-    }
-    if path == "" {
-        path = strconv.Itoa(node.Val)
-    }else {
-        path = path + "->" +  strconv.Itoa(node.Val)
-    }
-    if node.Left == nil && node.Right == nil {
-        res = append(res, path)
-        return 
-    }
-    dfs(node.Left, path)
-    dfs(node.Right,path)
-    
-}
-
-func binaryTreePaths(root *TreeNode) []string {
-    res = make([]string,0)
-    dfs(root, "")
-    return res 
-}
-```
-
-# 404.左叶子之和
-
-力扣链接：  https://leetcode.cn/problems/sum-of-left-leaves/
-
-题目：  计算左叶子的和
-
-## 思路
-
-直接递归
-
-1. 对于当前节点考虑 , 左节点是否是叶子结点 如果是叶子结点 那么计算
-2. 否则的话 进行递归
-
-## Code
-
-```go
-func dfs(root *TreeNode) int {
-    if root == nil {
-        return 0 
-    }
-    res := 0
-
-    if root.Left != nil && root.Left.Left == nil && root.Left.Right == nil {
-        res += root.Left.Val
-    }
-
-    if root != nil {
-        res += dfs(root.Left)
-        res += dfs(root.Right)
-    }
-
-    return res 
-}
-
-func sumOfLeftLeaves(root *TreeNode) int {
+func invertTree(root *TreeNode) *TreeNode {
     return dfs(root)
 }
 ```
 
-# 513.找树左下角的值
+# 101. 对称二叉树
 
-力扣链接：  https://leetcode.cn/problems/find-bottom-left-tree-value/
+力扣链接： https://leetcode.cn/problems/symmetric-tree/
 
-题目： 就找最后一层的最左的值
+题目：判断二叉树是否对称。
 
 ## 思路
 
-1. 直接强制进行层序遍历
+这里使用层序遍历。逐层取出节点，如果某一层从左到右和从右到左不一致，就不是对称二叉树。
 
-2. 每一层都更新结果，那么最后一层的第一个就是最左下脚
+为了保留空位信息，空节点用 `-101` 占位，这样可以一起比较结构和数值。
 
 ## Code
 
 ```go
-func bfs(root *TreeNode) int {
+func bfs(root *TreeNode) bool {
     if root == nil {
-        return 0
+        return true
     }
+
     q := list.New()
     q.PushBack(root)
 
-    last := 0 
     for q.Len() > 0 {
-        sz := q.Len() 
-        for i := 0 ; i < sz ; i ++ {
-            front := q.Front() 
+        n := q.Len()
+        level := make([]int, 0, n)
+        for i := 0; i < n; i++ {
+            front := q.Front()
             q.Remove(front)
 
             node := front.Value.(*TreeNode)
-            if i == 0 {
-                last = node.Val
+            if node != nil {
+                level = append(level, node.Val)
+            } else {
+                level = append(level, -101)
             }
-            if node.Left != nil {
+            if node != nil {
                 q.PushBack(node.Left)
-            }
-            if node.Right != nil {
                 q.PushBack(node.Right)
             }
         }
+        for i, j := 0, n-1; i < j; i, j = i+1, j-1 {
+            if level[i] != level[j] {
+                return false
+            }
+        }
     }
-    return last 
+    return true
 }
 
-func findBottomLeftValue(root *TreeNode) int {
+func isSymmetric(root *TreeNode) bool {
     return bfs(root)
 }
 ```
