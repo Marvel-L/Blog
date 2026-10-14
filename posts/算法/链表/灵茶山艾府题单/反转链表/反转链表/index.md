@@ -28,7 +28,7 @@ coverImage: /posts-img/算法/芝麻凛学链表.jpeg
 
 3. 最后直接返回 `pre` 头节点即可
 
-![反转链表.png](反转链表.png)
+![反转链表.png](solve.png)
 
 ## Code
 
