@@ -1,5 +1,5 @@
 ---
-id: lcsaf-reverse-link-0x01
+id: lcsaf-reverse-link-2-0x01
 title: 灵茶山艾府 - 反转链表 II 
 excerpt: 反转链表
 category: 算法
