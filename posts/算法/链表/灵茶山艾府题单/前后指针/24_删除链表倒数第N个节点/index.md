@@ -1,7 +1,7 @@
 ---
 id: lcsaf-remove-nth-node-from-end-of-list
 title: 灵茶山艾府 - 删除链表倒数第N个节点
-excerpt: 
+excerpt: 无
 category: 算法
 tags:
   - 日常
@@ -11,7 +11,7 @@ author: Marvel-L
 rank: 黄金
 series: false
 draft: false
-coverImage: / posts-img/算法/删除链表倒数第N个节点.png
+coverImage: /posts-img/算法/删除链表倒数第N个节点.png
 ---
 
 
