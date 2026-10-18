@@ -1272,6 +1272,8 @@ html.dark .mermaid-diagram > svg {
 }
 
 .reading-mode-article {
+  --reading-font-size: 1.1875rem;
+  --reading-line-height: 1.95;
   min-height: 100vh;
 }
 
@@ -1284,18 +1286,19 @@ html.dark .mermaid-diagram > svg {
   max-width: 68rem;
 }
 
-.reading-mode-article .post-body > div {
-  max-width: 46rem;
+.reading-mode-article .post-content {
+  max-width: 56rem;
+  margin-inline: auto;
 }
 
 .reading-mode-article .post-prose {
-  font-size: 1.1875rem;
-  line-height: 1.95;
+  font-size: var(--reading-font-size);
+  line-height: var(--reading-line-height);
 }
 
 .reading-mode-article .post-prose p,
 .reading-mode-article .post-prose li {
-  line-height: 1.95;
+  line-height: var(--reading-line-height);
 }
 
 .reading-mode-article .post-prose h2,
@@ -1346,18 +1349,13 @@ html.dark .mermaid-diagram > svg {
 }
 
 @media (max-width: 767px) {
+  .reading-mode-article {
+    --reading-font-size: 1.125rem;
+    --reading-line-height: 1.9;
+  }
+
   .reading-mode-article .post-header {
     margin-bottom: 2rem;
-  }
-
-  .reading-mode-article .post-prose {
-    font-size: 1.125rem;
-    line-height: 1.9;
-  }
-
-  .reading-mode-article .post-prose p,
-  .reading-mode-article .post-prose li {
-    line-height: 1.9;
   }
 }
 
