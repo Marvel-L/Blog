@@ -2405,7 +2405,7 @@ export const Post = () => {
         )}
 
         <div ref={articleBodyRef} className="post-body mx-auto w-full max-w-5xl px-3 pb-12 sm:px-4 md:pb-20 lg:px-0">
-          <div className="w-full">
+          <div className="post-content w-full">
             <div className="post-prose prose max-w-none dark:prose-invert md:prose-lg prose-headings:scroll-mt-24 prose-a:break-words">
               <ReactMarkdown
                 remarkPlugins={remarkPlugins}

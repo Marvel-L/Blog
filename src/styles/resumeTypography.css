@@ -38,8 +38,8 @@
     --tw-prose-bold: #121418;
     --tw-prose-links: var(--resume-accent);
     font-family: 'Resume Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-    font-size: 1rem;
-    line-height: 1.8;
+    font-size: var(--reading-font-size, 1rem);
+    line-height: var(--reading-line-height, 1.8);
     letter-spacing: 0;
     color: var(--tw-prose-body);
   }
@@ -54,7 +54,7 @@
   }
 
   .site-shell[data-typography='resume'] .prose :where(p, li, blockquote) {
-    line-height: 1.8;
+    line-height: var(--reading-line-height, 1.8);
     text-align: left;
   }
 
