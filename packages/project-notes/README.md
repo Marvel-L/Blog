@@ -5,6 +5,7 @@
 | 文档 | 内容 |
 | --- | --- |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 部署拓扑、package 边界、架构决策与迁移条件 |
+| [deployments/2026-10-20.md](deployments/2026-10-20.md) | 服务器检查、IP HTTPS 方案和待处理事项 |
 | [PROGRESS.md](PROGRESS.md) | 本版进度、待验证项和下一版任务 |
 | [versions/0.1.0.md](versions/0.1.0.md) | 首版交付范围、验证结果、限制与上线状态 |
 | [../../deploy/cloud/README.md](../../deploy/cloud/README.md) | 云端部署、授权配置、更新、回滚与备份 |
