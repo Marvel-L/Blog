@@ -17,7 +17,8 @@
   "devDependencies": {
     "@electric-sql/pglite": "0.5.10",
     "@types/pg": "8.23.1",
-    "tsx": "4.23.15"
+    "tsx": "4.23.15",
+    "typescript": "5.8.3"
   },
   "dependencies": {
     "@fastify/cookie": "11.1.3",

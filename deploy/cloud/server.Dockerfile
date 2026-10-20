@@ -3,7 +3,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/server/package.json packages/server/package.json
 COPY packages/project-notes/package.json packages/project-notes/package.json
-RUN npm ci --ignore-scripts
+RUN npm ci --ignore-scripts --workspace @d-blog/server --include-workspace-root=false
 COPY packages/server packages/server
 RUN npm run build --workspace @d-blog/server
 

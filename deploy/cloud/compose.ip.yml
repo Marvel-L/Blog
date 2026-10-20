@@ -1,0 +1,7 @@
+# Merge after compose.yml. Database/API remain private; only the gateway exposes 80/443.
+services:
+  gateway:
+    volumes:
+      - ./Caddyfile.ip:/etc/caddy/Caddyfile:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/lib/dblog-acme:/var/www/acme:ro

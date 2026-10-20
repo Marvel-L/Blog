@@ -1,6 +1,6 @@
 # 云端首版部署
 
-目标服务器：43.138.216.53。以下为部署配置和操作手册，不表示已连接或已上线。
+目标服务器：43.138.216.53。以下为部署配置和操作手册；实际完成情况见 `packages/project-notes/deployments/2026-10-20.md`。
 
 ## 前置配置
 
@@ -80,9 +80,54 @@ docker compose --env-file deploy/cloud/.env -f deploy/cloud/compose.yml exec -T 
 
 ## 已知限制
 
-- 真实 GitHub OAuth、pg 网络连接/迁移锁和镜像启动需在部署环境验收。
+- 真实 GitHub OAuth 仍待生产凭据与授权验收；本次服务器镜像构建、pg 网络连接与幂等迁移已通过。
 - 只有云端站点的已登录访问可关联账号；Pages 维持现有匿名统计和本机阅读记录。
 - 原 Umami/Giscus 等第三方服务保留现状，连通性仍受实际网络影响。
 - 初版限流按后端连接来源聚合，非真实访客 IP；多实例部署前需重新设计共享限流。
 - 访问事件尽力上报，无持久化离线队列；页面关闭/断网可能丢失事件。
 - 账号删除、阅读云同步、自动发布、异地备份作业尚未包含在本版。
+
+## 无域名的 IP HTTPS 部署
+
+已提供 `compose.ip.yml` 和 `Caddyfile.ip`。先申请公开可信 IP 证书，再合并配置启动；不能用 Caddy 默认本地证书替代公开可信证书。
+
+服务器约定：
+
+- `/opt/dblog/current` 指向本次 release 目录；历史目录位于 `/opt/dblog/releases/`。
+- `/opt/dblog/shared/cloud.env` 是 root:root 0600 的服务器凭据文件，CLOUD_DOMAIN 填公网 IP。
+- `/opt/dblog-tools/certbot` 为 Certbot 5.8.0 独立 Python venv；系统包版本可能不支持 IP 申请。
+- `/var/lib/dblog-acme` 为 HTTP-01 challenge webroot；`/etc/letsencrypt` 保存证书和 ACME 账号。
+- 首次签发可临时使用 HTTP 服务提供上述 webroot；正式运行后 Caddy 在 HTTP 80 上继续提供 challenge，其他请求跳转 HTTPS。
+
+签发示例（服务器执行，先确保公网可访问 challenge 路径；建议先以不同 cert-name 通过 staging 校验）：
+
+```sh
+sudo /opt/dblog-tools/certbot/bin/certbot certonly --webroot \
+  --webroot-path /var/lib/dblog-acme --preferred-profile shortlived \
+  --ip-address 43.138.216.53 --cert-name 43.138.216.53
+```
+
+签发账户注册时按提示处理 CA 条款；IP 证书有效期短，必须设置续期与证书重载。
+将 `dblog-certificate.service`、`dblog-certificate.timer` 安装到 `/etc/systemd/system/` 后执行：
+
+```sh
+sudo systemctl daemon-reload
+sudo systemctl enable --now dblog-certificate.timer
+```
+
+定时器每天北京时间 08:00/20:00 后随机 30 分钟内（定时器显式使用 UTC 00:00/12:00）检查，续期脚本仅续正式 IP 证书，并关闭 Certbot 自带随机等待（定时器已提供随机延迟）；证书变化时重载 Caddy，失败不会写入已加载摘要。
+证书路径和定时器针对本次 IP 部署；更换服务器 IP 时需要同步证书签发、续期脚本和 OAuth 回调。
+
+OAuth 凭据尚未填好时，可先启动静态站和数据库（不伪造凭据、不启动账号 API）：
+
+```sh
+cd /opt/dblog/current
+sudo docker compose --env-file /opt/dblog/shared/cloud.env \
+  -f deploy/cloud/compose.yml -f deploy/cloud/compose.ip.yml up -d --no-deps db web gateway
+```
+
+Nginx 在请求时解析 API 名称，因此 API 未启动时仍可浏览博客；账号界面如实提示服务暂不可用。
+通过 `sudo nano /opt/dblog/shared/cloud.env` 填写 GITHUB_CLIENT_SECRET 后执行 `sudo ./deploy/cloud/start-ip.sh`，启动迁移和 API，并等待健康检查。
+日志、截图和聊天均不应包含凭据文件内容；备份该文件时也应加密并限制访问。
+
+Caddy 保留错误日志，但在全局默认日志过滤器中删除请求 URI、Cookie 和 Authorization；Nginx 的 /api/ 不记录访问日志或带查询串的代理错误，避免回调 code 泄漏。
