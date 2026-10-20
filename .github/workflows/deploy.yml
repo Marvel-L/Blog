@@ -48,6 +48,7 @@ jobs:
       - name: Build site
         run: npm run build
         env:
+          VITE_DEPLOY_TARGET: pages
           VITE_SITE_URL: https://Marvel-L.github.io/Blog
           VITE_BASE_PATH: /Blog/
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

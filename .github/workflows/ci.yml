@@ -108,6 +108,7 @@ jobs:
         # 任一阶段失败即整体失败，与 deploy.yml 使用完全相同的构建流程。
         run: npm run build
         env:
+          VITE_DEPLOY_TARGET: pages
           VITE_SITE_URL: https://blog.pldduck.com
           # GITHUB_TOKEN 是 secret，不会自动导出到 shell run 步骤，必须显式注入；
           # fetch-giscus-comments.mjs 读取它拉取评论数（discussions: read 已声明）。
@@ -118,5 +119,18 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist
+          path: dist
+          if-no-files-found: error
+
+      - name: Build cloud site and API
+        run: npm run build:cloud && npm run build --workspace @d-blog/server
+        env:
+          VITE_SITE_URL: https://Marvel-L.github.io/Blog
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload cloud site artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloud-dist
           path: dist
           if-no-files-found: error

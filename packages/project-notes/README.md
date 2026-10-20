@@ -1,0 +1,14 @@
+# @d-blog/project-notes
+
+云端增强版的长期工程记录。当前版本 0.1.0。
+
+| 文档 | 内容 |
+| --- | --- |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | 部署拓扑、package 边界、架构决策与迁移条件 |
+| [PROGRESS.md](PROGRESS.md) | 本版进度、待验证项和下一版任务 |
+| [versions/0.1.0.md](versions/0.1.0.md) | 首版交付范围、验证结果、限制与上线状态 |
+| [../../deploy/cloud/README.md](../../deploy/cloud/README.md) | 云端部署、授权配置、更新、回滚与备份 |
+
+每个版本新建 versions/<版本>.md，记录日期、具体行为、迁移、验证结果和遗留项。
+进度只记录实际完成；代码、模拟/本地验证、生产验证分别描述。
+本文档 package 不生成站点路由，不会把内部进度发布到博客。

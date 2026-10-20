@@ -78,6 +78,7 @@ const stages = [
   { name: 'Generate static HTML (SSG)', command: process.execPath, args: ['scripts/ssg.mjs'] },
   { name: 'Audit build output', command: process.execPath, args: ['scripts/audit-build.mjs'] },
   { name: 'Audit SEO output', command: process.execPath, args: ['scripts/seo-audit.mjs'] },
+  { name: 'Audit deployment isolation', command: process.execPath, args: ['scripts/audit-deployment.mjs'] },
 ];
 
 /**

@@ -1,0 +1,4 @@
+{$CLOUD_DOMAIN} {
+    # Access logging is intentionally disabled: OAuth callbacks carry authorization codes.
+    reverse_proxy web:80
+}
