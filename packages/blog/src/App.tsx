@@ -147,7 +147,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/post/:id" element={<Post />} />
           <Route path="/book" element={<BookPage />} />
           <Route path="/book/:bookId" element={<BookPage />} />
-          <Route path="/book/:bookId/chapter/:postId" element={<BookPage />} />
+          <Route path="/book/:bookId/chapter/:chapterId" element={<BookPage />} />
           <Route path="/archive" element={<ArchivePage />} />
           <Route path="/tags" element={<Tags />} />
           <Route path="/stats" element={<Stats />} />

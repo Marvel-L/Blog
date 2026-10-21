@@ -1,51 +1,49 @@
 import { describe, expect, it } from 'vitest';
-import { buildBooks, bookPath, chapterPath, flattenChapters, getBookRoutes } from './books-core.mjs';
-
+import { buildBooks, bookPath, chapterPath, findLegacyChapter, flattenChapters, getBookRoutes } from './books-core.mjs';
 import { catalog, post } from './book-fixtures';
 
-describe('Book catalog', () => {
-  it('builds one book per public category without mutating metadata', () => {
+describe('Book package catalog', () => {
+  it('builds author-maintained packages instead of deriving books from categories', () => {
     const original = JSON.stringify(catalog);
     const books = buildBooks(catalog);
-    expect(books.map((book) => [book.id, book.name, book.posts.length])).toEqual([
-      ['algorithms', '算法', 3],
-      ['golang', 'Golang', 1],
+    expect(books.map((book) => book.id)).toContain('algorithms');
+    expect(books.map((book) => book.id)).toContain('golang');
+    expect(books.find((book) => book.id === 'algorithms')?.chapters.map((chapter) => chapter.id)).toEqual([
+      'start',
+      'linked-list',
+      'number-theory',
     ]);
+    expect(buildBooks([...catalog, post('new-category', '新分类', '/posts/new.md')])).toHaveLength(books.length);
     expect(JSON.stringify(catalog)).toBe(original);
-    expect(buildBooks([...catalog].reverse())).toEqual(books);
-    expect(buildBooks([])).toEqual([]);
   });
-  it('keeps directory hierarchy and removes article container and redundant category root', () => {
-    const book = buildBooks(catalog)[0];
-    expect(book.tree.map((node) => node.label)).toEqual(['数论', '链表']);
-    const linked = book.tree.find((node) => node.label === '链表')!;
-    expect(linked.children.map((node) => node.label)).toEqual(['反转', '合并']);
-    expect(linked.children[0].children[0].post?.id).toBe('reverse');
-    expect(flattenChapters(book.tree).map((item) => item.id)).toEqual(['gcd', 'reverse', 'merge']);
+
+  it('keeps package groups and chapter order', () => {
+    const book = buildBooks(catalog).find((item) => item.id === 'algorithms')!;
+    expect(book.tree.map((node) => node.label)).toEqual(['开始', '数据结构', '数学基础']);
+    expect(flattenChapters(book.tree).map((chapter) => chapter.id)).toEqual(['start', 'linked-list', 'number-theory']);
   });
-  it('honors series order, avoids locale-dependent order and strips shared container', () => {
-    const books = buildBooks([
-      post('second', '项目', '/posts/program/second.md', { series: true, seriesName: '工程', seriesOrder: 2 }),
-      post('first', '项目', '/posts/program/first.md', { series: true, seriesName: '工程', seriesOrder: 1 }),
+
+  it('resolves only existing public related posts and removes duplicates at book level', () => {
+    const book = buildBooks(catalog).find((item) => item.id === 'algorithms')!;
+    expect(book.chapters.find((chapter) => chapter.id === 'linked-list')?.relatedPosts.map((post) => post.id)).toEqual([
+      'lcsaf-reverse-link-0x01',
     ]);
-    expect(books[0].posts.map((item) => item.id)).toEqual(['first', 'second']);
+    expect(new Set(book.posts.map((item) => item.id)).size).toBe(book.posts.length);
+    const hidden = post('leetCode-hot-100', '算法', '/posts/hidden.md', { needHidden: true });
+    expect(buildBooks([hidden]).find((item) => item.id === 'algorithms')?.posts).toEqual([]);
   });
-  it('excludes hidden/draft metadata and supports unknown/prototype-like category names', () => {
-    const books = buildBooks([
-      ...catalog,
-      post('secret', '私密', '/posts/secret.md', { needHidden: true }),
-      { ...post('draft', '草稿', '/posts/draft.md'), draft: true },
-    ]);
-    expect(books).toHaveLength(2);
-    const unknown = buildBooks([post('custom', 'constructor', '/posts/custom.md')])[0];
-    expect(unknown.id).toMatch(/^c-[0-9a-f-]+$/);
-    expect(buildBooks([post('custom', '新分类', '/posts/custom.md')])[0].name).toBe('新分类');
+
+  it('maps old post chapter links to the package chapter containing that post', () => {
+    const book = buildBooks(catalog).find((item) => item.id === 'algorithms')!;
+    expect(findLegacyChapter(book, 'lcsaf-reverse-link-0x01')?.id).toBe('linked-list');
+    expect(findLegacyChapter(book, 'unknown')).toBeUndefined();
   });
-  it('shares encoded browser URLs and decoded SSG paths with sitemap category routes only', () => {
+
+  it('shares encoded browser URLs and decoded SSG paths', () => {
     expect(bookPath('golang')).toBe('/book/golang');
-    expect(chapterPath('golang', 'Go 指针')).toBe('/book/golang/chapter/Go%20%E6%8C%87%E9%92%88');
-    expect(getBookRoutes(catalog, false)).toEqual(['book', 'book/algorithms', 'book/golang']);
-    expect(getBookRoutes(catalog)).toContain('book/algorithms/chapter/reverse');
+    expect(chapterPath('golang', '语言 基础')).toBe('/book/golang/chapter/%E8%AF%AD%E8%A8%80%20%E5%9F%BA%E7%A1%80');
+    expect(getBookRoutes(catalog, false)).toContain('book/algorithms');
+    expect(getBookRoutes(catalog)).toContain('book/algorithms/chapter/linked-list');
     expect(new Set(getBookRoutes(catalog)).size).toBe(getBookRoutes(catalog).length);
   });
 });

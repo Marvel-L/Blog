@@ -16,7 +16,7 @@ const app = (path: string, basename = '/') => (
       <Routes>
         <Route path="/book" element={<BookPage />} />
         <Route path="/book/:bookId" element={<BookPage />} />
-        <Route path="/book/:bookId/chapter/:postId" element={<BookPage />} />
+        <Route path="/book/:bookId/chapter/:chapterId" element={<BookPage />} />
         <Route path="/post/:id" element={<p>原文阅读页</p>} />
       </Routes>
       <Probe />
@@ -30,66 +30,61 @@ beforeEach(() => {
   vi.mocked(getInitialPosts).mockReturnValue(catalog);
 });
 
-describe('Book navigation and preview', () => {
-  it('opens a real category book from the shelf and changes sidebar on category navigation', async () => {
+describe('Book package detail', () => {
+  it('opens an independently configured package from the shelf', async () => {
     const user = userEvent.setup();
     render(app('/book'));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('把零散的思考');
-    await user.click(screen.getByRole('link', { name: '打开 算法，3 篇文章' }));
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('把零散的内容');
+    await user.click(screen.getByRole('link', { name: '打开 算法学习手册，3 个章节' }));
     expect(screen.getByTestId('path')).toHaveTextContent('/book/algorithms');
-    expect(screen.getByRole('navigation', { name: '算法章节目录' })).toBeInTheDocument();
-    const nav = screen.getByRole('navigation', { name: '书籍分类' });
-    await user.click(within(nav).getByRole('link', { name: 'Golang1' }));
-    expect(screen.getByTestId('path')).toHaveTextContent('/book/golang');
-    expect(screen.getByRole('navigation', { name: 'Golang章节目录' })).toBeInTheDocument();
-    expect(screen.queryByRole('navigation', { name: '算法章节目录' })).not.toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: '算法学习手册章节目录' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: '阅读指南' })).toBeInTheDocument();
   });
-  it('supports nested directory toggles, chapter preview, neighboring chapters and original post navigation', async () => {
+
+  it('switches package chapters and renders Markdown content plus related Blog posts', async () => {
     const user = userEvent.setup();
     render(app('/book/algorithms'));
-    const tree = screen.getByRole('navigation', { name: '算法章节目录' });
-    const toggle = within(tree).getByRole('button', { name: '链表' });
-    expect(toggle).not.toHaveClass('book-tree-current-group');
+    const tree = screen.getByRole('navigation', { name: '算法学习手册章节目录' });
+    const toggle = within(tree).getByRole('button', { name: '数据结构' });
     await user.click(toggle);
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(within(tree).queryByRole('link', { name: '反转链表' })).not.toBeInTheDocument();
     await user.click(toggle);
-    await user.click(within(tree).getByRole('link', { name: '反转链表' }));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('反转链表');
-    expect(screen.getByRole('heading', { name: '章节摘要' })).toBeInTheDocument();
-    expect(
-      within(screen.getByRole('navigation', { name: '算法章节目录' })).getByRole('link', { name: '反转链表' }),
-    ).toHaveAttribute('aria-current', 'page');
-    const neighbors = screen.getByRole('navigation', { name: '相邻章节' });
-    await user.click(within(neighbors).getByRole('link', { name: /下一章/ }));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('两数相加');
-    await user.click(screen.getByRole('link', { name: '阅读完整文章' }));
-    expect(screen.getByTestId('path')).toHaveTextContent('/post/merge');
-    expect(screen.getByText('原文阅读页')).toBeInTheDocument();
+    await user.click(within(tree).getByRole('link', { name: '链表：从指针关系入手' }));
+    expect(screen.getByTestId('path')).toHaveTextContent('/book/algorithms/chapter/linked-list');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('链表：从指针关系入手');
+    expect(screen.getByRole('heading', { name: '常见题型' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '你可能还喜欢' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /反转链表/ })).toHaveAttribute('href', '/post/lcsaf-reverse-link-0x01');
   });
-  it('supports deep links and /Blog base paths', () => {
-    render(app('/Blog/book/algorithms/chapter/reverse', '/Blog'));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('反转链表');
-    expect(screen.getByRole('link', { name: '阅读完整文章' })).toHaveAttribute('href', '/Blog/post/reverse');
+
+  it('supports old post chapter links and /Blog base paths', () => {
+    render(app('/Blog/book/algorithms/chapter/lcsaf-reverse-link-0x01', '/Blog'));
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('链表：从指针关系入手');
+    expect(screen.getByRole('link', { name: /反转链表/ })).toHaveAttribute(
+      'href',
+      '/Blog/post/lcsaf-reverse-link-0x01',
+    );
     expect(screen.getByRole('link', { name: '返回书架' })).toHaveAttribute('href', '/Blog/book');
   });
-  it.each(['/book/missing', '/book/golang/chapter/reverse'])('handles unknown/cross-category routes: %s', (path) => {
+
+  it.each(['/book/missing', '/book/golang/chapter/missing'])('handles unknown routes: %s', (path) => {
     render(app(path));
     expect(screen.getByRole('heading', { name: '页面走丢了' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: '章节摘要' })).not.toBeInTheDocument();
   });
-  it('renders an honest empty shelf', () => {
+
+  it('keeps packages visible even when no related Blog post exists', () => {
     vi.mocked(getInitialPosts).mockReturnValue([]);
     render(app('/book'));
-    expect(screen.getByText(/书架还空着/)).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /打开/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '打开 算法学习手册，3 个章节' })).toBeInTheDocument();
+    expect(screen.queryByText(/书架还空着/)).not.toBeInTheDocument();
   });
-  it('SSR exposes the same deterministic shelf and directories before effects', () => {
-    const a = renderToString(app('/book/algorithms'));
-    const b = renderToString(app('/book/algorithms'));
+
+  it('SSR exposes deterministic package content and routes', () => {
+    const a = renderToString(app('/book/algorithms/chapter/linked-list'));
+    const b = renderToString(app('/book/algorithms/chapter/linked-list'));
     expect(a).toBe(b);
-    expect(a).toContain('算法章节目录');
-    expect(a).toContain('反转链表');
-    expect(a).toContain('/book/algorithms/chapter/reverse');
+    expect(a).toContain('算法学习手册章节目录');
+    expect(a).toContain('链表：从指针关系入手');
+    expect(a).toContain('/book/algorithms/chapter/linked-list');
   });
 });
