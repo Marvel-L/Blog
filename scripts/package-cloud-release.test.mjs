@@ -87,6 +87,27 @@ describe('cloud release packaging', () => {
     }
   });
 
+  it('includes only checksummed files, without platform-generated archive metadata', async () => {
+    const options = await fixture();
+    await packageCloudRelease(options);
+    const { stdout: contents } = await run('tar', ['-tzf', options.output]);
+    const { stdout: sums } = await run('tar', ['-xOzf', options.output, './SHA256SUMS']);
+    const actual = contents
+      .trim()
+      .split('\n')
+      .filter((name) => !name.endsWith('/'))
+      .map((name) => name.replace(/^\.\//, ''))
+      .sort();
+    const expected = [
+      ...sums
+        .trim()
+        .split('\n')
+        .map((line) => line.split('  ')[1]),
+      'SHA256SUMS',
+    ].sort();
+    expect(actual).toEqual(expected);
+  });
+
   it('rejects a Pages artifact so publishing cannot remove cloud account functionality', async () => {
     await expect(packageCloudRelease(await fixture(false))).rejects.toThrow('隔离检查失败');
   });

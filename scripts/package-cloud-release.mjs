@@ -65,7 +65,10 @@ export async function packageCloudRelease({
     await writeFile(path.join(release, 'SHA256SUMS'), `${sums.join('\n')}\n`);
     const absoluteOutput = path.resolve(output);
     await mkdir(path.dirname(absoluteOutput), { recursive: true });
-    await run('tar', ['-czf', absoluteOutput, '-C', release, '.']);
+    // macOS tar otherwise synthesizes AppleDouble files absent from SHA256SUMS.
+    await run('tar', ['-czf', absoluteOutput, '-C', release, '.'], {
+      env: { ...process.env, COPYFILE_DISABLE: '1' },
+    });
     return { commit, output: absoluteOutput, files: sums.length };
   } finally {
     await rm(scratch, { recursive: true, force: true });
