@@ -6,10 +6,10 @@
 
 ## 关键文件
 
-- `src/components/Layout.tsx`（隐藏入口、全站切面切换、导航/页脚收起）
-- `src/components/LoveModeContext.tsx`（Love 面全局状态与本地持久化）
-- `src/components/LoveSurface.tsx`（Love 面内容展示）
-- `src/components/Layout.test.tsx`（入口切换与导航收起回归测试）
+- `packages/blog/src/components/Layout.tsx`（隐藏入口、全站切面切换、导航/页脚收起）
+- `packages/blog/src/components/LoveModeContext.tsx`（Love 面全局状态与本地持久化）
+- `packages/blog/src/components/LoveSurface.tsx`（Love 面内容展示）
+- `packages/blog/src/components/Layout.test.tsx`（入口切换与导航收起回归测试）
 
 ## 修改规则（必须遵守）
 

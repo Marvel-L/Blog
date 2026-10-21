@@ -22,6 +22,8 @@ async function fixture(cloud = true) {
     'package.json': '{}',
     'package-lock.json': '{}',
     'packages/server/src/main.ts': 'export const server = true;',
+    'packages/blog/package.json': '{"name":"@d-blog/blog"}',
+    'packages/blog/src/App.tsx': 'frontend source must not be shipped to the API build',
     'packages/project-notes/package.json': '{}',
     'deploy/cloud/compose.yml': 'name: dblog-cloud',
     'deploy/cloud/.env.example': 'GITHUB_CLIENT_SECRET=',
@@ -57,6 +59,10 @@ describe('cloud release packaging', () => {
     await mkdir(unpacked);
     await run('tar', ['-xzf', options.output, '-C', unpacked]);
     expect(await readFile(path.join(unpacked, 'dist/index.html'), 'utf8')).toContain('LeetCode Hot 100');
+    expect(JSON.parse(await readFile(path.join(unpacked, 'packages/blog/package.json'), 'utf8')).name).toBe(
+      '@d-blog/blog',
+    );
+    await expect(readFile(path.join(unpacked, 'packages/blog/src/App.tsx'))).rejects.toMatchObject({ code: 'ENOENT' });
     expect(await readFile(path.join(unpacked, 'packages/server/src/main.ts'), 'utf8')).toBe(
       'export const server = true;',
     );

@@ -46,7 +46,7 @@ export const EMPTY_SITE_STATS: SiteStats = {
 
 // 构建期 SSG：site-stats.json 通过 eager glob 内联进产物，SSR 阶段即可同步渲染
 // 站点统计数据，爬虫无需执行 JS 即可读取（与 posts.ts 的 posts.json 模式一致）。
-const generatedStatsModules = import.meta.glob<SiteStats>('../../generated/site-stats.json', {
+const generatedStatsModules = import.meta.glob<SiteStats>('../../../../generated/site-stats.json', {
   eager: true,
   import: 'default',
 });

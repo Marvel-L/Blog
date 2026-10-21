@@ -1,6 +1,10 @@
 import { siteConfig } from '@config/site.config';
 import type { PostMetadata } from '@/types';
-import { createHiddenContentMatcher, normalizeHiddenContentConfig, isHiddenPost as isHiddenPostCore } from './hidden-content-core.mjs';
+import {
+  createHiddenContentMatcher,
+  normalizeHiddenContentConfig,
+  isHiddenPost as isHiddenPostCore,
+} from './hidden-content-core.mjs';
 
 export interface HiddenContentConfig {
   categories?: string[];

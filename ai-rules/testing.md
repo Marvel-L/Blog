@@ -7,7 +7,7 @@ Vitest 测试体系：92 个测试文件 / 700+ 用例；jsdom（src）与 node�
 ## 关键文件
 
 - `vitest.config.ts`（环境/覆盖率/门槛）
-- `src/test/setup.ts`（jest-dom matchers、scrollIntoView/scrollTo 补齐）
+- `packages/blog/src/test/setup.ts`（jest-dom matchers、scrollIntoView/scrollTo 补齐）
 - 各 `*.test.{ts,tsx,mjs}`
 
 ## 修改规则（必须遵守）

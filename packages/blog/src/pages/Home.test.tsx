@@ -172,5 +172,4 @@ describe('Home', () => {
     readUnlockedPrivacyPostsSpy.mockRestore();
     getCachedPrivacyPostMetadataSpy.mockRestore();
   });
-
 });

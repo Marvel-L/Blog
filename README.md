@@ -22,17 +22,45 @@
 
 首页及全站导航栏的外观/氛围按钮旁新增「排版」开关。开启后，Markdown 正文采用 Resume 的 Lapis CV Serif 风格：思源黑体正文、思源宋体标题、JetBrains Mono 英文与代码、1.8 倍行高、蓝色章节标题及细分隔线。字号与段落留白按博客长文适配，同时支持浅色、深色和专注阅读模式。
 
-默认使用原样式，关闭开关即可恢复。选择保存在本机浏览器中，跨页面和刷新后继续生效；存储不可用时仍可在当前会话切换。字体随项目提供，WOFF2 文件仅在新排版启用时按需加载，首次开启可能需要等待字体下载。字体来源与许可见 `src/assets/resume-fonts/NOTICE.md`。
+默认使用原样式，关闭开关即可恢复。选择保存在本机浏览器中，跨页面和刷新后继续生效；存储不可用时仍可在当前会话切换。字体随项目提供，WOFF2 文件仅在新排版启用时按需加载，首次开启可能需要等待字体下载。字体来源与许可见 `packages/blog/src/assets/resume-fonts/NOTICE.md`。
 
-## 云端增强版与工程记录
+## 项目结构与双端部署
 
-现有博客继续位于根目录并发布到 GitHub Pages。新增 npm workspaces：
+同一份前端、同一份文章，发布到 GitHub Pages 和云服务器。日常继续在 custom 发文，不需要复制文章或 commit。
 
-- `packages/server`：GitHub 登录、数据库会话和账号访问记录 API。
-- `packages/project-notes`：架构决策、任务进度和历史版本。
+```text
+packages/
+  blog/            React 前端：页面、样式、账号界面、Vite 与前端依赖
+  server/          Fastify 后端：GitHub 登录、数据库会话、行为记录、SQL 迁移
+  project-notes/   架构、任务进度、版本与部署记录
+deploy/
+  pages/           GitHub Pages 静态发布说明
+  cloud/           云服务器容器、网关、发布、证书与备份
+scripts/           共用内容生成、SSG、构建与审计工具
+config/            共用站点、内容及构建配置
+posts/ shuoshuo/ friends/ Summary/ posts-img/
+                   内容和 CMS 路径保持原位
+public/            共用静态资源输入（含内容生成的配图等）
+.github/workflows/ CI、Pages 发布与云端自动发布入口
+```
 
-`npm run build` 使用现有博客构建流程；`npm run build:cloud` 通过同一流程生成云端增强版（仍为 `/Blog/`，输出同为 `dist/`）。
-`npm run typecheck` 和 `npm test` 同时检查博客与后端。
+`packages/blog` 是实际前端 workspace，不为 GitHub Pages 再复制一份源码。
+Pages 构建仅包含静态能力；cloud 构建加入账号入口，通过同源 `/api/v1/` 访问后端。
+根 package 负责工作区编排，根 Vite/TypeScript 配置只保留已有命令的兼容入口。
 
-部署参见 [云端部署手册](deploy/cloud/README.md)，本地联调参见 [后端说明](packages/server/README.md)。
-工程进度参见 [项目记录](packages/project-notes/README.md)，架构规则参见 [云端规则](ai-rules/cloud-platform.md)。
+```sh
+npm ci
+npm run dev           # 静态前端
+npm run dev:cloud     # 云端前端，本地 /api/ 代理到 3001
+npm run dev:server    # 独立 API（需先配置数据库和 OAuth）
+npm run typecheck    # 前端 + 后端
+npm test             # 前端 + 共用脚本 + 后端
+npm run build:pages  # 静态 Pages 产物
+npm run build:cloud  # 同一前端的 cloud 产物
+```
+
+两种构建共用 `scripts/build.mjs`，输出都为根 `dist/`，连续构建会覆盖上一份本地产物；CI 分别保存制品。
+前端也可通过 `npm run dev --workspace @d-blog/blog` 等命令单独运行。
+
+详细说明：[前端](packages/blog/README.md) · [后端](packages/server/README.md) · [部署目标](deploy/README.md)。
+工程进度见 [项目记录](packages/project-notes/README.md)，架构约束见 [云端规则](ai-rules/cloud-platform.md)。

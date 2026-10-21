@@ -6,8 +6,8 @@
 
 ## 关键文件
 
-- `src/pages/NotFound.tsx`
-- `src/components/NotFoundState.tsx`（与文章/说说缺失页共用状态块）
+- `packages/blog/src/pages/NotFound.tsx`
+- `packages/blog/src/components/NotFoundState.tsx`（与文章/说说缺失页共用状态块）
 
 ## 修改规则（必须遵守）
 

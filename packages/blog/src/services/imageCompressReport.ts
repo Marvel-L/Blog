@@ -3,10 +3,13 @@
  */
 import type { ImageCompressReport } from '@/pages/image-compress/compressReport';
 
-const generatedReportModules = import.meta.glob<ImageCompressReport>('../../generated/image-compress-report.json', {
-  eager: true,
-  import: 'default',
-});
+const generatedReportModules = import.meta.glob<ImageCompressReport>(
+  '../../../../generated/image-compress-report.json',
+  {
+    eager: true,
+    import: 'default',
+  },
+);
 
 const emptyReport: ImageCompressReport = { profileId: 'v1', items: [] };
 

@@ -6,8 +6,8 @@ Giscus 评论区（文章评论 + 留言板）：懒加载、多来源回退链�
 
 ## 关键文件
 
-- `src/components/GiscusComments.tsx`
-- `src/pages/Guestbook.tsx`（mapping=number）
+- `packages/blog/src/components/GiscusComments.tsx`
+- `packages/blog/src/pages/Guestbook.tsx`（mapping=number）
 - `scripts/fetch-giscus-comments.mjs`（构建期评论数快照）
 - `config/site.config.json`（comments 段）
 

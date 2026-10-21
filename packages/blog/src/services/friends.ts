@@ -6,7 +6,7 @@ import type { Friend } from '../types';
 
 // 构建期 SSG：friends.json 通过 eager glob 内联进产物，SSR 阶段即可同步渲染友链列表，
 // 爬虫无需执行 JS 即可读取全部友链（与 posts.ts 的 posts.json 模式一致）。
-const generatedFriendModules = import.meta.glob<Friend[]>('../../generated/friends.json', {
+const generatedFriendModules = import.meta.glob<Friend[]>('../../../../generated/friends.json', {
   eager: true,
   import: 'default',
 });

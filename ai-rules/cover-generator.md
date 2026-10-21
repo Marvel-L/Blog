@@ -6,12 +6,12 @@
 
 ## 关键文件
 
-- `src/pages/CoverGenerator.tsx`（约 3200 行，全站第二大文件）
-- `src/pages/cover/`：coverRenderer（绘制）、coverLayout（布局/文字适配）、coverColor（配色/采样）、coverStorage（草稿/预设）、coverTypes/coverConstants、coverBatch（批量解析）、coverFiles（文件读取）、coverExport（导出/预加载）、coverImageCache、coverTemplates/coverPresets
+- `packages/blog/src/pages/CoverGenerator.tsx`（约 3200 行，全站第二大文件）
+- `packages/blog/src/pages/cover/`：coverRenderer（绘制）、coverLayout（布局/文字适配）、coverColor（配色/采样）、coverStorage（草稿/预设）、coverTypes/coverConstants、coverBatch（批量解析）、coverFiles（文件读取）、coverExport（导出/预加载）、coverImageCache、coverTemplates/coverPresets
 
 ## 修改规则（必须遵守）
 
-1. **领域边界**：封面全部逻辑集中在 `src/pages/cover/`，新增代码必须放该目录，禁止外溢到 utils/components。
+1. **领域边界**：封面全部逻辑集中在 `packages/blog/src/pages/cover/`，新增代码必须放该目录，禁止外溢到 utils/components。
 2. **canvas 健壮性**：所有 getContext 必须判空并如实反馈（禁止 `?.` 吞掉后静默画空白）；`ctx.roundRect` 必须特性检测回退 `rect`（老浏览器缺 API）。
 3. **存储诚实语义**：writeDraft/writePreset/deletePreset 在 localStorage 不可用时必须如实返回 false/null（禁止假报成功）；版本号容错（COVER_STORAGE_VERSION）保持。
 4. **导出**：JPEG 导出必须铺白底（JPEG 不支持透明）；导出尺寸/像素上限与加载上限保持一致；导出失败必须给明确错误文案。

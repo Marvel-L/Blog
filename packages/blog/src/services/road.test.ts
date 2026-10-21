@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { RoadGraphConfig } from '@config/road.config';
-import { readActiveRoadGraphId, readRoadViewport, resolveNodeArticles, writeActiveRoadGraphId, writeRoadViewport } from './road';
+import {
+  readActiveRoadGraphId,
+  readRoadViewport,
+  resolveNodeArticles,
+  writeActiveRoadGraphId,
+  writeRoadViewport,
+} from './road';
 import type { PostMetadata } from '@/types';
 
 const graphs: RoadGraphConfig[] = [

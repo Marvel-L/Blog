@@ -6,8 +6,8 @@
 
 ## 关键文件
 
-- `src/pages/Archive.tsx`
-- `src/pages/archive/archiveState.ts`（分组构建、展开状态、year 归一化）
+- `packages/blog/src/pages/Archive.tsx`
+- `packages/blog/src/pages/archive/archiveState.ts`（分组构建、展开状态、year 归一化）
 
 ## 修改规则（必须遵守）
 

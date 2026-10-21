@@ -6,8 +6,8 @@
 
 ## 关键文件
 
-- `src/pages/Watermark.tsx`
-- `src/pages/watermark/watermarkRenderer.ts`（绘制/定位/文件名）
+- `packages/blog/src/pages/Watermark.tsx`
+- `packages/blog/src/pages/watermark/watermarkRenderer.ts`（绘制/定位/文件名）
 
 ## 修改规则（必须遵守）
 

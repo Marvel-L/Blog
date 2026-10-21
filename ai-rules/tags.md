@@ -6,8 +6,8 @@
 
 ## 关键文件
 
-- `src/pages/Tags.tsx`
-- `src/utils/postRelations.ts`（buildTagList 等标签聚合）
+- `packages/blog/src/pages/Tags.tsx`
+- `packages/blog/src/utils/postRelations.ts`（buildTagList 等标签聚合）
 
 ## 修改规则（必须遵守）
 

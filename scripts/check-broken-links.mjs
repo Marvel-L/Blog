@@ -22,7 +22,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import matter from 'gray-matter';
 import { fileURLToPath, pathToFileURL } from 'url';
-import { maskFencedCodeBlocks } from '../src/utils/headings-core.mjs';
+import { maskFencedCodeBlocks } from '@d-blog/blog/headings-core';
 import { sendTelegramMessage } from './lib/telegram.mjs';
 import {
   fetchWithRetry,

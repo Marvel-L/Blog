@@ -1,6 +1,6 @@
 # 云端增强版架构决策
 
-日期：2026-10-20；版本：0.1.0。
+初始日期：2026-10-20；目录边界于 2026-10-21 更新至 0.2.0。
 
 ## 部署拓扑
 
@@ -15,7 +15,7 @@
 Cloud 构建输出也为 dist，连续构建会覆盖上一个结果；CI 分别上传 dist/cloud-dist，部署时必须使用对应产物。
 /Blog/ 保持一致使资源路径和离线作用域保持兼容。云端 Nginx 返回 X-Robots-Tag:noindex,follow；公开文章 canonical 保持指向配置中的 Pages 站点。
 
-## ADR-001：渐进式 workspaces，不立即迁移博客
+## ADR-001：首版渐进式 workspaces（历史决策）
 
 根 package 承载现有博客；新建 packages/server、packages/project-notes。
 根目录 scripts/gen:data、import.meta.glob、Pages CMS、内容旁路图片和 CI 都依赖当前目录。
@@ -67,3 +67,28 @@ Nginx 负责静态资源和 API 路由，Caddy 在其前面自动申请和续期
 
 0.2：阅读同步、账号数据导出/删除、事件暂停与删除策略、收藏。
 之后：自动发布与回滚、监控告警、异地备份恢复演练、必要时拆 packages/blog。
+
+## ADR-006：前端归入 packages/blog，Pages 是部署目标
+
+依据用户 2026-10-21 的项目结构优化要求，将实际前端源码、HTML、Vite/SSR、TypeScript、前端测试配置和依赖迁入 packages/blog。
+根 package 转为工作区与共用工具编排；后端仍是 packages/server，工程记录仍是独立文档 package。
+
+```text
+packages/blog（共用 React 前端）
+  ├─ pages → GitHub Pages：静态阅读和本机能力
+  └─ cloud → 云端 Nginx：同一前端，加账号界面
+                       └─ /api/v1/ → packages/server → PostgreSQL
+```
+
+Pages 没有独立源码副本；deploy/pages 记录 Pages 发布职责，deploy/cloud 管理服务器部署和运维。
+GitHub Actions 继续放在根 .github/workflows，发布分支仍是 custom。
+
+此次只迁移前端应用，不迁移 posts、shuoshuo、friends、Summary、posts-img 或 .pages.yml，避免改变 CMS 发文与已有文章 Git 日期。
+config、public、generated 和 scripts 保留为根目录的共用内容/构建基础设施；浏览器数据服务同步调整指向根内容和生成数据的路径。
+前端包导出少量无 UI 的 Markdown/加密核心，根 scripts 通过 npm package exports 引用，不再依赖前端目录的深层相对路径。
+
+根 Vite 配置只 re-export 前端真实配置，根 config/tsconfig.json 只 extends 前端 tsconfig；旧命令继续可用。
+前端实际 root 为 packages/blog，envDir 指向仓库根，静态资源、dist 和 dist-ssr 路径保持现有部署契约。
+Vite 的 @、@config 别名语义保持，未增加路径别名。前端 workspace 可独立 dev/typecheck/test，也仍复用根唯一生产构建流水线。
+
+迁移验证包括：CMS/内容文件摘要不变、正文真实懒加载、前端/SSR 配置根路径、两种产物隔离、全量回归、两套 SSG/SEO 构建、云端发布包中的前端依赖清单与后端独立依赖安装。

@@ -9,7 +9,7 @@ import { getDateTimestamp } from '@/utils/date';
 import { stripFrontmatter } from '@/utils/markdown-core.mjs';
 import { getUnlockedPrivacyPostById } from './privacyPosts';
 
-const generatedPostModules = import.meta.glob<PostMetadata[]>('../../generated/posts.json', {
+const generatedPostModules = import.meta.glob<PostMetadata[]>('../../../../generated/posts.json', {
   eager: true,
   import: 'default',
 });
@@ -21,10 +21,10 @@ let postsSearchIndexPromise: Promise<SearchIndexEntry[]> | null = null;
 const SEARCH_CACHE_LIMIT = 80;
 const searchResultsCache = new Map<string, PostSearchResult[]>();
 
-const postFiles = import.meta.glob('../../posts/**/*.md', { query: '?raw', import: 'default' });
+const postFiles = import.meta.glob('../../../../posts/**/*.md', { query: '?raw', import: 'default' });
 
 const loadPostsSearchData = async (): Promise<Array<PostMetadata & { searchText?: string }>> => {
-  const data = await import('../../generated/posts-search.json');
+  const data = await import('../../../../generated/posts-search.json');
   return data.default as Array<PostMetadata & { searchText?: string }>;
 };
 
@@ -136,7 +136,7 @@ export const getPosts = async (): Promise<PostMetadata[]> => initialPosts;
  */
 export const getPostById = async (id: string): Promise<Post | undefined> => {
   const meta = initialPosts.find((post) => post.id === id);
-  const relativePath = meta ? `../..${meta.filePath}` : undefined;
+  const relativePath = meta ? `../../../..${meta.filePath}` : undefined;
   const loader = relativePath ? postFiles[relativePath] : undefined;
 
   if (meta && loader) {

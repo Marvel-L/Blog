@@ -6,8 +6,8 @@
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
-import { remarkTyporaMarks } from '../src/utils/remark-typora-marks-core.mjs';
-import { remarkImageAttrs } from '../src/utils/remark-image-attrs-core.mjs';
+import { remarkTyporaMarks } from '@d-blog/blog/remark-typora-marks-core';
+import { remarkImageAttrs } from '@d-blog/blog/remark-image-attrs-core';
 import remarkMath from 'remark-math';
 import remarkRehype from 'remark-rehype';
 import rehypeKatex from 'rehype-katex';

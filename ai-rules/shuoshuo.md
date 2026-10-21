@@ -6,9 +6,9 @@
 
 ## 关键文件
 
-- `src/pages/ShuoShuo.tsx` / `ShuoShuoDetail.tsx`
-- `src/components/ShuoShuoItem.tsx` / `ShuoShuoShareModal.tsx`
-- `src/services/shuoshuo.ts`
+- `packages/blog/src/pages/ShuoShuo.tsx` / `ShuoShuoDetail.tsx`
+- `packages/blog/src/components/ShuoShuoItem.tsx` / `ShuoShuoShareModal.tsx`
+- `packages/blog/src/services/shuoshuo.ts`
 
 ## 修改规则（必须遵守）
 

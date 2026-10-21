@@ -7,13 +7,13 @@
 ## 关键文件
 
 - `config/content.config.json` 的 `postRanks`（构建期白名单）
-- `src/utils/postRank.ts`（`POST_RANKS` / `RANK_SLUG` / `isPostRank`）
-- `src/utils/postRank.test.ts`（断言 JSON 白名单与 `POST_RANKS` 一致）
-- `src/components/RankFlash.tsx`（徽标、标题框、封面套；指针只写 CSS 变量）
-- `src/index.css`（`.flash-rank--*` 颜色变量、`.flash-surface--card|frame|cover`）
+- `packages/blog/src/utils/postRank.ts`（`POST_RANKS` / `RANK_SLUG` / `isPostRank`）
+- `packages/blog/src/utils/postRank.test.ts`（断言 JSON 白名单与 `POST_RANKS` 一致）
+- `packages/blog/src/components/RankFlash.tsx`（徽标、标题框、封面套；指针只写 CSS 变量）
+- `packages/blog/src/index.css`（`.flash-rank--*` 颜色变量、`.flash-surface--card|frame|cover`）
 - `scripts/generate-site-data.mjs`（校验 `rank`，经 `normalizeRank` 写入 `posts.json`）
-- `src/types.ts` 的 `PostMetadata.rank`
-- 消费面：`src/components/PostCard.tsx`、`src/components/CompactPostCard.tsx`、`src/pages/Post.tsx`、`src/pages/Archive.tsx`
+- `packages/blog/src/types.ts` 的 `PostMetadata.rank`
+- 消费面：`packages/blog/src/components/PostCard.tsx`、`packages/blog/src/components/CompactPostCard.tsx`、`packages/blog/src/pages/Post.tsx`、`packages/blog/src/pages/Archive.tsx`
 - `.pages.yml` 文章集合的 `rank` select（非必填）
 
 ## 修改规则（必须遵守）

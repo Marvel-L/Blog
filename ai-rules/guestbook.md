@@ -6,8 +6,8 @@
 
 ## 关键文件
 
-- `src/pages/Guestbook.tsx`
-- `src/components/GiscusComments.tsx`（见 [giscus-comments.md](giscus-comments.md)）
+- `packages/blog/src/pages/Guestbook.tsx`
+- `packages/blog/src/components/GiscusComments.tsx`（见 [giscus-comments.md](giscus-comments.md)）
 - `config/site.config.json`（guestbook.discussionId）
 
 ## 修改规则（必须遵守）

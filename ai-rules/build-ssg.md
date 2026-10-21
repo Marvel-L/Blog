@@ -8,7 +8,7 @@
 
 - `scripts/build.mjs`（阶段编排、超时/总预算双控）
 - `scripts/ssg.mjs`（SSG 渲染、Suspense 展平、路由数据注入、预算控制）
-- `src/ssr-entry.tsx`（renderToPipeableStream + StaticRouter）
+- `packages/blog/src/ssr-entry.tsx`（renderToPipeableStream + StaticRouter）
 - `scripts/audit-build.mjs` / `seo-audit.mjs`
 - `vite.config.ts` / `vite.ssr.config.ts`
 

@@ -2,6 +2,7 @@ FROM node:22-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/server/package.json packages/server/package.json
+COPY packages/blog/package.json packages/blog/package.json
 COPY packages/project-notes/package.json packages/project-notes/package.json
 RUN npm ci --ignore-scripts --workspace @d-blog/server --include-workspace-root=false
 COPY packages/server packages/server
@@ -12,6 +13,7 @@ ENV NODE_ENV=production
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/server/package.json packages/server/package.json
+COPY packages/blog/package.json packages/blog/package.json
 COPY packages/project-notes/package.json packages/project-notes/package.json
 RUN npm ci --omit=dev --ignore-scripts --workspace @d-blog/server --include-workspace-root=false && npm cache clean --force
 COPY --from=build /app/packages/server/dist packages/server/dist

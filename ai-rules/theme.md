@@ -6,10 +6,10 @@
 
 ## 关键文件
 
-- `src/components/Layout.tsx`（ThemeToggle 主题逻辑段）
+- `packages/blog/src/components/Layout.tsx`（ThemeToggle 主题逻辑段）
 - `index.html`（首帧防闪内联脚本：管 localStorage 显式选择 + 系统偏好回退）
-- `src/components/ReadingModeContext.tsx` / `ReadingModeToggle.tsx`
-- `src/hooks/{useMediaQuery, useReducedMotion}.ts`
+- `packages/blog/src/components/ReadingModeContext.tsx` / `ReadingModeToggle.tsx`
+- `packages/blog/src/hooks/{useMediaQuery, useReducedMotion}.ts`
 - `tailwind.config.js`（darkMode: 'class'）
 
 ## 修改规则（必须遵守）

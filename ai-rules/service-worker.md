@@ -7,8 +7,8 @@ PWA Service Worker：页面/静态资源/图片分级缓存、断网离线渲染
 ## 关键文件
 
 - `public/sw.js`（或生成位置）
-- `src/registerServiceWorker.ts`
-- `src/components/ServiceWorkerUpdatePrompt.tsx`
+- `packages/blog/src/registerServiceWorker.ts`
+- `packages/blog/src/components/ServiceWorkerUpdatePrompt.tsx`
 
 ## 修改规则（必须遵守）
 

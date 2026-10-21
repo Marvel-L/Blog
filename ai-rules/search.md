@@ -6,9 +6,9 @@
 
 ## 关键文件
 
-- `src/pages/Search.tsx`
-- `src/hooks/usePostSearch.ts`
-- `src/services/posts.ts`（searchPosts、getFieldMatchScore、搜索索引）
+- `packages/blog/src/pages/Search.tsx`
+- `packages/blog/src/hooks/usePostSearch.ts`
+- `packages/blog/src/services/posts.ts`（searchPosts、getFieldMatchScore、搜索索引）
 
 ## 修改规则（必须遵守）
 

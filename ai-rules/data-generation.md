@@ -10,17 +10,17 @@
 - `scripts/lib/git-file-dates.mjs`（文章 date/updatedAt、说说 date 的 Git 回退与合并）
 - `scripts/post-content-validator.mjs`（内容校验）
 - `scripts/feed-generator.mjs` / `feed-markdown.mjs`
-- `src/services/*`（消费 generated JSON）
+- `packages/blog/src/services/*`（消费 generated JSON）
 
 ## 修改规则（必须遵守）
 
-1. **前端契约**：`generated/posts.json` 的字段结构被 src/services 直接消费，增删字段必须同步更新前端类型与消费方。
+1. **前端契约**：`generated/posts.json` 的字段结构被 packages/blog/src/services 直接消费，增删字段必须同步更新前端类型与消费方。
 2. **fail-closed**：front matter 校验失败、输出写入失败必须非零退出阻断构建（禁止带缺文件件继续）。
 3. **草稿语义**：`draft: true` 的文章跳过内容校验但不出现在发布列表（既有用户确认的行为）。
 4. **URL 口径**：sitemap/RSS/OG 的 URL 必须为绝对站点 URL（siteAbsoluteUrl），base path 正确拼接。
 5. **robots.txt**：LF 换行（与 .gitattributes eol=lf 一致），sitemap 引用绝对地址。
 6. **产物计数**：summary 的 outputs 从 generated//public/ 实际统计（禁止硬编码）。
-7. **共享核心**：front matter 剥离（markdown-core.mjs）、标题提取（headings-core.mjs）是 src/scripts 共享模块，改动必须两端一致。
+7. **共享核心**：front matter 剥离（markdown-core.mjs）、标题提取（headings-core.mjs）是 packages/blog/src/scripts 共享模块，改动必须两端一致。
 8. **异常兜底**：uncaughtException/unhandledRejection handler 必须在记录日志后确保进程退出（宽限期强制 process.exit(1)），不得依赖「异常后无挂起异步」的假设 —— 脚本含顶层 await（fetchCommentCounts），异常发生在异步窗口时进程可能带不一致状态继续/挂起。
 9. **评论数匹配口径**：fetch-giscus-comments 的 discussion 标题（页面 URL pathname）匹配必须叠加 BASE_PATH（withBasePath），子路径部署时 `/post/<id>` 匹配不上会导致评论数静默全缺。
 10. **文章日期**：`date` / `updatedAt` 在 front matter 中可选。缺省时由 Git 填充（首次提交日 / 最后**内容**改动日），合法手写值优先；无 Git 历史时回退构建日并 warn。不写回 `.md`。跑 gen:data 的 CI checkout 必须 `fetch-depth: 0`，否则浅克隆会让首次提交日偏晚。纯路径移动（R100 rename，含未提交的 staged/`git mv` 与同内容工作区移动）必须沿源路径取历史，且不得把移动日当成 `updatedAt`。

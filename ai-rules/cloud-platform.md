@@ -4,10 +4,11 @@
 
 ## 架构
 
-- 根 package 是博客应用，继续管理 src/、config/、posts/、shuoshuo/、public/、scripts/ 和现有 CMS。
+- 根 package 是工作区编排入口，管理公共 scripts/、config/、内容目录、public/ 和 CMS；packages/blog 是真实前端 workspace，拥有源码、HTML 入口、Vite 配置和前端依赖。
 - packages/server 是独立 npm workspace，只提供 API，不读取 Markdown、不参与 SSG、不导入前端组件。
 - packages/project-notes 是文档 workspace，保存 ADR、任务状态、版本范围、验证结果和部署记录，无运行时代码。
-- 0.1.0 不移动博客目录。以后迁入 packages/blog 时单独实施和验证，不得把内容迁移混在账号功能中。
+- 0.2.0 已单独实施前端 workspace 迁移；Pages 与 cloud 共用 packages/blog，不另建一份 Pages 前端。内容与 CMS 路径保留在根目录，内容迁移需另行实施。
+- 根目录 Vite/TypeScript 配置只保留兼容入口，实际前端配置归 packages/blog；根 scripts/build.mjs 仍是两种目标的唯一构建流水线。
 
 ## 修改规则
 
@@ -24,7 +25,8 @@
 11. 数据库 schema 通过编号 SQL 迁移；迁移串行化且事务执行，失败阻止 API 启动。禁止通过自动删除数据卷解决迁移失败。
 12. 工作进度区分代码完成、测试通过、生产验证；未连接服务器或未经过真实 OAuth，不得记为已上线。每版更新 project-notes 的版本记录。
 13. 服务端测试必须验证真实 SQL 持久化行为、授权失败、重放、账号隔离、幂等与故障反馈；纯 mock 不能替代存储验证。PGlite 通过不等于 pg 网络连接、迁移锁或容器部署已通过。
-14. 新增服务端环境变量需同时说明于根 .env.example；真实 .env、证书与数据库备份不得提交或进入镜像构建上下文。
+14. 前端 workspace 拥有真实源码、入口和依赖；根构建/部署不得另建一份前端。前端移动必须验证 CMS 路径、内容摘要、正文懒加载、双目标构建及后端独立安装。
+15. 新增服务端环境变量需同时说明于根 .env.example；真实 .env、证书与数据库备份不得提交或进入镜像构建上下文。
 
 ## 验证入口
 

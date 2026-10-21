@@ -6,8 +6,8 @@
 
 ## 关键文件
 
-- `src/pages/Stats.tsx`
-- `src/services/siteStats.ts`（不蒜子 `busuanzi.ts` 仅服务文章页阅读量，不在统计页展示）
+- `packages/blog/src/pages/Stats.tsx`
+- `packages/blog/src/services/siteStats.ts`（不蒜子 `busuanzi.ts` 仅服务文章页阅读量，不在统计页展示）
 
 ## 修改规则（必须遵守）
 

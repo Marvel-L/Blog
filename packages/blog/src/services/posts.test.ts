@@ -117,7 +117,7 @@ describe('searchPosts 排序与匹配', () => {
   });
 
   it('all scope：分类精确匹配的文章先于仅正文命中的文章', async () => {
-    const searchData = (await import('../../generated/posts-search.json')).default as Array<
+    const searchData = (await import('../../../../generated/posts-search.json')).default as Array<
       PostMetadata & { searchText?: string }
     >;
     const categoryQuery = searchData.find((post) => post.category.trim())?.category;
@@ -209,7 +209,7 @@ describe('searchPosts scope 筛选', () => {
     // 含某篇而 posts.json 缺失），导致前提失真、scope=title 误返回命中。
     // 归一化也复用搜索的 normalizeSearchText（NFKC + locale 无关小写），
     // 避免 toLocaleLowerCase 等口径差异再次制造「前提以为没有、搜索却命中」。
-    const searchData = (await import('../../generated/posts-search.json')).default as Array<
+    const searchData = (await import('../../../../generated/posts-search.json')).default as Array<
       PostMetadata & { searchText?: string }
     >;
     const allTitles = searchData.map((post) => normalizeSearchText(post.title));

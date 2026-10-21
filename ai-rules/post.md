@@ -6,12 +6,12 @@
 
 ## 关键文件
 
-- `src/pages/Post.tsx`（约 2600 行，全站最大文件）
-- `src/utils/headings-core.mjs` / `headings.ts`（标题提取/锚点 id，**构建端与客户端共享**）
-- `src/utils/remarkCodeMeta.ts` / `markdown-core.mjs` / `markdownText.ts`
-- `src/utils/remarkImageAttrs.ts` / `remark-image-attrs-core.mjs` / `markdownImageDisplay.ts` / `markdown-image-display-core.mjs`（图片属性块）
-- `src/components/{TableOfContents, GiscusComments, ShareModal, ReadingProgressBadge, ProgressiveImage, ImageViewer}.tsx`
-- `src/utils/readingProgress.ts`
+- `packages/blog/src/pages/Post.tsx`（约 2600 行，全站最大文件）
+- `packages/blog/src/utils/headings-core.mjs` / `headings.ts`（标题提取/锚点 id，**构建端与客户端共享**）
+- `packages/blog/src/utils/remarkCodeMeta.ts` / `markdown-core.mjs` / `markdownText.ts`
+- `packages/blog/src/utils/remarkImageAttrs.ts` / `remark-image-attrs-core.mjs` / `markdownImageDisplay.ts` / `markdown-image-display-core.mjs`（图片属性块）
+- `packages/blog/src/components/{TableOfContents, GiscusComments, ShareModal, ReadingProgressBadge, ProgressiveImage, ImageViewer}.tsx`
+- `packages/blog/src/utils/readingProgress.ts`
 - 文章分级闪卡见 [post-rank.md](post-rank.md)（`PostRankFrame` / `FlashCover`，逻辑不堆进本页）
 
 ## 正文图片属性块（作者约定）

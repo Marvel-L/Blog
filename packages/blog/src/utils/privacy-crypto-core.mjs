@@ -35,7 +35,9 @@ export const base64ToBytes = (value) => {
 };
 
 const deriveAesKey = async (cryptoLike, password, salt) => {
-  const keyMaterial = await cryptoLike.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveKey']);
+  const keyMaterial = await cryptoLike.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, [
+    'deriveKey',
+  ]);
   return cryptoLike.subtle.deriveKey(
     {
       name: 'PBKDF2',

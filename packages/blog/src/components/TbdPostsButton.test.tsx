@@ -5,7 +5,9 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import type { PostMetadata } from '@/types';
 import { TbdPostsButton } from './TbdPostsButton';
 
-const makePost = (partial: Partial<PostMetadata> & Pick<PostMetadata, 'id' | 'title' | 'date' | 'category'>): PostMetadata => ({
+const makePost = (
+  partial: Partial<PostMetadata> & Pick<PostMetadata, 'id' | 'title' | 'date' | 'category'>,
+): PostMetadata => ({
   excerpt: '摘要',
   filePath: `/posts/${partial.id}.md`,
   readTime: '1 分钟',
@@ -53,7 +55,9 @@ describe('TbdPostsButton', () => {
     render(
       <MemoryRouter>
         <>
-          <TbdPostsButton posts={[makePost({ id: 'post-c', title: '正常文章 C', date: '2026-10-03', category: '技术' })]} />
+          <TbdPostsButton
+            posts={[makePost({ id: 'post-c', title: '正常文章 C', date: '2026-10-03', category: '技术' })]}
+          />
           <TbdPostsButton
             posts={[
               makePost({ id: 'post-d', title: '待补完 D', date: '2026-10-01', category: '技术', tbd: true }),

@@ -13,6 +13,7 @@ const sourcePaths = [
   'package.json',
   'package-lock.json',
   'packages/server',
+  'packages/blog/package.json',
   'packages/project-notes/package.json',
   'deploy/cloud',
 ];

@@ -6,9 +6,9 @@
 
 ## 关键文件
 
-- `src/pages/ImageCompress.tsx`
-- `src/pages/image-compress/compressImage.ts` / `compressReport.ts`
-- `src/services/imageCompressReport.ts`（消费 `generated/image-compress-report.json`）
+- `packages/blog/src/pages/ImageCompress.tsx`
+- `packages/blog/src/pages/image-compress/compressImage.ts` / `compressReport.ts`
+- `packages/blog/src/services/imageCompressReport.ts`（消费 `generated/image-compress-report.json`）
 - `scripts/lib/compress-content-images-core.mjs` / `scripts/compress-content-images.mjs`
 - 导航：`Layout.tsx`「更多 → 图片压缩」；路由 `/image-compress`
 

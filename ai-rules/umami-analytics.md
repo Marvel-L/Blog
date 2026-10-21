@@ -13,7 +13,7 @@ D-Umami（自托管 Umami，`https://umami.pldduck.com`，站点 ID：`01a4a9ca-
   （加载 script.js），`connect-src` 放行 `https://umami.pldduck.com`（上报 /api/send）
 - `scripts/audit-build.mjs` — 构建审计断言 Umami 标签存在、含 data-website-id
   且为 defer 异步加载（检测到 load 延迟注入即构建失败）
-- `src/pages/Stats.tsx` — 统计页底部「D-Umami 访问分析」板块与「跳转D-Umami查看」
+- `packages/blog/src/pages/Stats.tsx` — 统计页底部「D-Umami 访问分析」板块与「跳转D-Umami查看」
   按钮（跳转共享看板，公开 URL 无需登录）
 
 ## 修改规则（必须遵守）

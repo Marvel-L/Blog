@@ -6,8 +6,8 @@
 
 ## 关键文件
 
-- `src/pages/About.tsx`
-- `src/components/effects/{RotatingText, Magnet, Reveal}.tsx`
+- `packages/blog/src/pages/About.tsx`
+- `packages/blog/src/components/effects/{RotatingText, Magnet, Reveal}.tsx`
 
 ## 修改规则（必须遵守）
 

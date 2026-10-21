@@ -18,12 +18,12 @@ import {
   resolveLocalImageTarget,
   validatePostContent,
 } from './post-content-validator.mjs';
-import { extractMarkdownHeadings } from '../src/utils/headings-core.mjs';
-import { encryptJsonWithPassword } from '../src/utils/privacy-crypto-core.mjs';
-import { createHiddenContentMatcher, isHiddenPost as isHiddenPostCore } from '../src/utils/hidden-content-core.mjs';
+import { extractMarkdownHeadings } from '@d-blog/blog/headings-core';
+import { encryptJsonWithPassword } from '@d-blog/blog/privacy-crypto-core';
+import { createHiddenContentMatcher, isHiddenPost as isHiddenPostCore } from '@d-blog/blog/hidden-content-core';
 import { buildRssFeed } from './feed-generator.mjs';
 import { fetchCommentCounts } from './fetch-giscus-comments.mjs';
-import { SHUOSHUO_IMAGE_OPTIONS, siblingContentImageUrl, siblingImageRelative } from '../src/utils/post-image-src.mjs';
+import { SHUOSHUO_IMAGE_OPTIONS, siblingContentImageUrl, siblingImageRelative } from '@d-blog/blog/post-image-src';
 import { getGitFileDates, resolvePostDates } from './lib/git-file-dates.mjs';
 import { listMarkdownFiles } from './lib/list-markdown-files.mjs';
 import { runCompressContentImagesCli, writeImageCompressReport } from './compress-content-images.mjs';
@@ -189,9 +189,7 @@ const readCoverImageDimensions = async (coverImage) => {
       return { width: metadata.width, height: metadata.height };
     }
   } catch (error) {
-    logger.warn(
-      `Skip cover dimensions for ${coverImage}: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    logger.warn(`Skip cover dimensions for ${coverImage}: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   return undefined;

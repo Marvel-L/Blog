@@ -6,11 +6,11 @@
 
 ## 关键文件
 
-- `src/components/Layout.tsx`（约 1350 行）
-- `src/App.tsx`（路由 + 错误边界 + View Transitions）
-- `src/components/{BackToTop, OfflineStatus, ServiceWorkerUpdatePrompt, CookieNotice, ReadingModeToggle}.tsx`
+- `packages/blog/src/components/Layout.tsx`（约 1350 行）
+- `packages/blog/src/App.tsx`（路由 + 错误边界 + View Transitions）
+- `packages/blog/src/components/{BackToTop, OfflineStatus, ServiceWorkerUpdatePrompt, CookieNotice, ReadingModeToggle}.tsx`
 - Love 面细节见 [love-mode.md](love-mode.md)（`Layout` 只负责全站壳层切面与入口摆放）
-- `src/hooks/useModalOverlay.ts`（弹层栈/滚动锁/焦点陷阱，全局共享）
+- `packages/blog/src/hooks/useModalOverlay.ts`（弹层栈/滚动锁/焦点陷阱，全局共享）
 
 ## 修改规则（必须遵守）
 

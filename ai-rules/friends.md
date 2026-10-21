@@ -6,9 +6,9 @@
 
 ## 关键文件
 
-- `src/pages/Friends.tsx`
-- `src/services/friends.ts`（getFriends/getInitialFriends）
-- `src/components/effects/useSpotlight.ts`（卡片光效）
+- `packages/blog/src/pages/Friends.tsx`
+- `packages/blog/src/services/friends.ts`（getFriends/getInitialFriends）
+- `packages/blog/src/components/effects/useSpotlight.ts`（卡片光效）
 
 ## 修改规则（必须遵守）
 

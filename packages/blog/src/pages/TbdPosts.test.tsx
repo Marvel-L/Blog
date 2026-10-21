@@ -12,7 +12,9 @@ const SearchParamsProbe = () => {
   return null;
 };
 
-const makePost = (partial: Partial<PostMetadata> & Pick<PostMetadata, 'id' | 'title' | 'date' | 'category'>): PostMetadata => ({
+const makePost = (
+  partial: Partial<PostMetadata> & Pick<PostMetadata, 'id' | 'title' | 'date' | 'category'>,
+): PostMetadata => ({
   excerpt: '摘要',
   filePath: `/posts/${partial.id}.md`,
   readTime: '1 分钟',

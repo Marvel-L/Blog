@@ -160,7 +160,9 @@ export const TbdPosts: React.FC<TbdPostsPageProps> = ({ posts = getInitialPosts(
               <AlertTriangle size={18} aria-hidden="true" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">红框越重，说明这篇文章挂起得越久。</p>
+              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                红框越重，说明这篇文章挂起得越久。
+              </p>
               <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
                 强度基于文章的创建时间计算；创建越早、拖得越久，提醒越明显。
               </p>

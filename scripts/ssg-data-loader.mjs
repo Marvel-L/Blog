@@ -5,7 +5,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { stripFrontmatter } from '../src/utils/markdown-core.mjs';
+import { stripFrontmatter } from '@d-blog/blog/markdown-core';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

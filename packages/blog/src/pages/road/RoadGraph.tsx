@@ -19,13 +19,7 @@ const MIN_SCALE = 0.5;
 const MAX_SCALE = 1.8;
 const clampScale = (value: number) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, value));
 
-export const RoadGraph: React.FC<RoadGraphProps> = ({
-  graphId,
-  nodes,
-  rootId,
-  selectedNodeId,
-  onSelectNode,
-}) => {
+export const RoadGraph: React.FC<RoadGraphProps> = ({ graphId, nodes, rootId, selectedNodeId, onSelectNode }) => {
   const layout = useMemo(() => layoutRoadGraph(nodes, rootId), [nodes, rootId]);
   const viewportRef = useRef<HTMLDivElement>(null);
   const viewportSizeRef = useRef<{ width: number; height: number } | null>(null);

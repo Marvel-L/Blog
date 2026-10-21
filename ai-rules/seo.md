@@ -6,8 +6,8 @@
 
 ## 关键文件
 
-- `src/components/Seo.tsx`（页面级 SEO 组件）
-- `src/pages/Post.tsx`（文章 JSON-LD）等页面
+- `packages/blog/src/components/Seo.tsx`（页面级 SEO 组件）
+- `packages/blog/src/pages/Post.tsx`（文章 JSON-LD）等页面
 - `scripts/ssg.mjs`（SSG 注入 SEO 头）
 - `scripts/seo-audit.mjs`（构建期审计门禁）
 - `scripts/generate-site-data.mjs`（sitemap/robots 生成）

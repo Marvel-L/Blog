@@ -6,7 +6,7 @@ import type { PostSearchResult, PostSearchScope } from './posts';
 import { clearPrivacyAccess, readPrivacyAccess, readPrivacySessionPassword } from '@/utils/privacyAccess';
 
 const PRIVACY_POSTS_CACHE_KEY = 'd-blog-privacy-posts-cache';
-const generatedPrivacyModules = import.meta.glob<EncryptedPrivacyPayload>('../../generated/privacy-posts.json', {
+const generatedPrivacyModules = import.meta.glob<EncryptedPrivacyPayload>('../../../../generated/privacy-posts.json', {
   eager: true,
   import: 'default',
 });

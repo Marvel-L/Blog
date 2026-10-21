@@ -30,10 +30,13 @@ interface PostCardProps {
  * 内联组件每次渲染都会创建新的组件类型，导致标签子树（含 Link）被
  * 卸载并重新挂载，浪费 DOM 重建且使 memo 失效。
  */
-const PostCardTags: React.FC<{ tags: string[]; getTagHref?: (tag: string) => string | null }> = ({ tags, getTagHref }) =>
+const PostCardTags: React.FC<{ tags: string[]; getTagHref?: (tag: string) => string | null }> = ({
+  tags,
+  getTagHref,
+}) =>
   tags.length > 0 ? (
     <div className="flex flex-wrap gap-1.5">
-      {tags.slice(0, 3).map((tag) => (
+      {tags.slice(0, 3).map((tag) =>
         (() => {
           const href = getTagHref ? getTagHref(tag) : `/tags?tag=${encodeURIComponent(tag)}`;
           if (!href) {
@@ -57,8 +60,8 @@ const PostCardTags: React.FC<{ tags: string[]; getTagHref?: (tag: string) => str
               {tag}
             </Link>
           );
-        })()
-      ))}
+        })(),
+      )}
     </div>
   ) : null;
 

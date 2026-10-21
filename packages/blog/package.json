@@ -1,0 +1,70 @@
+{
+  "name": "@d-blog/blog",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0",
+    "npm": ">=10"
+  },
+  "scripts": {
+    "dev": "node ../../scripts/generate-site-data.mjs && vite",
+    "dev:cloud": "node ../../scripts/generate-site-data.mjs && vite --mode cloud",
+    "build": "node ../../scripts/build-target.mjs pages",
+    "build:cloud": "node ../../scripts/build-cloud.mjs",
+    "build:ssr": "vite build --config vite.ssr.config.ts",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node ../../scripts/generate-site-data.mjs && vitest run --config vitest.config.ts"
+  },
+  "dependencies": {
+    "dompurify": "^3.4.5",
+    "framer-motion": "^12.29.0",
+    "highlight.js": "^11.9.0",
+    "jszip": "^3.10.1",
+    "katex": "^0.16.38",
+    "lucide-react": "^0.563.0",
+    "mermaid": "^11.13.0",
+    "micromark-util-chunked": "2.0.1",
+    "micromark-util-classify-character": "2.0.1",
+    "micromark-util-resolve-all": "2.0.1",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-helmet-async": "^3.0.0",
+    "react-markdown": "^10.1.0",
+    "react-router": "^7.18.2",
+    "react-router-dom": "^7.18.2",
+    "rehype-highlight": "^7.0.0",
+    "rehype-katex": "^7.0.1",
+    "rehype-stringify": "^10.0.1",
+    "remark-gfm": "^4.0.0",
+    "remark-math": "^6.0.0",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "unist-util-visit": "^5.1.0"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "10.4.1",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.4",
+    "@types/mdast": "^4.0.4",
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^5.0.0",
+    "jsdom": "^30.0.1",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0",
+    "vitest": "^4.1.10"
+  },
+  "exports": {
+    "./markdown-core": "./src/utils/markdown-core.mjs",
+    "./headings-core": "./src/utils/headings-core.mjs",
+    "./privacy-crypto-core": "./src/utils/privacy-crypto-core.mjs",
+    "./hidden-content-core": "./src/utils/hidden-content-core.mjs",
+    "./post-image-src": "./src/utils/post-image-src.mjs",
+    "./remark-typora-marks-core": "./src/utils/remark-typora-marks-core.mjs",
+    "./remark-image-attrs-core": "./src/utils/remark-image-attrs-core.mjs"
+  }
+}

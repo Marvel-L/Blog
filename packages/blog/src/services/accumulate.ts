@@ -35,7 +35,7 @@ const SWIPE_THRESHOLD_PX = 48;
 /** 已知分类的展示顺序；其余子目录按中文排序接在后面。 */
 const CATEGORY_ORDER = ['名人名言', '代办', '摘录'];
 
-const summaryModules = import.meta.glob('../../Summary/*/*.md', {
+const summaryModules = import.meta.glob('../../../../Summary/*/*.md', {
   query: '?raw',
   import: 'default',
   eager: true,

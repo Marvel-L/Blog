@@ -1,5 +1,4 @@
-const normalizeHiddenLabel = (value) =>
-  typeof value === 'string' ? value.trim().normalize('NFKC').toLowerCase() : '';
+const normalizeHiddenLabel = (value) => (typeof value === 'string' ? value.trim().normalize('NFKC').toLowerCase() : '');
 
 const normalizeHiddenList = (value) =>
   Array.isArray(value) ? Array.from(new Set(value.map(normalizeHiddenLabel).filter(Boolean))) : [];

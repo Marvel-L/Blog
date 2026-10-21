@@ -9,7 +9,8 @@
 - `config/site.config.json` + `scripts/site-config-loader.mjs`（fail-closed 加载）
 - `config/content.config.json`
 - `config/tsconfig.json` / `tailwind.config.js` / `postcss.config.js`
-- `vite.config.ts` / `vite.ssr.config.ts` / `vitest.config.ts`
+- `packages/blog/vite.config.ts` / `packages/blog/vite.ssr.config.ts` / `packages/blog/vitest.config.ts`（前端真实配置）
+- 根 Vite/TS 配置为兼容入口，根 vitest.config.ts 组合前端与 scripts 门禁
 - `.env.example`（环境变量文档）
 
 ## 修改规则（必须遵守）
@@ -23,9 +24,9 @@
 
 ## 常见陷阱
 
-- config/ 根目录（构建配置）与 src/config（已删除）勿混淆；
+- config/ 根目录（构建配置）与 packages/blog/src/config（已删除）勿混淆；
 - site.config.json 的 author/social/comments 等嵌套结构被多处消费，增删字段需全局检索消费方。
-- `postRanks` 与 `src/utils/postRank.ts` 的 `POST_RANKS` 必须保持一致，不能只改 JSON。
+- `postRanks` 与 `packages/blog/src/utils/postRank.ts` 的 `POST_RANKS` 必须保持一致，不能只改 JSON。
 
 ## 破例条款
 

@@ -1,8 +1,12 @@
 import typography from '@tailwindcss/typography';
+import { fileURLToPath } from 'node:url';
 
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  content: [
+    fileURLToPath(new URL('../packages/blog/index.html', import.meta.url)),
+    fileURLToPath(new URL('../packages/blog/src/**/*.{js,ts,jsx,tsx}', import.meta.url)),
+  ],
   darkMode: 'class',
   theme: {
     extend: {

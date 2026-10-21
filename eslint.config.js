@@ -71,7 +71,12 @@ export default tseslint.config(
   },
   {
     // 客户端/SSR 入口与上下文文件不参与 Fast Refresh，关闭 react-refresh 告警。
-    files: ['src/index.tsx', 'src/ssr-entry.tsx', 'src/ssr/**', 'src/components/ReadingModeContext.tsx'],
+    files: [
+      'packages/blog/src/index.tsx',
+      'packages/blog/src/ssr-entry.tsx',
+      'packages/blog/src/ssr/**',
+      'packages/blog/src/components/ReadingModeContext.tsx',
+    ],
     rules: {
       'react-refresh/only-export-components': 'off',
     },

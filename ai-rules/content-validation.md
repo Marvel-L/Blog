@@ -7,7 +7,7 @@
 ## 关键文件
 
 - `scripts/post-content-validator.mjs`
-- `src/utils/headings-core.mjs`（maskFencedCodeBlocks 等共享正则）
+- `packages/blog/src/utils/headings-core.mjs`（maskFencedCodeBlocks 等共享正则）
 
 ## 修改规则（必须遵守）
 

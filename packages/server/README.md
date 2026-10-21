@@ -10,7 +10,7 @@ npm ci
 node --env-file=.env --import tsx packages/server/src/migrate.ts
 npm run dev:server
 # 另一个终端启动云端前端；GitHub 本地 OAuth 回调指向 localhost:3000。
-VITE_DEPLOY_TARGET=cloud VITE_BASE_PATH=/Blog/ npm run dev
+VITE_BASE_PATH=/Blog/ npm run dev:cloud
 ```
 
 本地 APP_ORIGIN=http://localhost:3000，后端 3001；Vite 仅在 cloud 模式代理 /api/。

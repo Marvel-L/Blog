@@ -6,11 +6,11 @@
 
 ## 关键文件
 
-- `src/pages/Home.tsx`（约 780 行）
-- `src/components/PostCard.tsx`（首页与搜索共用卡片，已 React.memo）
+- `packages/blog/src/pages/Home.tsx`（约 780 行）
+- `packages/blog/src/components/PostCard.tsx`（首页与搜索共用卡片，已 React.memo）
 - 文章分级闪卡见 [post-rank.md](post-rank.md)（`PostCard` / `CompactPostCard` 只消费 `rank`，不在页面内重写光泽）
-- `src/hooks/usePostSearch.ts`（搜索 hook：防抖 + requestId 竞态 + 空查询兜底）
-- `src/utils/postSelection.ts` / `postSorting.ts` / `homeQuery.ts`（精选/排序/URL 查询状态）
+- `packages/blog/src/hooks/usePostSearch.ts`（搜索 hook：防抖 + requestId 竞态 + 空查询兜底）
+- `packages/blog/src/utils/postSelection.ts` / `postSorting.ts` / `homeQuery.ts`（精选/排序/URL 查询状态）
 
 ## 修改规则（必须遵守）
 

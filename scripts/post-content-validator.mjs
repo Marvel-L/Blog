@@ -4,8 +4,8 @@
 
 import fs from 'fs';
 import path from 'path';
-import { maskFencedCodeBlocks } from '../src/utils/headings-core.mjs';
-import { siblingImageRelative } from '../src/utils/post-image-src.mjs';
+import { maskFencedCodeBlocks } from '@d-blog/blog/headings-core';
+import { siblingImageRelative } from '@d-blog/blog/post-image-src';
 
 const URI_SCHEME_PATTERN = /^[a-z][a-z0-9+.-]*:/i;
 const EXTERNAL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);

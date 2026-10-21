@@ -140,8 +140,8 @@ if (localStylesheets.size === 0) {
 // 依赖第三方服务（Umami/Busuanzi）的引用存在性检查：期望值从源模板
 // （index.html / public/_headers）推导 —— 从源码移除对应服务时审计自动放宽，
 // 无需再手动同步本文件的硬编码检查串（原实现在移除服务后构建会误红）。
-const sourceIndexHtml = fs.existsSync(path.join(ROOT_DIR, 'index.html'))
-  ? fs.readFileSync(path.join(ROOT_DIR, 'index.html'), 'utf8')
+const sourceIndexHtml = fs.existsSync(path.join(ROOT_DIR, 'packages/blog/index.html'))
+  ? fs.readFileSync(path.join(ROOT_DIR, 'packages/blog/index.html'), 'utf8')
   : '';
 const sourceHeadersFile = fs.existsSync(path.join(ROOT_DIR, 'public/_headers'))
   ? fs.readFileSync(path.join(ROOT_DIR, 'public/_headers'), 'utf8')
