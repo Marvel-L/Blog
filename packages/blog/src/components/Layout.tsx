@@ -100,6 +100,7 @@ const shuoshuoNavItem: NavPathItem = {
 
 const navItems: NavPathItem[] = [
   { path: '/', label: TEXT.navPosts, hint: '最新内容', icon: BookOpen },
+  { path: '/book', label: 'Book', hint: '分类书架', icon: Library },
   shuoshuoNavItem,
   { path: '/archive', label: TEXT.navArchive, hint: '时间归档', icon: Archive },
   { path: '/tags', label: TEXT.navTags, hint: '主题筛选', icon: Tag },
@@ -652,7 +653,9 @@ const Navbar = ({
   );
   const isMobileNavAnimating = mobileNavPhase === 'opening' || mobileNavPhase === 'closing';
   const isNavItemActive = (path: string) =>
-    location.pathname === path || (path === '/' && location.pathname.startsWith('/post/'));
+    location.pathname === path ||
+    (path === '/' && location.pathname.startsWith('/post/')) ||
+    (path === '/book' && location.pathname.startsWith('/book/'));
 
   const clearAnimationFrame = useCallback(() => {
     if (animationFrameRef.current === null) {

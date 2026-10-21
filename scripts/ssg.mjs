@@ -3,6 +3,7 @@
  */
 
 import 'dotenv/config';
+import { getBookRoutes } from '@d-blog/blog/books-core';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
@@ -435,6 +436,7 @@ export const runSsg = async ({
   };
 
   const staticPages = [
+    ...getBookRoutes(posts).map((path) => ({ path, schemaFromSeo: true, schemaType: 'CollectionPage' })),
     {
       path: 'archive',
       // schemaFromSeo: 页面级 title/description/schema 均由页面组件 Seo 输出，

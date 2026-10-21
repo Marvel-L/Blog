@@ -11,6 +11,7 @@ const URI_SCHEME_PATTERN = /^[a-z][a-z0-9+.-]*:/i;
 const EXTERNAL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
 const DEFAULT_STATIC_ROUTES = new Set([
   '/',
+  '/book',
   '/archive',
   '/tags',
   '/stats',

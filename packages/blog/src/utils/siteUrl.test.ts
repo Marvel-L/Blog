@@ -1,4 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+
+afterEach(() => vi.unstubAllEnvs());
 import { absoluteSiteUrl, assetUrl, getRouterBasename, getSiteBasePath, routeUrl } from './siteUrl';
 
 const SITE_URL = 'https://blog.pldduck.com';
@@ -6,6 +8,12 @@ const SITE_URL = 'https://blog.pldduck.com';
 describe('getSiteBasePath / getRouterBasename', () => {
   it('默认 base path 为根路径', () => {
     expect(getSiteBasePath()).toBe('/');
+  });
+
+  it.each(['/Blog/book', '/Blog/book/golang/chapter/hello'])('相对部署从 Book 路由 %s 推断前缀', (pathname) => {
+    vi.stubEnv('BASE_URL', './');
+    expect(getSiteBasePath(pathname)).toBe('/Blog/');
+    expect(getRouterBasename(pathname)).toBe('/Blog');
   });
 
   it('根路径下 router basename 为 /', () => {

@@ -105,6 +105,18 @@ describe('Layout', () => {
     expect(screen.getByRole('link', { name: '积累' })).toBeInTheDocument();
   });
 
+  it.each(['/book', '/book/algorithms', '/book/algorithms/chapter/hello'])(
+    'Book 入口在 %s 保持高亮并可返回书架',
+    async (pathname) => {
+      const user = userEvent.setup();
+      renderLayout([pathname]);
+      const book = screen.getByRole('link', { name: 'Book' });
+      expect(book).toHaveAttribute('aria-current', 'page');
+      await user.click(book);
+      expect(probePathname).toBe('/book');
+    },
+  );
+
   it('渲染主题切换按钮（桌面端与移动端顶栏各一个）', () => {
     renderLayout();
     expect(screen.getAllByRole('button', { name: /外观与氛围/ }).length).toBeGreaterThanOrEqual(1);
@@ -355,6 +367,17 @@ describe('Layout', () => {
     // 关闭动画后面板卸载。
     await waitForNavClosed();
     expect(screen.queryByRole('dialog', { name: '移动端导航菜单' })).not.toBeInTheDocument();
+  });
+
+  it('移动端可从更多菜单进入 Book', async () => {
+    const user = userEvent.setup();
+    renderLayout();
+    await user.click(screen.getByRole('button', { name: '打开更多菜单' }));
+    await screen.findByRole('dialog', { name: '移动端导航菜单' });
+    await waitForNavOpen();
+    await user.click(screen.getByRole('button', { name: /Book/ }));
+    await waitForNavClosed();
+    await waitFor(() => expect(probePathname).toBe('/book'));
   });
 
   it('点击「更多」面板导航项后菜单关闭（close-then-navigate 守卫回归）', async () => {

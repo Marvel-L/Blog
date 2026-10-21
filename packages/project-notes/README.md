@@ -4,10 +4,12 @@
 
 | 文档 | 内容 |
 | --- | --- |
+| [features/book.md](features/book.md) | Book 3D 分类书架、预览与后续批次状态 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 部署拓扑、package 边界、架构决策与迁移条件 |
 | [deployments/2026-10-21.md](deployments/2026-10-21.md) | 发文同步、自动发布验收与备份恢复 |
 | [deployments/2026-10-20.md](deployments/2026-10-20.md) | 服务器检查、IP HTTPS 方案和待处理事项 |
 | [PROGRESS.md](PROGRESS.md) | 本版进度、待验证项和下一版任务 |
+| [versions/0.4.0.md](versions/0.4.0.md) | Book 导航、3D 书架与分类章节预览第一批 |
 | [versions/0.3.0.md](versions/0.3.0.md) | Go 后端、兼容性、SQL 集成测试与部署切换 |
 | [versions/0.2.0.md](versions/0.2.0.md) | 前端 workspace、共用内容与 Pages/cloud 部署边界 |
 | [versions/0.1.3.md](versions/0.1.3.md) | 每日加密备份、隔离恢复和首份异地副本 |

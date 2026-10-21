@@ -65,6 +65,7 @@
     "./hidden-content-core": "./src/utils/hidden-content-core.mjs",
     "./post-image-src": "./src/utils/post-image-src.mjs",
     "./remark-typora-marks-core": "./src/utils/remark-typora-marks-core.mjs",
-    "./remark-image-attrs-core": "./src/utils/remark-image-attrs-core.mjs"
+    "./remark-image-attrs-core": "./src/utils/remark-image-attrs-core.mjs",
+    "./books-core": "./src/books/books-core.mjs"
   }
 }

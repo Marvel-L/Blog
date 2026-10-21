@@ -65,4 +65,6 @@ npm run build:cloud  # 同一前端的 cloud 产物
 后端开发与全仓库检查需 Go 1.27.3；SQL 集成测试需设置独立 `TEST_DATABASE_URL`。只构建 Pages 不需要 Go。
 
 详细说明：[前端](packages/blog/README.md) · [后端](packages/server/README.md) · [部署目标](deploy/README.md)。
+Book 首批提供 3D 分类书架、层级目录和章节摘要预览；完整文章仍由原阅读页呈现。后续批次见 [Book 进度](packages/project-notes/features/book.md)。
+
 工程进度见 [项目记录](packages/project-notes/README.md)，架构约束见 [云端规则](ai-rules/cloud-platform.md)。

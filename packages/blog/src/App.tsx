@@ -3,6 +3,8 @@
  * 导出 AppShell 供 SSR 复用。
  */
 import React, { Suspense, lazy, useEffect, useState } from 'react';
+// Eager CSS keeps pre-rendered books styled before the lazy page hydrates.
+import './books/books.css';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { flushSync } from 'react-dom';
@@ -18,6 +20,7 @@ const CloudAccount = import.meta.env.VITE_DEPLOY_TARGET === 'cloud' ? lazy(() =>
 
 const Post = lazy(() => import('./pages/Post').then((m) => ({ default: m.Post })));
 const About = lazy(pageLoaders['/about']);
+const BookPage = lazy(pageLoaders['/book']);
 const ArchivePage = lazy(pageLoaders['/archive']);
 const Stats = lazy(pageLoaders['/stats']);
 const Friends = lazy(pageLoaders['/friends']);
@@ -142,6 +145,9 @@ const AppRoutes: React.FC = () => {
         <Routes location={displayLocation} key={displayLocation.pathname}>
           <Route path="/" element={<Home />} />
           <Route path="/post/:id" element={<Post />} />
+          <Route path="/book" element={<BookPage />} />
+          <Route path="/book/:bookId" element={<BookPage />} />
+          <Route path="/book/:bookId/chapter/:postId" element={<BookPage />} />
           <Route path="/archive" element={<ArchivePage />} />
           <Route path="/tags" element={<Tags />} />
           <Route path="/stats" element={<Stats />} />

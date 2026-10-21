@@ -3,6 +3,7 @@
  */
 
 import 'dotenv/config';
+import { getBookRoutes } from '@d-blog/blog/books-core';
 import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
@@ -767,6 +768,20 @@ const shuoshuo = shuoshuoRecords
   .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id))
   .map(({ filename: _filename, ...record }) => record);
 
+// Book links use the same public catalog as the generated site, never private records.
+const bookValidationPosts = postRecords
+  .filter((record) => !record.draft && !isHiddenPostCore(record.data, hiddenContentMatcher))
+  .map((record) => ({
+    ...record.data,
+    id: record.id,
+    category: normalizeCategory(record.data.category),
+    filePath: `/posts/${record.filename}`,
+  }));
+const contentStaticRoutes = new Set([
+  ...DEFAULT_STATIC_ROUTES,
+  ...getBookRoutes(bookValidationPosts).map((route) => new URL(`/${route}`, 'https://build.invalid').pathname),
+]);
+
 postRecords.forEach((record) => {
   // 草稿不参与内容级严格校验（图片 alt/本地图片文件/coverImage/站内链接与路由
   // 目标）——未完成的草稿不应阻断构建；ID 唯一性（findDuplicatePostIds）与
@@ -779,7 +794,7 @@ postRecords.forEach((record) => {
       postsRoot: POSTS_DIR,
       allPosts: allPostIndex,
       publishedPosts: publishedPostIndex,
-      staticRoutes: DEFAULT_STATIC_ROUTES,
+      staticRoutes: contentStaticRoutes,
       shuoshuoIds: new Set(shuoshuo.map((item) => item.id)),
       skipFrontMatter: true,
       lineOffset: record.contentStartLine,
@@ -967,6 +982,12 @@ const generateSitemap = () => {
           .split('T')[0]
       : new Date().toISOString().split('T')[0];
   const staticPages = [
+    ...getBookRoutes(posts, false).map((path) => ({
+      path,
+      changefreq: 'weekly',
+      priority: '0.7',
+      lastmod: latestPostDate,
+    })),
     { path: '', changefreq: 'daily', priority: '1.0', lastmod: latestPostDate },
     { path: 'archive', changefreq: 'daily', priority: '0.9', lastmod: latestPostDate },
     { path: 'tags', changefreq: 'weekly', priority: '0.8', lastmod: latestPostDate },
