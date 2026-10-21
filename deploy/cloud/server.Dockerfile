@@ -1,23 +1,17 @@
-FROM node:22-bookworm-slim AS build
-WORKDIR /app
-COPY package.json package-lock.json ./
-COPY packages/server/package.json packages/server/package.json
-COPY packages/blog/package.json packages/blog/package.json
-COPY packages/project-notes/package.json packages/project-notes/package.json
-RUN npm ci --ignore-scripts --workspace @d-blog/server --include-workspace-root=false
-COPY packages/server packages/server
-RUN npm run build --workspace @d-blog/server
+FROM golang:1.27.3-alpine3.23 AS build
+ARG GOPROXY=https://goproxy.cn,https://proxy.golang.org,direct
+WORKDIR /src
+COPY packages/server/go.mod packages/server/go.sum ./
+RUN go mod download
+COPY packages/server/ ./
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /dblog-server ./cmd/server
 
-FROM node:22-bookworm-slim
+FROM scratch
 ENV NODE_ENV=production
 WORKDIR /app
-COPY package.json package-lock.json ./
-COPY packages/server/package.json packages/server/package.json
-COPY packages/blog/package.json packages/blog/package.json
-COPY packages/project-notes/package.json packages/project-notes/package.json
-RUN npm ci --omit=dev --ignore-scripts --workspace @d-blog/server --include-workspace-root=false && npm cache clean --force
-COPY --from=build /app/packages/server/dist packages/server/dist
-COPY packages/server/migrations packages/server/migrations
-USER node
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=build /dblog-server /app/dblog-server
+USER 10001:10001
 EXPOSE 3001
-CMD ["node", "packages/server/dist/main.js"]
+ENTRYPOINT ["/app/dblog-server"]
+CMD ["serve"]

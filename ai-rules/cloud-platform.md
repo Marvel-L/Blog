@@ -5,7 +5,7 @@
 ## 架构
 
 - 根 package 是工作区编排入口，管理公共 scripts/、config/、内容目录、public/ 和 CMS；packages/blog 是真实前端 workspace，拥有源码、HTML 入口、Vite 配置和前端依赖。
-- packages/server 是独立 npm workspace，只提供 API，不读取 Markdown、不参与 SSG、不导入前端组件。
+- packages/server 是独立 Go module（标准库 net/http + pgx），package.json 仅适配根 npm 命令；只提供 API，不读取 Markdown、不参与 SSG、不导入前端组件。
 - packages/project-notes 是文档 workspace，保存 ADR、任务状态、版本范围、验证结果和部署记录，无运行时代码。
 - 0.2.0 已单独实施前端 workspace 迁移；Pages 与 cloud 共用 packages/blog，不另建一份 Pages 前端。内容与 CMS 路径保留在根目录，内容迁移需另行实施。
 - 根目录 Vite/TypeScript 配置只保留兼容入口，实际前端配置归 packages/blog；根 scripts/build.mjs 仍是两种目标的唯一构建流水线。
@@ -24,15 +24,22 @@
 10. API/账号响应 no-store。首版 /api/ 位于 /Blog/ Service Worker 作用域之外；不得扩展缓存到账号接口。未来改变代理路径需先验证 SW 排除行为。
 11. 数据库 schema 通过编号 SQL 迁移；迁移串行化且事务执行，失败阻止 API 启动。禁止通过自动删除数据卷解决迁移失败。
 12. 工作进度区分代码完成、测试通过、生产验证；未连接服务器或未经过真实 OAuth，不得记为已上线。每版更新 project-notes 的版本记录。
-13. 服务端测试必须验证真实 SQL 持久化行为、授权失败、重放、账号隔离、幂等与故障反馈；纯 mock 不能替代存储验证。PGlite 通过不等于 pg 网络连接、迁移锁或容器部署已通过。
+13. 服务端测试必须验证真实 SQL 持久化行为、授权失败、重放、账号隔离、幂等与故障反馈；纯 mock 不能替代存储验证。集成测试使用独立 PostgreSQL 的随机 schema；CI 缺少 TEST_DATABASE_URL 必须失败，不得静默跳过。
 14. 前端 workspace 拥有真实源码、入口和依赖；根构建/部署不得另建一份前端。前端移动必须验证 CMS 路径、内容摘要、正文懒加载、双目标构建及后端独立安装。
 15. 新增服务端环境变量需同时说明于根 .env.example；真实 .env、证书与数据库备份不得提交或进入镜像构建上下文。
 
 ## 验证入口
 
-- npm run typecheck：博客与服务端。
+- npm run typecheck：前端 TypeScript 与后端 go vet。
 - npm test / npm run test:coverage：博客、脚本与服务端；CI 保持原三个 job 边界。
 - npm run build：现有博客流水线；Pages 在 CI 中显式 VITE_DEPLOY_TARGET=pages。
 - npm run build:cloud：同一流水线，启用云端组件。
-- npm run build --workspace @d-blog/server：服务端编译。
+- npm run build --workspace @d-blog/server：Go 二进制编译；SQL 迁移内嵌，生产镜像不依赖 Node。
 - 部署文档见 deploy/cloud/README.md；镜像标签回滚与数据库恢复是两件不同的操作。
+
+## Go 后端兼容约定（0.3.0）
+
+- internal/httpapi、internal/store、internal/github、internal/config 分离；cmd/server 只负责进程生命周期。
+- 迁移到 Go 保留已有 API JSON、Cookie 名、SHA-256 token 摘要、001_initial.sql、schema_migrations 与事务锁 7102026；不得借语言迁移重置用户数据。
+- 新会话、旧会话撤销与登录事件同一事务；生产不添加测试身份注入入口。
+- TEST_DATABASE_URL 仅供隔离 SQL 测试，真实配置仍使用现有服务端变量；Pages 单独构建不需要 Go、数据库或 OAuth。

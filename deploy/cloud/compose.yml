@@ -25,7 +25,7 @@ services:
     build:
       context: ../..
       dockerfile: deploy/cloud/server.Dockerfile
-    command: ["node", "packages/server/dist/migrate.js"]
+    command: ["migrate"]
     environment:
       DATABASE_URL: postgresql://dblog:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/dblog
     depends_on:
@@ -47,7 +47,7 @@ services:
       migrate:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/api/v1/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      test: ["CMD", "/app/dblog-server", "healthcheck"]
       interval: 15s
       timeout: 5s
       retries: 5

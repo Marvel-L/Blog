@@ -12,13 +12,13 @@
 
 ## 首次部署
 
-在服务器上取得代码，下面命令都从仓库根目录执行。构建机需 Node 22.22.2+（22 系列）或依赖支持的更新 LTS 版本。
+在服务器上取得代码，下面命令都从仓库根目录执行。前端构建机需 Node 22.22.2+（22 系列）或依赖支持的更新 LTS 版本。执行本地后端检查需 Go 1.27.3；Docker 内自带 Go 编译工具链，运行镜像不依赖 Node。
 如果使用 CI 的 cloud-dist 制品，可将它解压到根 dist/，跳过本地站点构建。
 
 ```sh
 npm ci
 npm run typecheck
-npm test
+TEST_DATABASE_URL='<独立测试库连接串>' npm test
 npm run build:cloud
 cp deploy/cloud/.env.example deploy/cloud/.env
 ```
@@ -165,3 +165,17 @@ CLOUD_SSH_KNOWN_HOSTS_FILE=/secure/path/known_hosts \
 
 以 `/Blog/cloud-release.json` 的 `commit` 为实际版本证据，并打开新文章验收。
 不能仅凭工作流文件已添加或上传成功宣称自动发布已经上线。
+
+## 0.3.0 Go 后端切换
+
+API 镜像由 Go 1.27.3 静态编译，最终镜像只包含二进制与 CA 根证书，以 UID 10001 运行。
+构建阶段 GOPROXY 默认使用 goproxy.cn 并回退官方源，适配服务器网络；go.sum 校验依赖摘要。
+如需指定其他可信源，可使用 docker build --build-arg GOPROXY=...；该设置不进入运行镜像。
+迁移服务执行 `migrate` 子命令；API 健康检查执行 `/app/dblog-server healthcheck`，不再使用 Node。
+Go 开发与测试步骤见 [packages/server](../../packages/server/README.md)。
+
+沿用生产 DATABASE_URL、GitHub 凭据、证书与数据库卷，001_initial.sql 不变。
+旧 Cookie 和会话摘要兼容，无需用户重新注册，不需要重新配置 OAuth App。
+按正常发布流程同步更新镜像与 Compose 文件；不得只将 Go 镜像标签写入旧 Node Compose。
+若回退至 Node 版，使用旧 release 目录的 Compose 文件与旧镜像一起恢复，数据库保持原卷。
+代码验证与线上状态见 [0.3.0 记录](../../packages/project-notes/versions/0.3.0.md)。

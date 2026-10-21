@@ -87,9 +87,5 @@ export default tseslint.config(
       globals: { ...globals.node },
     },
   },
-  {
-    files: ['packages/server/**/*.ts'],
-    languageOptions: { globals: { ...globals.node } },
-  },
   eslintConfigPrettier,
 );

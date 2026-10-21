@@ -21,7 +21,10 @@ async function fixture(cloud = true) {
     '.dockerignore': '.env\nnode_modules\n',
     'package.json': '{}',
     'package-lock.json': '{}',
-    'packages/server/src/main.ts': 'export const server = true;',
+    'packages/server/cmd/server/main.go': 'package main',
+    'packages/server/go.mod': 'module github.com/Marvel-L/Blog/packages/server',
+    'packages/server/go.sum': 'test checksum',
+    'packages/server/migrations/001_initial.sql': 'CREATE TABLE users(id uuid PRIMARY KEY);',
     'packages/blog/package.json': '{"name":"@d-blog/blog"}',
     'packages/blog/src/App.tsx': 'frontend source must not be shipped to the API build',
     'packages/project-notes/package.json': '{}',
@@ -53,19 +56,19 @@ async function fixture(cloud = true) {
 describe('cloud release packaging', () => {
   it('packages the latest article and exact committed API, with verifiable checksums and no local secrets', async () => {
     const options = await fixture();
-    await writeFile(path.join(options.root, 'packages/server/src/main.ts'), 'uncommitted change');
+    await writeFile(path.join(options.root, 'packages/server/cmd/server/main.go'), 'uncommitted change');
     await packageCloudRelease(options);
     const unpacked = path.join(options.root, 'unpacked');
     await mkdir(unpacked);
     await run('tar', ['-xzf', options.output, '-C', unpacked]);
     expect(await readFile(path.join(unpacked, 'dist/index.html'), 'utf8')).toContain('LeetCode Hot 100');
-    expect(JSON.parse(await readFile(path.join(unpacked, 'packages/blog/package.json'), 'utf8')).name).toBe(
-      '@d-blog/blog',
+    expect(await readFile(path.join(unpacked, 'packages/server/go.mod'), 'utf8')).toContain(
+      'module github.com/Marvel-L/Blog/packages/server',
     );
+    await expect(readFile(path.join(unpacked, 'packages/blog/package.json'))).rejects.toMatchObject({ code: 'ENOENT' });
+    await expect(readFile(path.join(unpacked, 'package-lock.json'))).rejects.toMatchObject({ code: 'ENOENT' });
     await expect(readFile(path.join(unpacked, 'packages/blog/src/App.tsx'))).rejects.toMatchObject({ code: 'ENOENT' });
-    expect(await readFile(path.join(unpacked, 'packages/server/src/main.ts'), 'utf8')).toBe(
-      'export const server = true;',
-    );
+    expect(await readFile(path.join(unpacked, 'packages/server/cmd/server/main.go'), 'utf8')).toBe('package main');
     expect(JSON.parse(await readFile(path.join(unpacked, 'dist/cloud-release.json'), 'utf8'))).toEqual({
       commit: options.commit,
       target: 'cloud',

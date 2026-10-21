@@ -1,6 +1,6 @@
 # 云端增强版架构决策
 
-初始日期：2026-10-20；目录边界于 2026-10-21 更新至 0.2.0。
+初始日期：2026-10-20；目录边界于 2026-10-21 更新至 0.2.0，后端于同日更新至 0.3.0。
 
 ## 部署拓扑
 
@@ -8,7 +8,7 @@
 同一份文章和 React 组件
 ├─ pages 构建 → GitHub Pages /Blog/ → 现有静态博客
 └─ cloud 构建 → Caddy HTTPS → Nginx /Blog/ → 云端增强版
-                                └─ /api/v1/ → Fastify → PostgreSQL
+                                └─ /api/v1/ → Go net/http + pgx → PostgreSQL
 ```
 
 两个构建共用 scripts/build.mjs，包含原来的内容校验、SSG、构建和 SEO 审计。
@@ -36,7 +36,7 @@ deploy/cloud/                镜像、Compose、代理与部署说明
 后续迁移条件：先完成路径契约测试，再一次性修改 CMS、glob、脚本根路径、配置别名、静态资源、SSG 和 Actions。
 不建立一个仅转发根目录命令的 packages/blog，避免形成名义上的分包和双重入口。
 
-## ADR-002：独立 API 与数据库会话
+## ADR-002：独立 API 与数据库会话（初始语言选择已由 ADR-007 替代）
 
 选择 Fastify + TypeScript 复用现有开发语言；PostgreSQL 存储用户、一次性授权事务、会话和事件。
 初版用户表使用唯一 github_id；未来支持多种登录时再拆 auth_identities 并迁移现有账号。
@@ -92,3 +92,21 @@ config、public、generated 和 scripts 保留为根目录的共用内容/构建
 Vite 的 @、@config 别名语义保持，未增加路径别名。前端 workspace 可独立 dev/typecheck/test，也仍复用根唯一生产构建流水线。
 
 迁移验证包括：CMS/内容文件摘要不变、正文真实懒加载、前端/SSR 配置根路径、两种产物隔离、全量回归、两套 SSG/SEO 构建、云端发布包中的前端依赖清单与后端独立依赖安装。
+
+## ADR-007：Go API 替换 Node API（0.3.0）
+
+依据用户要求，packages/server 改为独立 Go module。使用 net/http 路由与中间件、pgxpool、标准库测试；不增加业务框架层。
+cmd/server 提供 serve、migrate、healthcheck；internal 按 config/github/httpapi/store 划分职责。
+前端 packages/blog、内容/CMS 路径和 Pages/cloud 两种构建保留。
+package.json 只作为开发与 CI 的 npm 命令适配器；Go 服务与生产镜像不依赖 Node。
+
+沿用 SQL 文件、迁移账本及 advisory xact lock 7102026；SQL 使用 embed 打入二进制。
+现有用户和事件不改写，旧 SHA-256 会话及 Cookie 继续可读，接口请求与 JSON 字段不变。
+登录事务一次提交用户更新、创建会话、撤销旧会话与服务端登录事件。
+Go 静态编译后放入 scratch 镜像，带 CA 根证书、非 root UID 10001；用自身 healthcheck 子命令检查数据库就绪。
+
+服务端测试从 PGlite 改为真实 PostgreSQL，随机 schema 隔离；CI 内置测试数据库、race 检测与 go vet。
+CI 保持 check/test/build 三个 job；Pages 单独部署无需 Go。
+发布包只包含 Go 服务端、云端部署文件和前端 dist，不再携带前端 npm 清单或根 npm 锁文件。
+线上切换沿用现有发布脚本与镜像标签；无需新建数据库、修改 OAuth App 或替换已有 Secret。
+应用回滚时使用上一版 release 的 Compose 文件及镜像（旧 Node 镜像入口和健康检查与 Go 不同）。

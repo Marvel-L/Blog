@@ -29,7 +29,19 @@ jobs:
        (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/custom'))
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:17.7-alpine
+        env:
+          POSTGRES_PASSWORD: isolated-ci-test
+          POSTGRES_DB: dblog_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dblog_test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
     env:
+      TEST_DATABASE_URL: postgresql://postgres:isolated-ci-test@127.0.0.1:5432/dblog_test?sslmode=disable
       RELEASE_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
       - name: Check out the exact release
@@ -68,6 +80,13 @@ jobs:
           path: dist
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Go
+        if: steps.current.outputs.publish == 'true' && github.event_name == 'workflow_dispatch'
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: packages/server/go.mod
+          cache-dependency-path: packages/server/go.sum
 
       - name: Check and build a manual release
         if: steps.current.outputs.publish == 'true' && github.event_name == 'workflow_dispatch'

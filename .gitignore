@@ -98,3 +98,5 @@ CODEBUDDY.md
 .obsidian/
 .trash/
 .dsh/
+# Go API local artifacts
+packages/server/*.test

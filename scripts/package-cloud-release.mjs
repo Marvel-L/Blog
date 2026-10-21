@@ -8,15 +8,7 @@ import { promisify } from 'node:util';
 import { auditDeployment } from './audit-deployment.mjs';
 
 const run = promisify(execFile);
-const sourcePaths = [
-  '.dockerignore',
-  'package.json',
-  'package-lock.json',
-  'packages/server',
-  'packages/blog/package.json',
-  'packages/project-notes/package.json',
-  'deploy/cloud',
-];
+const sourcePaths = ['.dockerignore', 'packages/server', 'deploy/cloud'];
 
 async function listFiles(directory, prefix = '') {
   const files = [];

@@ -31,7 +31,7 @@
 ```text
 packages/
   blog/            React 前端：页面、样式、账号界面、Vite 与前端依赖
-  server/          Fastify 后端：GitHub 登录、数据库会话、行为记录、SQL 迁移
+  server/          Go 后端：GitHub 登录、数据库会话、行为记录、SQL 迁移
   project-notes/   架构、任务进度、版本与部署记录
 deploy/
   pages/           GitHub Pages 静态发布说明
@@ -61,6 +61,8 @@ npm run build:cloud  # 同一前端的 cloud 产物
 
 两种构建共用 `scripts/build.mjs`，输出都为根 `dist/`，连续构建会覆盖上一份本地产物；CI 分别保存制品。
 前端也可通过 `npm run dev --workspace @d-blog/blog` 等命令单独运行。
+
+后端开发与全仓库检查需 Go 1.27.3；SQL 集成测试需设置独立 `TEST_DATABASE_URL`。只构建 Pages 不需要 Go。
 
 详细说明：[前端](packages/blog/README.md) · [后端](packages/server/README.md) · [部署目标](deploy/README.md)。
 工程进度见 [项目记录](packages/project-notes/README.md)，架构约束见 [云端规则](ai-rules/cloud-platform.md)。
