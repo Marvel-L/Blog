@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { createHash, randomBytes } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -19,12 +20,19 @@ async function fixture(size = 5 * 1024 * 1024) {
   directories.push(root);
   const bin = path.join(root, 'bin');
   const remote = path.join(root, 'remote');
+  const release = path.join(root, 'release');
   await mkdir(bin);
   await mkdir(remote);
+  await mkdir(path.join(release, 'dist'), { recursive: true });
   const archive = path.join(root, 'release.tar.gz');
-  const data = Buffer.alloc(size);
-  for (let index = 0; index < size; index++) data[index] = Math.floor(index / 1009) % 251;
-  await writeFile(archive, data);
+  const data = randomBytes(size);
+  const relative = 'dist/payload.bin';
+  await writeFile(path.join(release, relative), data);
+  await writeFile(
+    path.join(release, 'SHA256SUMS'),
+    `${createHash('sha256').update(data).digest('hex')}  ${relative}\n`,
+  );
+  await run('tar', ['-czf', archive, '-C', release, '.']);
   const env = {
     ...process.env,
     PATH: `${bin}:${process.env.PATH}`,
@@ -33,8 +41,11 @@ async function fixture(size = 5 * 1024 * 1024) {
     CLOUD_SSH_KEY_FILE: path.join(root, 'key'),
     CLOUD_SSH_KNOWN_HOSTS_FILE: path.join(root, 'known_hosts'),
   };
-  const ssh = `#!${process.execPath}
-const fs = require('node:fs');
+  const node = JSON.stringify(process.execPath);
+  const ssh = `#!/bin/sh
+exec ${node} "$0.js" "$@"
+`;
+  const sshJs = `const fs = require('node:fs');
 const { spawnSync } = require('node:child_process');
 const args = process.argv.slice(2);
 if (!args.includes('StrictHostKeyChecking=yes') || !args.includes('BatchMode=yes')) process.exit(90);
@@ -49,8 +60,10 @@ if (command.startsWith('sudo -n bash')) {
 const result = spawnSync('bash', ['-c', command.replaceAll('/home/ubuntu/dblog-deploy', process.env.TEST_REMOTE)], { stdio: 'inherit' });
 process.exit(result.status ?? 1);
 `;
-  const scp = `#!${process.execPath}
-const fs = require('node:fs');
+  const scp = `#!/bin/sh
+exec ${node} "$0.js" "$@"
+`;
+  const scpJs = `const fs = require('node:fs');
 const path = require('node:path');
 const args = process.argv.slice(2);
 const source = args.at(-2);
@@ -64,7 +77,9 @@ setTimeout(() => {
 }, part.endsWith('a') ? 40 : 5);
 `;
   await writeFile(path.join(bin, 'ssh'), ssh, { mode: 0o755 });
+  await writeFile(path.join(bin, 'ssh.js'), sshJs);
   await writeFile(path.join(bin, 'scp'), scp, { mode: 0o755 });
+  await writeFile(path.join(bin, 'scp.js'), scpJs);
   if (process.platform === 'darwin') {
     await writeFile(path.join(bin, 'sha256sum'), '#!/bin/sh\nexec shasum -a 256 "$@"\n', { mode: 0o755 });
   }
@@ -75,18 +90,21 @@ describe('cloud release upload', () => {
   it('reassembles more than one batch in order and publishes only the verified archive', async () => {
     const options = await fixture(18 * 1024 * 1024 + 17);
     await run('bash', [script, commit, options.archive], { env: options.env });
-    expect((await readFile(path.join(options.remote, `${commit}.tar.gz`))).equals(options.data)).toBe(true);
+    const delta = path.join(options.root, 'uploaded-delta');
+    await mkdir(delta);
+    await run('tar', ['-xzf', path.join(options.remote, `${commit}.tar.gz`), '-C', delta]);
+    expect((await readFile(path.join(delta, 'dist/payload.bin'))).equals(options.data)).toBe(true);
     expect(JSON.parse(await readFile(options.env.TEST_LOG, 'utf8'))).toMatchObject({ archiveExists: true });
     expect((await readdir(options.remote)).filter((name) => name.startsWith('.'))).toEqual([]);
   });
 
   it('does not publish or replace an existing archive when any upload fails', async () => {
-    const options = await fixture();
+    const options = await fixture(18 * 1024 * 1024 + 17);
     const published = path.join(options.remote, `${commit}.tar.gz`);
     await writeFile(published, 'previous');
     await expect(
       run('bash', [script, commit, options.archive], {
-        env: { ...options.env, TEST_FAIL_PART: 'part-ab' },
+        env: { ...options.env, TEST_FAIL_PART: 'part-aa' },
       }),
     ).rejects.toThrow();
     expect(await readFile(published, 'utf8')).toBe('previous');

@@ -21,6 +21,9 @@ GitHub Actions 自动化：ci（push/PR 全量门禁）、deploy（手动双平�
 8. **CI 门禁**：check/test/build 三 job 的职责边界保持（类型+内容校验 / 单测 / 构建+审计）。
 9. **全量 Git 历史**：跑 `gen:data` / `npm run build` 的 job（ci check/test/build、deploy build）checkout 必须 `fetch-depth: 0`，否则文章 date/updatedAt 的 Git 回退在浅克隆下会偏晚。
 
+10. **云端增量发布**：`Deploy to Cloud` 必须遵守 [云端发布性能与安全](cloud-deploy.md)；自动部署复用 CI 的已审计 `cloud-dist`，不得重新执行同等的完整构建与测试。日常内容/前端改动不得无条件重建 API 或重复执行迁移。
+11. **性能可回归**：云端发布脚本需保留分阶段耗时；新增步骤应说明其是否进入关键路径，不能为了方便把传输、构建、启动和验收重新合并成不可定位的黑盒。
+
 ## 常见陷阱
 
 - workflow 名称（name:）是 telegram-notify 白名单与 .pages.yml 动作的匹配键，改名需三处同步；

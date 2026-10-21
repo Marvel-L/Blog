@@ -29,19 +29,7 @@ jobs:
        (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/custom'))
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    services:
-      postgres:
-        image: postgres:17.7-alpine
-        env:
-          POSTGRES_PASSWORD: isolated-ci-test
-          POSTGRES_DB: dblog_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d dblog_test"
-          --health-interval 5s --health-timeout 3s --health-retries 20
     env:
-      TEST_DATABASE_URL: postgresql://postgres:isolated-ci-test@127.0.0.1:5432/dblog_test?sslmode=disable
       RELEASE_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
       - name: Check out the exact release
@@ -68,8 +56,8 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install dependencies
-        if: steps.current.outputs.publish == 'true'
+      - name: Install dependencies for a manual release
+        if: steps.current.outputs.publish == 'true' && github.event_name == 'workflow_dispatch'
         run: npm ci
 
       - name: Download the successful CI cloud artifact
@@ -88,8 +76,23 @@ jobs:
           go-version-file: packages/server/go.mod
           cache-dependency-path: packages/server/go.sum
 
+      - name: Set up PostgreSQL for a manual release
+        if: steps.current.outputs.publish == 'true' && github.event_name == 'workflow_dispatch'
+        run: |
+          docker run -d --name dblog-deploy-test-db \
+            -e POSTGRES_PASSWORD=isolated-ci-test \
+            -e POSTGRES_DB=dblog_test \
+            -p 5432:5432 postgres:17.7-alpine
+          for attempt in $(seq 1 20); do
+            docker exec dblog-deploy-test-db pg_isready -U postgres -d dblog_test && exit 0
+            sleep 2
+          done
+          exit 1
+
       - name: Check and build a manual release
         if: steps.current.outputs.publish == 'true' && github.event_name == 'workflow_dispatch'
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:isolated-ci-test@127.0.0.1:5432/dblog_test?sslmode=disable
         run: |
           npm run check
           npm run test:coverage

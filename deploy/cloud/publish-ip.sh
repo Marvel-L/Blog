@@ -2,18 +2,24 @@
 # Runs as root on the existing IP deployment. Never removes volumes or old releases.
 set -Eeuo pipefail
 commit=${1:-}
-digest=${2:-}
-if [[ $EUID != 0 ]] || [[ ! $commit =~ ^[a-f0-9]{40}$ ]] || [[ ! $digest =~ ^[a-f0-9]{64}$ ]]; then
-  echo '需要 root、完整提交 SHA 和发布包 SHA256。' >&2
+transfer_digest=${2:-}
+release_digest=${3:-}
+if [[ $EUID != 0 ]] || [[ ! $commit =~ ^[a-f0-9]{40}$ ]] || [[ ! $transfer_digest =~ ^[a-f0-9]{64}$ ]] || [[ ! $release_digest =~ ^[a-f0-9]{64}$ ]]; then
+  echo '需要 root、完整提交 SHA、传输包 SHA256 和完整发布 SHA256。' >&2
   exit 1
 fi
 archive=/home/ubuntu/dblog-deploy/$commit.tar.gz
-release_tag=$commit-${digest:0:12}
+release_tag=$commit-${release_digest:0:12}
 release=/opt/dblog/releases/$release_tag
 env_file=/opt/dblog/shared/cloud.env
 exec 9>/opt/dblog/shared/deploy.lock
 flock -n 9 || { echo '已有云端发布正在执行。' >&2; exit 1; }
-printf '%s  %s\n' "$digest" "$archive" | sha256sum --check --status
+printf '%s  %s\n' "$transfer_digest" "$archive" | sha256sum --check --status
+started=$SECONDS
+stage() {
+  printf '[deploy-timing] %-28s %4ss\n' "$1" "$((SECONDS - started))"
+  started=$SECONDS
+}
 previous=$(readlink -f /opt/dblog/current)
 [[ -d $previous && -f $env_file ]] || { echo '缺少已有发布或生产配置。' >&2; exit 1; }
 
@@ -30,15 +36,16 @@ old_site=${old_site_image#dblog-site:}
 old_api=${old_api_image#dblog-api:}
 
 if [[ -e $release ]]; then
-  [[ $(cat "$release/archive.sha256") == "$digest" ]] || {
+  [[ $(cat "$release/archive.sha256") == "$release_digest" ]] || {
     echo '同一提交已有不同发布包，拒绝覆盖历史版本。' >&2
     exit 1
   }
 else
   staging=$(mktemp -d "/opt/dblog/releases/.$commit.XXXXXX")
-  trap 'rm -rf "$staging"' EXIT
+  delta=$(mktemp -d "/opt/dblog/releases/.delta-$commit.XXXXXX")
+  trap 'rm -rf "$staging" "$delta"' EXIT
   # Validate all members before root extraction, including symlinks and traversal.
-  python3 - "$archive" "$staging" <<'PY'
+  python3 - "$archive" "$delta" <<'PY'
 import pathlib, sys, tarfile
 with tarfile.open(sys.argv[1], 'r:gz') as source:
     for member in source.getmembers():
@@ -47,7 +54,52 @@ with tarfile.open(sys.argv[1], 'r:gz') as source:
             raise SystemExit('发布包包含不安全的路径或文件类型。')
     source.extractall(sys.argv[2], filter='data')
 PY
+  python3 - "$delta/DELTA.json" "$previous" <<'PY'
+import json, pathlib, sys
+manifest = json.loads(pathlib.Path(sys.argv[1]).read_text())
+if manifest.get('version') != 1 or manifest.get('base') not in ('empty', sys.argv[2]):
+    raise SystemExit('差异包基线与当前线上版本不一致。')
+for field in ('changed', 'removed'):
+    values = manifest.get(field)
+    if not isinstance(values, list) or len(values) != len(set(values)):
+        raise SystemExit('差异包文件列表无效。')
+    for value in values:
+        path = pathlib.PurePosixPath(value)
+        if not value or path.is_absolute() or '..' in path.parts or value in ('SHA256SUMS', 'DELTA.json'):
+            raise SystemExit('差异包包含不安全路径。')
+PY
+  base=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["base"])' "$delta/DELTA.json")
+  if [[ $base == empty ]]; then
+    mkdir -p "$staging"
+  else
+    cp -al "$previous/." "$staging/"
+    rm -f "$staging/archive.sha256"
+  fi
+  # Break hard links before replacing changed files so historical releases stay immutable.
+  while IFS= read -r relative; do
+    [[ -n $relative ]] || continue
+    target="$staging/$relative"
+    mkdir -p "$(dirname "$target")"
+    rm -f "$target"
+    cp "$delta/$relative" "$target"
+  done < <(python3 -c 'import json,sys; print("\n".join(json.load(open(sys.argv[1]))["changed"]))' "$delta/DELTA.json")
+  while IFS= read -r relative; do
+    [[ -n $relative ]] || continue
+    rm -f "$staging/$relative"
+  done < <(python3 -c 'import json,sys; print("\n".join(json.load(open(sys.argv[1]))["removed"]))' "$delta/DELTA.json")
+  cp "$delta/SHA256SUMS" "$staging/SHA256SUMS"
   (cd "$staging" && sha256sum --check --status SHA256SUMS)
+  python3 - "$staging" <<'PY'
+import pathlib, sys
+root = pathlib.Path(sys.argv[1])
+expected = {'SHA256SUMS'}
+for line in (root / 'SHA256SUMS').read_text().splitlines():
+    _, relative = line.split('  ', 1)
+    expected.add(relative)
+actual = {str(path.relative_to(root)) for path in root.rglob('*') if path.is_file() and path.name != 'archive.sha256'}
+if actual != expected:
+    raise SystemExit('差异发布后的文件集合与校验清单不一致。')
+PY
   python3 - "$staging/dist/cloud-release.json" "$commit" <<'PY'
 import json, sys
 with open(sys.argv[1]) as source:
@@ -55,11 +107,13 @@ with open(sys.argv[1]) as source:
 if data != {'commit': sys.argv[2], 'target': 'cloud'}:
     raise SystemExit('发布产物与提交不一致。')
 PY
-  printf '%s\n' "$digest" > "$staging/archive.sha256"
+  printf '%s\n' "$release_digest" > "$staging/archive.sha256"
   mv "$staging" "$release"
+  rm -rf "$delta"
   trap - EXIT
 fi
 (cd "$release" && sha256sum --check --status SHA256SUMS)
+stage 'materialize verified release'
 
 write_tags() {
   python3 - "$env_file" "$1" "$2" <<'PY'
@@ -93,8 +147,15 @@ verify_public() {
     python3 -c 'import json,sys; sys.exit(0 if json.load(sys.stdin) == {"commit":sys.argv[1],"target":"cloud"} else 1)' "$commit"
 }
 
-# Build first so a network/build failure leaves the running services untouched.
-SITE_IMAGE_TAG=$release_tag API_IMAGE_TAG=$release_tag compose_at "$release" build web migrate
+# Build only what changed. Deployment/infrastructure changes intentionally fall back to both images.
+change_scope=$(python3 "$release/deploy/cloud/release-scope.py" "$previous/SHA256SUMS" "$release/SHA256SUMS")
+site_tag=$old_site
+api_tag=$old_api
+build_targets=()
+[[ $change_scope == *web* ]] && { site_tag=$release_tag; build_targets+=(web); }
+[[ $change_scope == *server* ]] && { api_tag=$release_tag; build_targets+=(migrate); }
+SITE_IMAGE_TAG=$site_tag API_IMAGE_TAG=$api_tag compose_at "$release" build "${build_targets[@]}"
+stage "build images: $change_scope"
 rollback() {
   trap - ERR
   echo '发布或公网验收失败，正在恢复上一版镜像。' >&2
@@ -109,10 +170,17 @@ rollback() {
   exit 1
 }
 trap rollback ERR
-SITE_IMAGE_TAG=$release_tag API_IMAGE_TAG=$release_tag compose_at "$release" \
-  up -d --no-build --wait --wait-timeout 180 api web
+if [[ $change_scope == 'web' ]]; then
+  SITE_IMAGE_TAG=$site_tag API_IMAGE_TAG=$api_tag compose_at "$release" \
+    up -d --no-deps --no-build --wait --wait-timeout 180 web
+else
+  SITE_IMAGE_TAG=$site_tag API_IMAGE_TAG=$api_tag compose_at "$release" \
+    up -d --no-build --wait --wait-timeout 180 api web
+fi
+stage 'restart and health checks'
 verify_public
-write_tags "$release_tag" "$release_tag"
+stage 'public verification'
+write_tags "$site_tag" "$api_tag"
 point_current "$release"
 trap - ERR
 rm -f "$archive"
