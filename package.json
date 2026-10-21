@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "engines": {
-    "node": ">=20",
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0",
     "npm": ">=10"
   },
   "type": "module",
@@ -16,20 +16,25 @@
     "audit:build": "node scripts/audit-build.mjs",
     "audit:seo": "node scripts/seo-audit.mjs",
     "check:links": "node scripts/check-broken-links.mjs",
-    "typecheck": "tsc -p config/tsconfig.json --noEmit",
+    "typecheck": "npm run typecheck:blog && npm run typecheck --workspace @d-blog/server",
     "check": "npm run gen:data && npm run typecheck",
     "dev": "npm run gen:data && vite",
     "build": "node scripts/build.mjs",
     "build:verbose": "node scripts/build.mjs --verbose",
     "preview": "vite preview",
-    "test": "npm run gen:data && vitest run",
+    "test": "npm run test:blog && npm run test:server",
     "test:watch": "vitest",
-    "test:coverage": "npm run gen:data && vitest run --coverage",
+    "test:coverage": "npm run gen:data && vitest run --coverage && npm run test:server",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "typecheck:blog": "tsc -p config/tsconfig.json --noEmit",
+    "build:cloud": "node scripts/build-cloud.mjs",
+    "dev:server": "npm run dev --workspace @d-blog/server",
+    "test:server": "npm test --workspace @d-blog/server",
+    "test:blog": "npm run gen:data && vitest run"
   },
   "dependencies": {
     "dompurify": "^3.4.5",
@@ -96,5 +101,8 @@
   },
   "overrides": {
     "nanoid": "^3.3.18"
-  }
+  },
+  "workspaces": [
+    "packages/*"
+  ]
 }

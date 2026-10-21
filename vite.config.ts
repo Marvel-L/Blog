@@ -207,6 +207,7 @@ export default defineConfig(({ command, mode }) => {
     server: {
       port: 3000,
       host: '0.0.0.0',
+      ...(env.VITE_DEPLOY_TARGET === 'cloud' ? { proxy: { '/api/': 'http://127.0.0.1:3001' } } : {}),
     },
     build: {
       outDir: 'dist',

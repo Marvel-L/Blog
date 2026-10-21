@@ -1,0 +1,86 @@
+name: dblog-cloud
+services:
+  db:
+    image: postgres:17.7-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dblog
+      POSTGRES_USER: dblog
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dblog -d dblog"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  migrate:
+    image: dblog-api:${API_IMAGE_TAG:-local}
+    build:
+      context: ../..
+      dockerfile: deploy/cloud/server.Dockerfile
+    command: ["node", "packages/server/dist/migrate.js"]
+    environment:
+      DATABASE_URL: postgresql://dblog:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/dblog
+    depends_on:
+      db:
+        condition: service_healthy
+    logging: *logging
+
+  api:
+    image: dblog-api:${API_IMAGE_TAG:-local}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://dblog:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/dblog
+      APP_ORIGIN: https://${CLOUD_DOMAIN:?Set CLOUD_DOMAIN}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      NODE_ENV: production
+      PORT: "3001"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/api/v1/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    logging: *logging
+
+  web:
+    image: dblog-site:${SITE_IMAGE_TAG:-local}
+    build:
+      context: ../..
+      dockerfile: deploy/cloud/site.Dockerfile
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    logging: *logging
+
+  gateway:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      CLOUD_DOMAIN: ${CLOUD_DOMAIN:?Set CLOUD_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - certificates:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+    logging: *logging
+
+volumes:
+  database:
+  certificates:
+  caddy_config:

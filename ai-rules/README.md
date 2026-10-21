@@ -39,3 +39,6 @@
 
 ### 工程
 - [测试约定](testing.md) · [配置体系](config.md)
+
+### 云端增强版
+- [Package 边界、账号与部署架构](cloud-platform.md) · [项目进度与版本记录](../packages/project-notes/README.md)

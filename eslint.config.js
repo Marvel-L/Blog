@@ -23,6 +23,7 @@ export default tseslint.config(
       // 构建产物与生成数据
       'dist/',
       'dist-ssr/',
+      'packages/*/dist/',
       'generated/',
       'coverage/',
       'public/',
@@ -80,6 +81,10 @@ export default tseslint.config(
     languageOptions: {
       globals: { ...globals.node },
     },
+  },
+  {
+    files: ['packages/server/**/*.ts'],
+    languageOptions: { globals: { ...globals.node } },
   },
   eslintConfigPrettier,
 );

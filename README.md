@@ -23,3 +23,16 @@
 首页及全站导航栏的外观/氛围按钮旁新增「排版」开关。开启后，Markdown 正文采用 Resume 的 Lapis CV Serif 风格：思源黑体正文、思源宋体标题、JetBrains Mono 英文与代码、1.8 倍行高、蓝色章节标题及细分隔线。字号与段落留白按博客长文适配，同时支持浅色、深色和专注阅读模式。
 
 默认使用原样式，关闭开关即可恢复。选择保存在本机浏览器中，跨页面和刷新后继续生效；存储不可用时仍可在当前会话切换。字体随项目提供，WOFF2 文件仅在新排版启用时按需加载，首次开启可能需要等待字体下载。字体来源与许可见 `src/assets/resume-fonts/NOTICE.md`。
+
+## 云端增强版与工程记录
+
+现有博客继续位于根目录并发布到 GitHub Pages。新增 npm workspaces：
+
+- `packages/server`：GitHub 登录、数据库会话和账号访问记录 API。
+- `packages/project-notes`：架构决策、任务进度和历史版本。
+
+`npm run build` 使用现有博客构建流程；`npm run build:cloud` 通过同一流程生成云端增强版（仍为 `/Blog/`，输出同为 `dist/`）。
+`npm run typecheck` 和 `npm test` 同时检查博客与后端。
+
+部署参见 [云端部署手册](deploy/cloud/README.md)，本地联调参见 [后端说明](packages/server/README.md)。
+工程进度参见 [项目记录](packages/project-notes/README.md)，架构规则参见 [云端规则](ai-rules/cloud-platform.md)。

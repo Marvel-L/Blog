@@ -1,0 +1,103 @@
+# custom 的 CI 全部通过后，将同一提交的 cloud-dist 发布到 IP 云端。
+# 首次配置见 deploy/cloud/README.md；未启用时不连接服务器。
+name: Deploy to Cloud
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [custom]
+    types: [completed]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-cloud
+  # 不在镜像切换/迁移期间中断发布；服务器另有 flock 防并发。
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  deploy:
+    if: >-
+      vars.CLOUD_DEPLOY_ENABLED == 'true' &&
+      ((github.event_name == 'workflow_run' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_repository.full_name == github.repository) ||
+       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/custom'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      RELEASE_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - name: Check out the exact release
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.RELEASE_COMMIT }}
+          fetch-depth: 0
+
+      - name: Skip a superseded commit
+        id: current
+        run: |
+          current=$(git ls-remote origin refs/heads/custom | cut -f1)
+          if [ "$current" = "$RELEASE_COMMIT" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "custom 已有更新提交，等待该提交的 CI。"
+          fi
+
+      - name: Set up Node.js
+        if: steps.current.outputs.publish == 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.current.outputs.publish == 'true'
+        run: npm ci
+
+      - name: Download the successful CI cloud artifact
+        if: steps.current.outputs.publish == 'true' && github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: cloud-dist
+          path: dist
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check and build a manual release
+        if: steps.current.outputs.publish == 'true' && github.event_name == 'workflow_dispatch'
+        run: |
+          npm run check
+          npm run test:coverage
+          npm run build:cloud
+          npm run build --workspace @d-blog/server
+
+      - name: Package the cloud release
+        if: steps.current.outputs.publish == 'true'
+        run: node scripts/package-cloud-release.mjs "$RELEASE_COMMIT" "$RUNNER_TEMP/cloud-release.tar.gz"
+
+      - name: Publish and verify the release
+        if: steps.current.outputs.publish == 'true'
+        env:
+          CLOUD_SSH_PRIVATE_KEY: ${{ secrets.CLOUD_SSH_PRIVATE_KEY }}
+          CLOUD_SSH_KNOWN_HOSTS: ${{ secrets.CLOUD_SSH_KNOWN_HOSTS }}
+        run: |
+          set -eu
+          if [ -z "$CLOUD_SSH_PRIVATE_KEY" ] || [ -z "$CLOUD_SSH_KNOWN_HOSTS" ]; then
+            echo "云端发布凭据缺失：请配置 CLOUD_SSH_PRIVATE_KEY 与 CLOUD_SSH_KNOWN_HOSTS。"
+            exit 1
+          fi
+          umask 077
+          key_dir=$(mktemp -d "$RUNNER_TEMP/cloud-ssh.XXXXXX")
+          trap 'rm -rf "$key_dir"' EXIT
+          printf '%s\n' "$CLOUD_SSH_PRIVATE_KEY" > "$key_dir/key"
+          printf '%s\n' "$CLOUD_SSH_KNOWN_HOSTS" > "$key_dir/known_hosts"
+          unset CLOUD_SSH_PRIVATE_KEY CLOUD_SSH_KNOWN_HOSTS
+          CLOUD_SSH_KEY_FILE="$key_dir/key" \
+          CLOUD_SSH_KNOWN_HOSTS_FILE="$key_dir/known_hosts" \
+            bash deploy/cloud/upload-ip.sh "$RELEASE_COMMIT" "$RUNNER_TEMP/cloud-release.tar.gz"

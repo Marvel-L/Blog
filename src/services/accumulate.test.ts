@@ -61,16 +61,26 @@ describe('groupSummaryFiles', () => {
 });
 
 describe('getAccumulateDecks', () => {
-  it('读出 Summary 子目录里的 Markdown，并带上写了的 label', () => {
+  it('读出非空内容分组，文件路径和标识保持唯一', () => {
     const decks = getAccumulateDecks();
-    expect(decks.map((deck) => deck.title)).toEqual(['代办', '网络热语']);
-    expect(decks[0]?.items[0]).toMatchObject({
-      title: '把 Channel 的笔记补进 Road',
-      status: '进行中',
-    });
-    expect(decks[0]?.items[0]?.content).not.toContain('进行中');
-    expect(decks[0]?.items[1]?.status).toBeUndefined();
-    expect(decks[0]?.items[1]?.author).toBeUndefined();
+    expect(decks.length).toBeGreaterThan(0);
+    const items = decks.flatMap((deck) => deck.items);
+    expect(items.length).toBeGreaterThan(0);
+    expect(new Set(items.map((item) => item.id)).size).toBe(items.length);
+    for (const item of items) {
+      expect(item.filePath).toMatch(/^\/Summary\/[^/]+\/[^/]+\.md$/);
+      expect(item.title.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('固定样例保留显式 label，不为其它卡片推断 label', () => {
+    const decks = groupSummaryFiles([
+      { path: '/Summary/代办/01-first.md', raw: '---\nstatus: 进行中\n---\n# 补充笔记\n正文' },
+      { path: '/Summary/代办/02-second.md', raw: '# 另一个事项\n正文' },
+    ]);
+    expect(decks[0].items[0]).toMatchObject({ title: '补充笔记', status: '进行中', content: '正文' });
+    expect(decks[0].items[1].status).toBeUndefined();
+    expect(decks[0].items[1].author).toBeUndefined();
   });
 });
 

@@ -14,6 +14,8 @@ import { OfflineStatus } from './components/OfflineStatus';
 import { ServiceWorkerUpdatePrompt } from './components/ServiceWorkerUpdatePrompt';
 import { SsgRouteContext, readSsgRouteData } from './ssr/routeData';
 
+const CloudAccount = import.meta.env.VITE_DEPLOY_TARGET === 'cloud' ? lazy(() => import('./cloud/CloudAccount')) : null;
+
 const Post = lazy(() => import('./pages/Post').then((m) => ({ default: m.Post })));
 const About = lazy(pageLoaders['/about']);
 const ArchivePage = lazy(pageLoaders['/archive']);
@@ -79,6 +81,10 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 
 const AppRoutes: React.FC = () => {
   const location = useLocation();
+  const [cloudReady, setCloudReady] = useState(false);
+  useEffect(() => {
+    setCloudReady(true);
+  }, []);
   const [displayLocation, setDisplayLocation] = useState(location);
   // SSR 与客户端首帧保持一致（false），水合后检测并开启 View Transitions。
   const [hasViewTransition, setHasViewTransition] = useState(false);
@@ -127,6 +133,11 @@ const AppRoutes: React.FC = () => {
 
   return (
     <Layout hasViewTransition={hasViewTransition}>
+      {cloudReady && CloudAccount && (
+        <Suspense fallback={null}>
+          <CloudAccount />
+        </Suspense>
+      )}
       <Suspense fallback={<RouteFallback />}>
         <Routes location={displayLocation} key={displayLocation.pathname}>
           <Route path="/" element={<Home />} />

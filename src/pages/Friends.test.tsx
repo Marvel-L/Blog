@@ -22,6 +22,18 @@ const { friendsFixture } = vi.hoisted(() => ({
   ],
 }));
 
+// 页面配置允许不设置申请表单；该用例固定一个有效表单地址，不依赖站长配置。
+vi.mock('@config/site.config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@config/site.config')>();
+  return {
+    ...actual,
+    siteConfig: {
+      ...actual.siteConfig,
+      friendsPage: { ...actual.siteConfig.friendsPage, applyUrl: 'https://example.com/apply' },
+    },
+  };
+});
+
 vi.mock('@/services/friends', () => ({
   getInitialFriends: vi.fn(() => friendsFixture),
   getFriends: vi.fn(async () => friendsFixture),

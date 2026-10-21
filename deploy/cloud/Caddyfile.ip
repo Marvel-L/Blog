@@ -1,0 +1,28 @@
+{
+    log default {
+        format filter {
+            wrap json
+            fields {
+                request>uri delete
+                request>headers>Cookie delete
+                request>headers>Authorization delete
+            }
+        }
+    }
+    # IP certificates are provided and renewed externally by Certbot.
+    auto_https disable_certs
+    default_sni {$CLOUD_DOMAIN}
+}
+http://{$CLOUD_DOMAIN} {
+    handle /.well-known/acme-challenge/* {
+        root * /var/www/acme
+        file_server
+    }
+    handle {
+        redir https://{$CLOUD_DOMAIN}{uri} permanent
+    }
+}
+https://{$CLOUD_DOMAIN} {
+    tls /etc/letsencrypt/live/{$CLOUD_DOMAIN}/fullchain.pem /etc/letsencrypt/live/{$CLOUD_DOMAIN}/privkey.pem
+    reverse_proxy web:80
+}
