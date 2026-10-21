@@ -60,23 +60,10 @@ Pages 沿用原 custom 分支发布工作流，与云端上线相互独立。
 
 ## 备份与恢复
 
-首次上线后配置每天备份，并将加密后的备份复制到服务器以外；首版提供操作步骤，尚未配置自动作业。
-备份文件含用户数据，应限制权限、设置保留周期，不应提交仓库。
-
-```sh
-# 从根目录执行；备份输出路径放在仓库外，先创建该目录。
-umask 077
-docker compose --env-file deploy/cloud/.env -f deploy/cloud/compose.yml exec -T db pg_dump -U dblog -d dblog -Fc > /secure-backups/dblog.dump
-```
-
-备份命令返回非零时不得将输出文件当作成功备份。
-恢复先在独立测试数据库中运行 pg_restore，验证账号/事件数量与约束，再计划正式恢复；禁止在仍有写请求时覆盖线上库。
-
-```sh
-# 仅恢复到独立的 dblog_restore 数据库，保留线上 dblog。
-docker compose --env-file deploy/cloud/.env -f deploy/cloud/compose.yml exec -T db createdb -U dblog dblog_restore
-docker compose --env-file deploy/cloud/.env -f deploy/cloud/compose.yml exec -T db pg_restore -U dblog -d dblog_restore --exit-on-error < /secure-backups/dblog.dump
-```
+已启用每日服务器加密备份（北京时间 03:00 后随机 15 分钟内，保留 14 天）。
+首次独立数据库恢复演练和 Mac 异地副本校验通过；后续异地自动传输仍待存储位置确定。
+备份私钥只长期保存在 Mac，服务器只保留加密公钥，备份不包含生产环境凭据。
+安装、恢复演练、密钥保管和已知边界见 [BACKUP.md](BACKUP.md)。
 
 ## 已知限制
 
@@ -85,7 +72,7 @@ docker compose --env-file deploy/cloud/.env -f deploy/cloud/compose.yml exec -T 
 - 原 Umami/Giscus 等第三方服务保留现状，连通性仍受实际网络影响。
 - 初版限流按后端连接来源聚合，非真实访客 IP；多实例部署前需重新设计共享限流。
 - 访问事件尽力上报，无持久化离线队列；页面关闭/断网可能丢失事件。
-- 账号删除、阅读云同步、异地备份作业尚未包含在本版。
+- 账号删除、阅读云同步、异地自动备份传输尚未包含在本版；每日服务器加密备份和首次恢复演练已完成。
 
 ## 无域名的 IP HTTPS 部署
 

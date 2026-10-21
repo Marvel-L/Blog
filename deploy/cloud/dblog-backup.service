@@ -1,0 +1,17 @@
+[Unit]
+Description=Create an encrypted dblog PostgreSQL snapshot
+After=docker.service network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=2h
+StartLimitBurst=3
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/dblog/maintenance/backup.py --work /run/dblog-backup-service create
+RuntimeDirectory=dblog-backup-service
+RuntimeDirectoryMode=0700
+UMask=0077
+TimeoutStartSec=15min
+Restart=on-failure
+RestartSec=15min
+

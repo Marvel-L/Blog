@@ -1,0 +1,10 @@
+[Unit]
+Description=Back up dblog daily at 03:00 Asia/Shanghai
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 Asia/Shanghai
+RandomizedDelaySec=15m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
