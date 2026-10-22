@@ -29,7 +29,11 @@ const deferred = <T>() => {
   });
   return { promise, resolve, reject };
 };
-function fixture(initial = defaultState(), remote = snapshot(null, 0)) {
+function fixture(
+  initial = defaultState(),
+  remote = snapshot(null, 0),
+  storage: Pick<Storage, 'getItem' | 'setItem'> = localStorage,
+) {
   let view: SyncView | undefined;
   let local = initial;
   let scope: string | null = null;
@@ -46,7 +50,7 @@ function fixture(initial = defaultState(), remote = snapshot(null, 0)) {
     (next) => {
       view = next;
     },
-    localStorage,
+    storage,
   );
   return { engine, transport, load, save, apply, view: () => view!, local: () => local, scope: () => scope };
 }
@@ -266,21 +270,44 @@ describe('Trend 自动同步', () => {
     f.engine.stop();
   });
 
-  it('本地保存失败明确提示，卸载取消中的连接不发布状态', async () => {
-    const f = fixture();
-    vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
-      throw new Error('quota');
-    });
+  it('本地保存失败明确提示，云端写入后仍提示，存储恢复后保存草稿', async () => {
+    // jsdom Storage proxies can ignore instance method mocks; inject the failing writer.
+    const storage = {
+      getItem: localStorage.getItem.bind(localStorage),
+      setItem: vi.fn<Storage['setItem']>().mockImplementation(() => {
+        throw new Error('quota');
+      }),
+    };
+    const f = fixture(defaultState(), snapshot(null, 0), storage);
     await f.engine.connect(f.transport);
+    expect(storage.setItem).toHaveBeenCalledWith(draftKey(user.id), expect.any(String));
     expect(f.view().status).toContain('本地保存失败');
+    expect(localStorage.getItem(draftKey(user.id))).toBeNull();
+    await vi.advanceTimersByTimeAsync(700);
+    expect(f.save).toHaveBeenCalledTimes(1);
+    expect(f.view().status).toBe('已同步到云端；本地保存失败，请导出备份');
+    storage.setItem.mockImplementation(localStorage.setItem.bind(localStorage));
+    f.engine.edit(state('存储恢复后的修改'));
+    expect(f.view().status).not.toContain('本地保存失败');
+    await vi.advanceTimersByTimeAsync(700);
+    expect(f.view().status).toBe('已同步到云端');
+    const saved = JSON.parse(localStorage.getItem(draftKey(user.id))!);
+    expect(saved.state.categories[0].name).toBe('存储恢复后的修改');
+    expect(saved.base.revision).toBe(2);
+    expect(saved.pending).toBeNull();
     f.engine.stop();
+  });
+
+  it('卸载取消中的连接不应用或发布迟到响应', async () => {
     const pending = deferred<SyncResponse>();
     const g = fixture();
     g.load.mockImplementationOnce(() => pending.promise);
     const running = g.engine.connect(g.transport);
+    const beforeStop = g.view();
     g.engine.stop();
     pending.resolve(response(snapshot(state('远端'), 2)));
     await running;
     expect(g.apply).not.toHaveBeenCalled();
+    expect(g.view()).toBe(beforeStop);
   });
 });
