@@ -1,7 +1,6 @@
 ---
 id: start
 title: 阅读指南
-group: 开始
 relatedPostIds:
   - leetCode-hot-100
   - xiaolin_algo_week1_day1

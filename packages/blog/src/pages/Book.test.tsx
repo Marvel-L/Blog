@@ -88,7 +88,14 @@ describe('Book package detail', () => {
         subtitle: '',
         edition: 'LOCAL NOTES',
         accent: '#365348',
-        chapters: [{ id: 'intro', title: '新建章节', content: '# 新建章节\n\n## 方法\n\n来自本地 Markdown 的正文。' }],
+        chapters: [
+          {
+            id: 'intro',
+            directory: [],
+            title: '新建章节',
+            content: '# 新建章节\n\n## 方法\n\n来自本地 Markdown 的正文。',
+          },
+        ],
       },
     ]);
     render(app('/book/local/chapter/intro'));
@@ -101,6 +108,30 @@ describe('Book package detail', () => {
     vi.spyOn(bookService, 'getBookPackageDefinitions').mockReturnValue([]);
     render(app('/book'));
     expect(screen.getByText(/书架还空着/)).toBeInTheDocument();
+  });
+
+  it('renders and collapses multiple levels of physical subpackages', async () => {
+    const definition = bookService.getBookPackageDefinitions()[0];
+    vi.spyOn(bookService, 'getBookPackageDefinitions').mockReturnValue([
+      {
+        ...definition,
+        chapters: [{ id: 'nested', directory: ['并发', '取消'], title: '取消机制', content: '# 取消机制\n\n正文。' }],
+      },
+    ]);
+    render(app(`/book/${definition.id}/chapter/nested`));
+    const user = userEvent.setup();
+    const tree = screen.getByRole('navigation', { name: `${definition.name}章节目录` });
+    const parent = within(tree).getByRole('button', { name: '并发' });
+    const child = within(tree).getByRole('button', { name: '取消' });
+    expect(screen.getByText('并发 / 取消')).toBeInTheDocument();
+    await user.click(child);
+    expect(child).toHaveAttribute('aria-expanded', 'false');
+    expect(within(tree).queryByRole('link', { name: '取消机制' })).not.toBeInTheDocument();
+    await user.click(parent);
+    expect(within(tree).queryByRole('button', { name: '取消' })).not.toBeInTheDocument();
+    await user.click(parent);
+    await user.click(child);
+    expect(within(tree).getByRole('link', { name: '取消机制' })).toHaveAttribute('aria-current', 'page');
   });
 
   it('SSR exposes deterministic package content and routes', () => {

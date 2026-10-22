@@ -8,23 +8,34 @@ const publicPostMap = (posts) =>
   new Map(posts.filter((post) => !post.needHidden && !post.draft).map((post) => [post.id, post]));
 
 const buildTree = (chapters, bookId) => {
-  const groups = new Map();
+  const tree = [];
+  const folders = new Map();
   chapters.forEach((chapter) => {
-    const label = chapter.group || '内容';
-    const group = groups.get(label) ?? [];
-    group.push({
+    let children = tree;
+    const parts = [];
+    chapter.directory.forEach((label) => {
+      parts.push(label);
+      const key = parts.join('/');
+      let folder = folders.get(key);
+      if (!folder) {
+        folder = {
+          id: `${bookId}/directory/${parts.map(encodeURIComponent).join('/')}`,
+          label,
+          children: [],
+        };
+        folders.set(key, folder);
+        children.push(folder);
+      }
+      children = folder.children;
+    });
+    children.push({
       id: `${bookId}/chapter/${chapter.id}`,
       label: chapter.title,
       chapter,
       children: [],
     });
-    groups.set(label, group);
   });
-  return Array.from(groups, ([label, children]) => ({
-    id: `${bookId}/group/${encodeURIComponent(label)}`,
-    label,
-    children,
-  }));
+  return tree;
 };
 
 export const flattenChapters = (tree) =>
@@ -34,17 +45,19 @@ export const flattenChapters = (tree) =>
 export const buildBooks = (posts, definitions) => {
   const postsById = publicPostMap(posts);
   return definitions.map((definition) => {
-    const chapters = definition.chapters.map((chapter) => ({
+    const resolvedChapters = definition.chapters.map((chapter) => ({
       ...chapter,
       relatedPosts: (chapter.relatedPostIds ?? []).map((id) => postsById.get(id)).filter(Boolean),
     }));
+    const tree = buildTree(resolvedChapters, definition.id);
+    const chapters = flattenChapters(tree);
     const relatedPosts = Array.from(
       new Map(chapters.flatMap((chapter) => chapter.relatedPosts).map((post) => [post.id, post])).values(),
     );
     return {
       ...definition,
       chapters,
-      tree: buildTree(chapters, definition.id),
+      tree,
       posts: relatedPosts,
     };
   });

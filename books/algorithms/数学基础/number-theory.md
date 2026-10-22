@@ -1,7 +1,6 @@
 ---
 id: number-theory
 title: 数论：最大公约数
-group: 数学基础
 relatedPostIds:
   - gcd_learning_0x01
 ---

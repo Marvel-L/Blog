@@ -5,5 +5,5 @@
   "edition": "ALGORITHM FIELD NOTES",
   "accent": "#365348",
   "order": 1,
-  "chapters": ["start.md", "linked-list.md", "number-theory.md"]
+  "chapters": ["开始/start.md", "数据结构/linked-list.md", "数学基础/number-theory.md"]
 }

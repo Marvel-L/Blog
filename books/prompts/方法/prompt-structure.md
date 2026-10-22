@@ -1,7 +1,6 @@
 ---
 id: prompt-structure
 title: Prompt 的最小结构
-group: 方法
 relatedPostIds:
   - cam-summary-prompts
 ---

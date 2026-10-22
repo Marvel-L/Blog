@@ -1,7 +1,6 @@
 ---
 id: pointers
 title: 指针仍然按值传递
-group: 核心语义
 relatedPostIds:
   - go-pointer-pass-by-value-0x01
 ---

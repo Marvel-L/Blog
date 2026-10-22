@@ -1,7 +1,6 @@
 ---
 id: recent-notes
 title: 最近的记录
-group: 时间线
 relatedPostIds:
   - 26-10-19-记录这几天
   - 2026-10-16-记录一次失眠

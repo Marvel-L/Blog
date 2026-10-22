@@ -105,7 +105,7 @@ function ChapterArticle({ book, chapter }: { book: Book; chapter: BookChapter })
           <h1>{chapter.title}</h1>
           <p>{book.subtitle}</p>
           <div className="book-article-context">
-            <span>{chapter.group || '内容'}</span>
+            <span>{chapter.directory.join(' / ') || '内容'}</span>
             <span>{chapter.relatedPosts.length} 篇关联文章</span>
           </div>
         </header>

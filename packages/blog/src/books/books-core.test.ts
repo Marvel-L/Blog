@@ -22,10 +22,32 @@ describe('Book package catalog', () => {
     expect(JSON.stringify(catalog)).toBe(original);
   });
 
-  it('keeps package groups and chapter order', () => {
+  it('keeps physical subpackage directories and chapter order', () => {
     const book = buildBooks(catalog, definitions).find((item) => item.id === 'algorithms')!;
     expect(book.tree.map((node) => node.label)).toEqual(['开始', '数据结构', '数学基础']);
     expect(flattenChapters(book.tree).map((chapter) => chapter.id)).toEqual(['start', 'linked-list', 'number-theory']);
+  });
+
+  it('builds nested directories and keeps reading order consistent with the tree', () => {
+    const chapter = (id: string, directory: string[]) => ({ id, directory, title: id, content: `# ${id}` });
+    const definition = {
+      ...definitions[0],
+      chapters: [
+        chapter('first', ['Go', '基础']),
+        chapter('root', []),
+        chapter('second', ['Go', '基础']),
+        chapter('third', ['Java', '基础']),
+      ],
+    };
+    const book = buildBooks([], [definition])[0];
+    expect(book.tree.map((node) => node.label)).toEqual(['Go', 'root', 'Java']);
+    expect(book.tree[0].children[0].label).toBe('基础');
+    expect(book.tree[0].children[0].children.map((node) => node.chapter?.id)).toEqual(['first', 'second']);
+    expect(book.tree[1].chapter?.id).toBe('root');
+    expect(book.tree[2].children[0].children[0].chapter?.id).toBe('third');
+    expect(book.tree[0].children[0].id).not.toBe(book.tree[2].children[0].id);
+    expect(book.chapters.map((chapter) => chapter.id)).toEqual(['first', 'second', 'root', 'third']);
+    expect(flattenChapters(book.tree)).toEqual(book.chapters);
   });
 
   it('resolves only existing public related posts and removes duplicates at book level', () => {

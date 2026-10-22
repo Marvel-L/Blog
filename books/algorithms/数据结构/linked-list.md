@@ -1,7 +1,6 @@
 ---
 id: linked-list
 title: 链表：从指针关系入手
-group: 数据结构
 relatedPostIds:
   - lcsaf-seek-link-list-0x01
   - lcsaf-reverse-link-0x01

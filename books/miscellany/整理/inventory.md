@@ -1,7 +1,6 @@
 ---
 id: inventory
 title: 能力与关系索引
-group: 整理
 relatedPostIds:
   - my_program_weapon_0x01
   - 我接触过的人-0x01

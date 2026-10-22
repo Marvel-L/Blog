@@ -5,5 +5,5 @@
   "edition": "THINKING IN GO",
   "accent": "#365d74",
   "order": 2,
-  "chapters": ["language-basics.md", "pointers.md"]
+  "chapters": ["基础/language-basics.md", "核心语义/pointers.md"]
 }

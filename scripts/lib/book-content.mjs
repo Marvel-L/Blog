@@ -10,7 +10,7 @@ export const BOOKS_ROOT = path.resolve(fileURLToPath(new URL('../../books/', imp
 export const BOOKS_DATA_FILE = fileURLToPath(new URL('../../generated/books.json', import.meta.url));
 const CONFIG_NAMES = ['config.json', 'config.yaml', 'config.yml'];
 const BOOK_FIELDS = new Set(['id', 'name', 'subtitle', 'edition', 'accent', 'order', 'draft', 'chapters']);
-const CHAPTER_FIELDS = new Set(['id', 'title', 'group', 'order', 'draft', 'relatedPostIds']);
+const CHAPTER_FIELDS = new Set(['id', 'title', 'order', 'draft', 'relatedPostIds']);
 const compareText = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 const fail = (filename, reason) => {
   throw new Error(`Invalid Book content in ${filename}: ${reason}`);
@@ -156,7 +156,7 @@ export const loadBookPackages = (root = BOOKS_ROOT) => {
         {
           id: chapterId,
           title: text(metadata.title, heading || path.posix.basename(file, '.md'), sourcePath, 'title'),
-          group: text(metadata.group, folder === '.' ? '' : folder, sourcePath, 'group', true),
+          directory: folder === '.' ? [] : folder.split('/'),
           content,
           relatedPostIds: relatedPosts(metadata.relatedPostIds, sourcePath),
           filePath: `/books/${entry.name}/${file}`,

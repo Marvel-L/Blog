@@ -6,10 +6,13 @@
 books/
   golang/
     config.json          # 可选，或 config.yaml / config.yml，三者只保留一个
-    language-basics.md
-    pointers.md
-    concurrency/
-      context.md
+    基础/
+      language-basics.md
+    核心语义/
+      pointers.md
+    并发/
+      取消/
+        context.md
 ```
 
 ## 创建一本书和第一章
@@ -24,7 +27,13 @@ books/
 
 运行 `npm run dev` 即可在书架看到 `my-book`，书籍路径为 `/book/my-book`，章节路径为 `/book/my-book/chapter/intro`。开发服务器会自动读取新建、修改和删除的章节或配置；发布时原有 Pages/cloud 构建会生成对应静态页面与 sitemap。
 
-无配置时，书名和 Book ID 使用目录名；章节标题取正文的一级标题，没有一级标题则取文件名。章节 ID 使用相对路径去掉 `.md`，子目录分隔符替换为 `--`，例如 `concurrency/context.md` 对应 `concurrency--context`；默认分组取子目录路径。默认按路径的固定字符顺序排列，不依赖系统 locale。
+无配置时，书名和 Book ID 使用目录名；章节标题取正文的一级标题，没有一级标题则取文件名。章节 ID 使用相对路径去掉 `.md`，子目录分隔符替换为 `--`，例如 `并发/取消/context.md` 对应 `并发--取消--context`。默认按路径的固定字符顺序排列，不依赖系统 locale。
+
+## 组织子 package
+
+同一个子 package 的章节放在同一个子目录。目录名直接成为导航名称，每层子目录对应一层可折叠目录；根目录下的 Markdown 直接显示为章节。比如上面的结构会显示「并发 → 取消 → Context」。
+
+章节 front matter 和配置都不接受 `group` 字段。章节所属目录由文件位置确定，移动文件即可调整目录层级；移动时保留显式 `id`，章节 URL 就保持不变。
 
 ## 配置书籍展示
 
@@ -39,9 +48,8 @@ accent: "#365348"
 order: 10
 chapters:
   - intro.md
-  - file: concurrency/context.md
+  - file: 并发/取消/context.md
     title: Context 与取消
-    group: 并发
 ```
 
 所有字段都可省略：
@@ -57,7 +65,9 @@ chapters:
 | `draft` | `true` 时整本书不发布；默认 `false` |
 | `chapters` | 可选的优先阅读顺序；支持相对文件路径或带 `file` 的配置对象 |
 
-`chapters` 列出的文件按数组顺序优先展示；未列出的 Markdown 自动追加，并按章节 `order`、相对路径排序。因此添加普通新章节无需修改配置。对象还可覆盖章节的 `id`、`title`、`group`、`order`、`draft`、`relatedPostIds`，优先级高于 Markdown front matter。配置引用的文件必须存在，删除这类章节时应一并删除配置中的引用。
+`chapters` 列出的文件按数组顺序优先展示；未列出的 Markdown 自动追加，并按章节 `order`、相对路径排序。因此添加普通新章节无需修改配置。对象还可覆盖章节的 `id`、`title`、`order`、`draft`、`relatedPostIds`，优先级高于 Markdown front matter。配置引用的文件必须存在，删除这类章节时应一并删除配置中的引用。
+
+导航保持真实目录结构：子目录按章节首次出现的顺序排列，同一个子目录的章节集中展示。「上一章 / 下一章」使用目录树的阅读顺序，跨目录交错的配置不会把同一子目录拆成多个分组。
 
 ## 配置章节
 
@@ -67,7 +77,6 @@ Markdown front matter 可选：
 ---
 id: context
 title: Context 与取消
-group: 并发
 order: 20
 relatedPostIds:
   - go-pointer-pass-by-value-0x01

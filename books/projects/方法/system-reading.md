@@ -1,7 +1,6 @@
 ---
 id: system-reading
 title: 如何开始阅读一个项目
-group: 方法
 relatedPostIds:
   - volc-contract-process-reading-0x01
   - cam-aim-tidy-0x01

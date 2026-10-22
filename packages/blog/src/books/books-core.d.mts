@@ -3,7 +3,8 @@ import type { PostMetadata } from '../types';
 export interface BookChapterDefinition {
   id: string;
   title: string;
-  group?: string;
+  /** Physical subdirectories relative to this Book package; never author tags. */
+  directory: string[];
   content: string;
   relatedPostIds?: string[];
   filePath?: string;

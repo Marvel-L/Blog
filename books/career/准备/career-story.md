@@ -1,7 +1,6 @@
 ---
 id: career-story
 title: 建立职业叙事
-group: 准备
 relatedPostIds:
   - 三本社招6年Go后端-0x01
   - cam-aim-tidy-0x01

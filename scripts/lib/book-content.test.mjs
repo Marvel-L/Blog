@@ -30,11 +30,11 @@ describe('local Book content packages', () => {
     const books = loadBookPackages(root);
     expect(books.map((book) => book.id)).toEqual(['go']);
     expect(books[0].name).toBe('go');
-    expect(books[0].chapters.map((chapter) => [chapter.id, chapter.title, chapter.group])).toEqual([
-      ['intro', 'Go 入门', ''],
-      ['基础--pointers', '指针', '基础'],
+    expect(books[0].chapters.map((chapter) => [chapter.id, chapter.title, chapter.directory])).toEqual([
+      ['intro', 'Go 入门', []],
+      ['基础--pointers', '指针', ['基础']],
     ]);
-    expect(buildBooks([], books)[0].tree.map((node) => node.label)).toEqual(['内容', '基础']);
+    expect(buildBooks([], books)[0].tree.map((node) => node.label)).toEqual(['Go 入门', '基础']);
     expect(getBookRoutes(books)).toContain('book/go/chapter/基础--pointers');
   });
 
@@ -48,21 +48,18 @@ describe('local Book content packages', () => {
         edition: 'GO NOTES',
         accent: '#365d74',
         order: -1,
-        chapters: [
-          { file: 'b.md', id: 'stable-chapter', title: '配置标题', group: '配置分组', relatedPostIds: ['post'] },
-          'a.md',
-        ],
+        chapters: [{ file: '基础/b.md', id: 'stable-chapter', title: '配置标题', relatedPostIds: ['post'] }, 'a.md'],
       };
       put('go/config.' + ext, ext === 'json' ? config : JSON.stringify(config));
       put('go/a.md', '# A');
-      put('go/b.md', '---\ntitle: 正文标题\n---\n# B');
+      put('go/基础/b.md', '---\ntitle: 正文标题\n---\n# B');
       put('go/new.md', '# 新章节');
       const book = loadBookPackages(root)[0];
       expect(book).toMatchObject({ id: 'stable-id', name: '自定义手册', accent: '#365d74' });
       expect(book.chapters.map((chapter) => chapter.id)).toEqual(['stable-chapter', 'a', 'new']);
       expect(book.chapters[0]).toMatchObject({
         title: '配置标题',
-        group: '配置分组',
+        directory: ['基础'],
         relatedPostIds: ['post'],
         content: '# B',
       });
@@ -73,12 +70,12 @@ describe('local Book content packages', () => {
   it('reads ordinary YAML syntax and front matter with deterministic numeric ordering', () => {
     put('z/config.yaml', 'name: YAML 手册\norder: -1\naccent: "#365d74"\n');
     put('z/a.md', '---\norder: 2\n---\n# A');
-    put('z/b.md', '---\nid: stable\ntitle: 自定义标题\ngroup: 核心\norder: 1\nrelatedPostIds: [post, post]\n---\n# B');
+    put('z/核心/b.md', '---\nid: stable\ntitle: 自定义标题\norder: 1\nrelatedPostIds: [post, post]\n---\n# B');
     put('a/intro.md', '# Another book');
     const books = loadBookPackages(root);
     expect(books.map((book) => book.id)).toEqual(['z', 'a']);
     expect(books[0].chapters.map((chapter) => chapter.id)).toEqual(['stable', 'a']);
-    expect(books[0].chapters[0]).toMatchObject({ title: '自定义标题', group: '核心', relatedPostIds: ['post'] });
+    expect(books[0].chapters[0]).toMatchObject({ title: '自定义标题', directory: ['核心'], relatedPostIds: ['post'] });
     expect(loadBookPackages(root)).toEqual(books);
   });
 
@@ -122,6 +119,13 @@ describe('local Book content packages', () => {
     ['missing chapter', 'go/config.json', { chapters: ['missing.md'] }, 'missing or outside'],
     ['path traversal', 'go/config.json', { chapters: ['../other.md'] }, 'missing or outside'],
     ['duplicate file', 'go/config.json', { chapters: ['intro.md', 'intro.md'] }, 'listed twice'],
+    [
+      'group tag in config',
+      'go/config.json',
+      { chapters: [{ file: 'intro.md', group: '核心' }] },
+      'unknown field "group"',
+    ],
+    ['group tag in front matter', 'go/intro.md', '---\ngroup: 核心\n---\n# Intro', 'unknown field "group"'],
     ['empty body', 'go/intro.md', '---\ntitle: Empty\n---\n', 'body must not be empty'],
     ['invalid related IDs', 'go/intro.md', '---\nrelatedPostIds: [42]\n---\n# Intro', 'relatedPostIds item'],
     ['unsafe chapter ID', 'go/intro.md', '---\nid: a/b\n---\n# Intro', 'id is unsafe'],

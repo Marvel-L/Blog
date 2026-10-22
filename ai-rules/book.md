@@ -13,10 +13,10 @@
 
 ## 修改规则
 
-1. Book 与 category 解耦：书籍从 `books/` 的一级 package 目录读取，章节从其 Markdown 文件读取；可选配置与 front matter 控制展示、分组和顺序。禁止重新按 category 自动生成或在执行脚本中硬编码内容；未被 package 引用的 Blog 分类或文章不得自动出现在书架。
+1. Book 与 category 解耦：书籍从 `books/` 的一级 package 目录读取，章节从其 Markdown 文件读取；同一子 package 的章节必须放在同一子目录，目录层级与名称由实际文件结构确定。可选配置与 front matter 仅控制展示、顺序等元数据，不接受 group 字段。禁止重新按 category 自动生成或在执行脚本中硬编码内容；未被 package 引用的 Blog 分类或文章不得自动出现在书架。
 2. package 正文是 Book Detail 的主体；关联 Blog 文章仅从 `getInitialPosts()` 对应的公开元数据按 ID 解析，隐私文章、草稿、未知 ID 必须被排除。关联失败不得阻止 package 正文展示。
 3. package 和章节 ID 必须稳定，不可随文章分类、数量或排序变化；未知书本/章节进入 noindex 缺失态，不静默选择另一章。旧文章 ID 章节 URL 只做兼容映射，不作为新的作者配置格式。
-4. 目录优先遵循配置 `chapters` 数组顺序，未列出的 Markdown 自动追加并按章节 order、相对路径排序；分组取显式 group 或所在子目录。书架按 order、ID 排序，禁止依赖当前时间、随机或运行 locale。同一关联文章可出现在多个章节，但书本级关联文章集合需去重。
+4. 目录优先遵循配置 `chapters` 数组顺序，未列出的 Markdown 自动追加并按章节 order、相对路径排序；子目录按其章节首次出现的位置排列，多层子目录递归展示，同一目录中的章节集中展示，根目录章节直接作为叶节点。书本 chapters 与相邻章节阅读顺序必须和目录树的深度优先顺序一致。书架按 order、ID 排序，禁止依赖当前时间、随机或运行 locale。同一关联文章可出现在多个章节，但书本级关联文章集合需去重。
 5. 新路由必须同步 App、预加载、SSG、sitemap 和内容链接校验。书架与 package 章节可索引，正文和客户端首帧必须一致。
 6. SSG 输出必须包含真实书架、目录与 package Markdown 正文；书架不急加载 Blog 全文、WebGL 或第三方 3D 库，3D 书封使用 CSS 透视。
 7. 目录用 nav/嵌套列表/原生 button 或 details，不滥用 tree role。折叠同步 aria-expanded，隐藏后链接不可键盘到达；链接标识 aria-current；3D 装饰对辅助技术隐藏。

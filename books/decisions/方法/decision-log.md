@@ -1,7 +1,6 @@
 ---
 id: decision-log
 title: 决策日志怎么写
-group: 方法
 relatedPostIds:
   - 2026-北京工作final-0x01
   - 北京工作切换-0x03

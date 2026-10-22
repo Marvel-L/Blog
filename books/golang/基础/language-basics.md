@@ -1,7 +1,6 @@
 ---
 id: language-basics
 title: 语言基础与阅读方式
-group: 基础
 relatedPostIds:
   - for-gamma-error-0x01
   - go-pointer-pass-by-value-0x01

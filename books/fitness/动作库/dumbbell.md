@@ -1,7 +1,6 @@
 ---
 id: dumbbell
 title: 哑铃训练索引
-group: 动作库
 relatedPostIds:
   - single_dumbbell_exec_0x01
   - double_dumbbell_exec_0x01
