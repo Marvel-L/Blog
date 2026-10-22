@@ -29,4 +29,6 @@
 - 新增 `002_trend_sync.sql`，保留原用户、会话和数据卷。接口限制 50 类别、每类 500 条目、2 MiB 配置，严格校验字段、指标、数值与 ID。
 - 服务端 `TREND_ALLOWED_ORIGINS` 精确列出 Pages/本地 origin，不使用通配符或跨源 Cookie；前端 `VITE_TREND_API_ORIGIN` 默认指向现有 IP HTTPS 云端，cloud 默认同源。
 
-部署步骤、API 契约与验证边界见 [0.5.0 记录](../versions/0.5.0.md)和[云端部署说明](../../../deploy/cloud/README.md)。本轮尚未推送或部署。
+部署步骤、API 契约与验证边界见 [0.5.0 记录](../versions/0.5.0.md)和[云端部署说明](../../../deploy/cloud/README.md)。
+2026-10-22 已部署 `d77bed5` 的云端 API/前端并完成 002 迁移，公网与页面检查通过，
+见[部署记录](../deployments/2026-10-22.md)。本轮未推送，Pages 尚未更新；真实 GitHub 跨端同步生产验收仍待完成。

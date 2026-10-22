@@ -1,6 +1,7 @@
 # 云端首版部署
 
-目标服务器：43.138.216.53。以下为部署配置和操作手册；实际完成情况见 `packages/project-notes/deployments/2026-10-20.md`。
+目标服务器：43.138.216.53。以下为部署配置和操作手册；首版情况见 `packages/project-notes/deployments/2026-10-20.md`，
+最新 Trend 上线情况见 [2026-10-22 部署记录](../../packages/project-notes/deployments/2026-10-22.md)。
 
 ## 前置配置
 
@@ -196,7 +197,9 @@ Go 开发与测试步骤见 [packages/server](../../packages/server/README.md)�
 ## 0.5.0 Trend 跨端自动同步
 
 Trend 使用现有 Go API、GitHub OAuth 与 PostgreSQL，Pages、本地开发站和云端连接同一账号后共享配置。
-本轮代码尚未生产发布；需按正常流程一起发布 API 与前端并执行 `002_trend_sync.sql`。
+2026-10-22 已按正常流程发布 `d77bed5` 的云端 API 与前端，成功执行 `002_trend_sync.sql`；
+生产健康、迁移账本、精确 CORS 和 Trend 页面检查通过。本轮未推送 Git，Pages 尚未更新，
+真实 GitHub 授权及跨端同步仍待生产验收。执行证据见 [部署记录](../../packages/project-notes/deployments/2026-10-22.md)。
 无需重建数据卷，原 OAuth App 和回调地址继续使用。
 
 服务端配置 `TREND_ALLOWED_ORIGINS`，为逗号分隔的精确来源，例如：
