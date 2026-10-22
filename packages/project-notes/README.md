@@ -5,6 +5,7 @@
 | 文档 | 内容 |
 | --- | --- |
 | [features/book.md](features/book.md) | Book 3D 分类书架、预览与后续批次状态 |
+| [features/trend.md](features/trend.md) | Trend 数据比较、阈值配色、配置保存与验证记录 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 部署拓扑、package 边界、架构决策与迁移条件 |
 | [deployments/2026-10-21.md](deployments/2026-10-21.md) | 发文同步、自动发布验收与备份恢复 |
 | [deployments/2026-10-20.md](deployments/2026-10-20.md) | 服务器检查、IP HTTPS 方案和待处理事项 |

@@ -29,6 +29,7 @@ const pageLoaders: Record<string, ModuleLoader> = {
   '/archive': () => import('../pages/Archive').then((m) => ({ default: m.ArchivePage })),
   '/tags': () => import('../pages/Tags').then((m) => ({ default: m.Tags })),
   '/stats': () => import('../pages/Stats').then((m) => ({ default: m.Stats })),
+  '/trend': () => import('../pages/Trend').then((m) => ({ default: m.Trend })),
   '/friends': () => import('../pages/Friends').then((m) => ({ default: m.Friends })),
   '/shuoshuo': () => import('../pages/ShuoShuo').then((m) => ({ default: m.ShuoShuo })),
   '/guestbook': () => import('../pages/Guestbook').then((m) => ({ default: m.Guestbook })),

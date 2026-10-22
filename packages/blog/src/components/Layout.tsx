@@ -31,6 +31,7 @@ import {
   Library,
   Sparkles,
   Smile,
+  TrendingUp,
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { preloadPage } from '@/utils/preload';
@@ -105,14 +106,15 @@ const navItems: NavPathItem[] = [
   { path: '/archive', label: TEXT.navArchive, hint: '时间归档', icon: Archive },
   { path: '/tags', label: TEXT.navTags, hint: '主题筛选', icon: Tag },
   { path: '/stats', label: TEXT.navStats, hint: '站点数据', icon: BarChart3 },
-  { path: '/friends', label: TEXT.navFriends, hint: '友情链接', icon: Users },
-  { path: '/guestbook', label: TEXT.navGuestbook, hint: '留言互动', icon: MessageSquareText },
+  { path: '/trend', label: 'Trend', hint: '数据趋势与比较', icon: TrendingUp },
   { path: '/road', label: TEXT.navRoad, hint: '学习路线图', icon: MapIcon },
   { path: '/accumulate', label: TEXT.navAccumulate, hint: '卡片式积累', icon: Library },
   { path: '/about', label: TEXT.navAbout, hint: '站点介绍', icon: Info },
 ];
 
 const moreNavItems: NavItem[] = [
+  { key: 'friends', path: '/friends', label: TEXT.navFriends, hint: '友情链接', icon: Users },
+  { key: 'guestbook', path: '/guestbook', label: TEXT.navGuestbook, hint: '留言互动', icon: MessageSquareText },
   {
     key: 'cover',
     path: '/cover',
@@ -152,19 +154,22 @@ const moreNavItems: NavItem[] = [
   },
 ];
 
-// 移动端底部标签栏：高频入口一级直达（首页/说说/搜索/友链），其余栏目收纳进「更多」面板。
+// 移动端底部标签栏：高频入口一级直达（首页/说说/搜索/Trend），其余栏目收纳进「更多」面板。
 const mobileTabItems: Array<{ key: string; path: string; label: string; icon: NavIcon }> = [
   { key: 'home', path: '/', label: '首页', icon: BookOpen },
   { key: 'shuoshuo', path: '/shuoshuo', label: TEXT.navShuoShuo, icon: MessageCircle },
   { key: 'search', path: '/search', label: '搜索', icon: Search },
-  { key: 'friends', path: '/friends', label: TEXT.navFriends, icon: Users },
+  { key: 'trend', path: '/trend', label: 'Trend', icon: TrendingUp },
 ];
 
 // 「更多」面板分组：栏目 / 工具 / 订阅与联系（路径项走 SPA 导航，外链项新窗口打开）。
 const mobileMorePanelGroups: Array<{ label: string; items: NavItem[] }> = [
   {
     label: '栏目',
-    items: navItems.filter((item) => !['/', '/shuoshuo', '/friends'].includes(item.path)),
+    items: [
+      ...navItems.filter((item) => !['/', '/shuoshuo', '/trend'].includes(item.path)),
+      ...moreNavItems.filter((item) => ['friends', 'guestbook'].includes(item.key ?? '')),
+    ],
   },
   {
     label: '工具',
@@ -1301,7 +1306,7 @@ const Navbar = ({
         </motion.div>
       </nav>
 
-      {/* 移动端底部标签栏：lg 以下固定底部，首页/说说/搜索/友链 一级直达，「更多」打开分组面板 */}
+      {/* 移动端底部标签栏：lg 以下固定底部，首页/说说/搜索/Trend 一级直达，「更多」打开分组面板 */}
       {!isLoveMode && (
         <nav
           aria-label="移动端底部导航"

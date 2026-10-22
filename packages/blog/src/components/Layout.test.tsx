@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { StrictMode } from 'react';
 import { useReadingMode } from './ReadingModeContext';
@@ -192,13 +192,40 @@ describe('Layout', () => {
     expect(screen.getByRole('link', { name: /搜索/ })).toBeInTheDocument();
   });
 
-  it('渲染移动端底部标签栏（首页/说说/搜索/友链/更多）', () => {
+  it('渲染移动端底部标签栏（首页/说说/搜索/Trend/更多），友链和留言移入更多', () => {
     renderLayout();
     expect(screen.getAllByRole('link', { name: /首页/ }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByRole('link', { name: /说说/ }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole('link', { name: /搜索/ })).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: /友链/ }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByRole('link', { name: 'Trend' })).toHaveLength(2);
+    expect(screen.queryByRole('link', { name: /友链|留言/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '打开更多菜单' })).toBeInTheDocument();
+  });
+
+  it('桌面更多菜单可访问友链与留言，移动端更多包含同样入口', async () => {
+    const user = userEvent.setup();
+    renderLayout();
+    await user.hover(screen.getByRole('button', { name: '展开更多菜单' }));
+    const menu = screen.getByRole('menu');
+    expect(within(menu).getByRole('menuitem', { name: /友链/ })).toHaveAttribute('href', '/friends');
+    expect(within(menu).getByRole('menuitem', { name: /留言/ })).toHaveAttribute('href', '/guestbook');
+    await user.click(within(menu).getByRole('menuitem', { name: /留言/ }));
+    expect(probePathname).toBe('/guestbook');
+    await user.click(screen.getByRole('button', { name: '打开更多菜单' }));
+    await screen.findByRole('dialog', { name: '移动端导航菜单' });
+    await waitForNavOpen();
+    expect(screen.getByRole('button', { name: /友链/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /留言/ })).toBeInTheDocument();
+  });
+
+  it('桌面和移动端 Trend 入口指向同一路由并保持高亮', () => {
+    renderLayout(['/trend']);
+    const links = screen.getAllByRole('link', { name: 'Trend' });
+    expect(links).toHaveLength(2);
+    links.forEach((link) => {
+      expect(link).toHaveAttribute('href', '/trend');
+      expect(link).toHaveAttribute('aria-current', 'page');
+    });
   });
 
   it('归档等栏目收纳进「更多」面板', async () => {

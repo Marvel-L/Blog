@@ -992,6 +992,7 @@ const generateSitemap = () => {
     { path: 'archive', changefreq: 'daily', priority: '0.9', lastmod: latestPostDate },
     { path: 'tags', changefreq: 'weekly', priority: '0.8', lastmod: latestPostDate },
     { path: 'stats', changefreq: 'weekly', priority: '0.6', lastmod: latestPostDate },
+    { path: 'trend', changefreq: 'monthly', priority: '0.6', lastmod: latestPostDate },
     { path: 'friends', changefreq: 'weekly', priority: '0.7', lastmod: latestPostDate },
     { path: 'shuoshuo', changefreq: 'weekly', priority: '0.6', lastmod: latestPostDate },
     { path: 'guestbook', changefreq: 'weekly', priority: '0.5', lastmod: latestPostDate },

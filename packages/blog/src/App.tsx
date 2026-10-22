@@ -23,6 +23,7 @@ const About = lazy(pageLoaders['/about']);
 const BookPage = lazy(pageLoaders['/book']);
 const ArchivePage = lazy(pageLoaders['/archive']);
 const Stats = lazy(pageLoaders['/stats']);
+const Trend = lazy(pageLoaders['/trend']);
 const Friends = lazy(pageLoaders['/friends']);
 const ShuoShuoPage = lazy(pageLoaders['/shuoshuo']);
 const ShuoShuoDetailPage = lazy(() => import('./pages/ShuoShuoDetail').then((m) => ({ default: m.ShuoShuoDetail })));
@@ -151,6 +152,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/archive" element={<ArchivePage />} />
           <Route path="/tags" element={<Tags />} />
           <Route path="/stats" element={<Stats />} />
+          <Route path="/trend" element={<Trend />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/shuoshuo" element={<ShuoShuoPage />} />
           <Route path="/shuoshuo/:id" element={<ShuoShuoDetailPage />} />
