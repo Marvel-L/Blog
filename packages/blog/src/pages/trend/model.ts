@@ -154,13 +154,17 @@ export const defaultState = (): TrendState => {
   return { version: 1, categories: [category], selectedId: category.id };
 };
 
-const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+const exactKeys = (value: Record<string, unknown>, keys: string[]) =>
+  Object.keys(value).length === keys.length && keys.every((key) => Object.hasOwn(value, key));
 const isNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 const isText = (value: unknown): value is string => typeof value === 'string' && value.length <= 200;
 const hasUniqueIds = (items: { id: string }[]) =>
   items.every((item) => Boolean(item.id)) && new Set(items.map((item) => item.id)).size === items.length;
 const isItem = (value: unknown): value is TrendItem =>
   isObject(value) &&
+  exactKeys(value, ['id', 'name', 'price', 'weight', 'energy', 'energyUnit', 'x', 'y']) &&
   isText(value.id) &&
   isText(value.name) &&
   ['price', 'weight', 'energy', 'x', 'y'].every((key) => isNumber(value[key])) &&
@@ -172,6 +176,19 @@ const isCategory = (value: unknown): value is TrendCategory => {
   if (!isObject(value) || !isObject(value.threshold)) return false;
   const threshold = value.threshold;
   return (
+    exactKeys(value, [
+      'id',
+      'name',
+      'kind',
+      'xMetric',
+      'yMetric',
+      'xLabel',
+      'yLabel',
+      'threshold',
+      'onDashboard',
+      'items',
+    ]) &&
+    exactKeys(threshold, ['enabled', 'axis', 'direction', 'value']) &&
     isText(value.id) &&
     isText(value.name) &&
     Boolean(value.name.trim()) &&
@@ -197,6 +214,7 @@ export const parseState = (raw: string): TrendState => {
   const value: unknown = JSON.parse(raw);
   if (
     !isObject(value) ||
+    !exactKeys(value, ['version', 'categories', 'selectedId']) ||
     value.version !== 1 ||
     !Array.isArray(value.categories) ||
     value.categories.length === 0 ||

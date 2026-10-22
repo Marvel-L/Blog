@@ -130,7 +130,7 @@ describe('Trend 页面', () => {
         <Trend />
       </StrictMode>,
     );
-    expect(screen.getByRole('status')).toHaveTextContent('无法读取已保存的配置');
+    expect(screen.getByText(/无法读取已保存的配置/)).toBeInTheDocument();
     expect(localStorage.getItem(STORAGE_KEY)).toBe('{broken');
     vi.stubGlobal('localStorage', {
       setItem: vi.fn(() => {
@@ -155,7 +155,7 @@ describe('Trend 页面', () => {
     const badFile = new File(['bad'], 'bad.json', { type: 'application/json' });
     Object.defineProperty(badFile, 'text', { value: async () => '{"version":9}' });
     await user.upload(input, badFile);
-    expect(await screen.findByRole('status')).toHaveTextContent('导入失败');
+    expect(await screen.findByText(/导入失败/)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '导入的咖啡' })).toBeInTheDocument();
     let finish!: (value: string) => void;
     const pendingFile = new File(['pending'], 'pending.json', { type: 'application/json' });

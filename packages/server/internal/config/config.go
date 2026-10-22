@@ -11,6 +11,7 @@ type Config struct {
 	Origin, DatabaseURL, ClientID, ClientSecret string
 	Port                                        int
 	SecureCookies                               bool
+	TrendAllowedOrigins                         []string
 }
 
 // Load accepts an environment reader so tests never need production credentials.
@@ -38,6 +39,17 @@ func Load(get func(string) string) (Config, error) {
 	}
 	c.Origin = u.Scheme + "://" + u.Host
 	c.SecureCookies = u.Scheme == "https"
+	if origins := strings.TrimSpace(get("TREND_ALLOWED_ORIGINS")); origins != "" {
+		for _, origin := range strings.Split(origins, ",") {
+			origin = strings.TrimSpace(origin)
+			parsed, parseErr := url.Parse(origin)
+			if parseErr != nil || parsed.Host == "" || parsed.User != nil || parsed.Path != "" || parsed.RawQuery != "" || parsed.ForceQuery || parsed.Fragment != "" || strings.Contains(origin, "#") || strings.Contains(origin, "*") ||
+				(parsed.Scheme != "https" && !(parsed.Scheme == "http" && (parsed.Hostname() == "localhost" || parsed.Hostname() == "127.0.0.1"))) {
+				return c, errors.New("TREND_ALLOWED_ORIGINS must contain exact HTTPS origins (HTTP only on localhost)")
+			}
+			c.TrendAllowedOrigins = append(c.TrendAllowedOrigins, origin)
+		}
+	}
 	c.Port = 3001
 	if p := get("PORT"); p != "" {
 		c.Port, err = strconv.Atoi(p)

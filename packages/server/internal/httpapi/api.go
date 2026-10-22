@@ -28,11 +28,19 @@ type Persistence interface {
 	Ready(context.Context) error
 	BeginOAuth(context.Context, string, string) error
 	ConsumeOAuth(context.Context, string) (string, error)
+	BeginOAuthReturn(context.Context, string, string, string) error
+	ConsumeOAuthReturn(context.Context, string) (string, string, error)
 	Login(context.Context, github.Identity, string) (string, error)
 	FindUser(context.Context, string) (*store.User, error)
 	Logout(context.Context, string) error
 	RecordEvents(context.Context, string, []store.Event) (int64, error)
 	RecentEvents(context.Context, string) ([]store.RecentEvent, error)
+	Trend(context.Context, string) (store.TrendSnapshot, error)
+	SaveTrend(context.Context, string, int64, string, json.RawMessage) (store.TrendSnapshot, bool, error)
+	BeginTrendConnect(context.Context, string, string, string) (string, error)
+	ExchangeTrend(context.Context, string, string, string) (string, *store.User, error)
+	FindTrendUser(context.Context, string, string) (*store.User, error)
+	RevokeTrend(context.Context, string, string) error
 }
 type API struct {
 	config                     config.Config
@@ -59,6 +67,11 @@ func New(c config.Config, db Persistence, exchange github.Exchange) http.Handler
 	mux.HandleFunc("POST /api/v1/auth/logout", a.logout)
 	mux.HandleFunc("POST /api/v1/events/batch", a.events)
 	mux.HandleFunc("GET /api/v1/me/events", a.recent)
+	mux.HandleFunc("GET /api/v1/trend/dashboard", a.getTrend)
+	mux.HandleFunc("PUT /api/v1/trend/dashboard", a.putTrend)
+	mux.HandleFunc("GET /api/v1/trend/connect", a.connectTrend)
+	mux.HandleFunc("POST /api/v1/trend/exchange", a.exchangeTrend)
+	mux.HandleFunc("DELETE /api/v1/trend/session", a.revokeTrend)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -68,7 +81,11 @@ func New(c config.Config, db Persistence, exchange github.Exchange) http.Handler
 				failure(w, 503)
 			}
 		}()
-		if r.Method != "GET" && r.Method != "HEAD" && r.Method != "OPTIONS" && (len(r.Header.Values("Origin")) != 1 || r.Header.Get("Origin") != c.Origin) {
+		isTrend := strings.HasPrefix(r.URL.Path, "/api/v1/trend/")
+		if isTrend && !a.trendCORS(w, r) {
+			return
+		}
+		if r.Method != "GET" && r.Method != "HEAD" && r.Method != "OPTIONS" && (len(r.Header.Values("Origin")) != 1 || (!isTrend && r.Header.Get("Origin") != c.Origin)) {
 			failure(w, 403)
 			return
 		}
@@ -76,7 +93,7 @@ func New(c config.Config, db Persistence, exchange github.Exchange) http.Handler
 		if err != nil {
 			ip = r.RemoteAddr
 		}
-		auth := r.URL.Path == "/api/v1/auth/github/start"
+		auth := r.URL.Path == "/api/v1/auth/github/start" || r.URL.Path == "/api/v1/trend/connect" || r.URL.Path == "/api/v1/trend/exchange"
 		if !a.limit.allow(ip, auth, time.Now()) {
 			w.Header().Set("Retry-After", "60")
 			failure(w, 429)
@@ -134,8 +151,21 @@ func (a *API) me(w http.ResponseWriter, r *http.Request) {
 	respond(w, 200, map[string]any{"user": u})
 }
 func (a *API) start(w http.ResponseWriter, r *http.Request) {
+	returnPath := "/Blog/"
+	query, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil || len(query["return_to"]) > 1 {
+		failure(w, 400)
+		return
+	}
+	if path := query.Get("return_to"); path != "" {
+		if !a.validTrendReturn(path) {
+			failure(w, 400)
+			return
+		}
+		returnPath = path
+	}
 	state, verifier := store.Secret(), store.Secret()
-	if a.db.BeginOAuth(r.Context(), state, verifier) != nil {
+	if a.db.BeginOAuthReturn(r.Context(), state, verifier, returnPath) != nil {
 		failure(w, 503)
 		return
 	}
@@ -158,12 +188,12 @@ func (a *API) callback(w http.ResponseWriter, r *http.Request) {
 		failure(w, 400)
 		return
 	}
-	verifier, err := a.db.ConsumeOAuth(r.Context(), state)
+	verifier, returnPath, err := a.db.ConsumeOAuthReturn(r.Context(), state)
 	if err != nil {
 		failure(w, 503)
 		return
 	}
-	if verifier == "" || len(query["code"]) != 1 || code == "" || len(code) > 512 {
+	if verifier == "" || (returnPath != "/Blog/" && !a.validTrendReturn(returnPath)) || len(query["code"]) != 1 || code == "" || len(code) > 512 {
 		failure(w, 400)
 		return
 	}
@@ -178,7 +208,7 @@ func (a *API) callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.cookie(w, a.sessionCookie, token, 7*24*3600)
-	http.Redirect(w, r, "/Blog/", 302)
+	http.Redirect(w, r, returnPath, 302)
 }
 func (a *API) logout(w http.ResponseWriter, r *http.Request) {
 	if token := cookieValue(r, a.sessionCookie); token != "" {

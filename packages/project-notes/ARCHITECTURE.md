@@ -1,6 +1,6 @@
 # 云端增强版架构决策
 
-初始日期：2026-10-20；目录边界于 2026-10-21 更新至 0.2.0，后端于同日更新至 0.3.0。
+初始日期：2026-10-20；目录边界于 2026-10-21 更新至 0.2.0，后端于同日更新至 0.3.0；Trend 同步于 2026-10-22 更新至 0.5.0。
 
 ## 部署拓扑
 
@@ -110,3 +110,18 @@ CI 保持 check/test/build 三个 job；Pages 单独部署无需 Go。
 发布包只包含 Go 服务端、云端部署文件和前端 dist，不再携带前端 npm 清单或根 npm 锁文件。
 线上切换沿用现有发布脚本与镜像标签；无需新建数据库、修改 OAuth App 或替换已有 Secret。
 应用回滚时使用上一版 release 的 Compose 文件及镜像（旧 Node 镜像入口和健康检查与 Go 不同）。
+
+## ADR-008：Trend 在 Pages、本地与云端共用账号数据（0.5.0）
+
+依据用户“按 Go API + PostgreSQL 方案实现自动同步”的明确授权，Trend 特定接口扩展至 Pages 与本地来源。
+仅 `/trend` 水合后动态加载 `TrendSync`，Pages 其他页面继续裁剪 cloud 账号与访问记录代码。
+服务端 `TREND_ALLOWED_ORIGINS` 使用精确 origin 白名单；其他接口仍遵守原同源策略。
+
+cloud 同源沿用 HttpOnly Cookie。Pages/本地通过云端授权弹窗完成 GitHub 登录，以 S256 PKCE 交换一次性 code，
+获得绑定来源、关联原会话的 Trend 专用 token；token 仅保存于内存，不修改原 Cookie 的 SameSite 或跨源凭据策略。
+专用 token 只授权 Trend 数据，不授予账号、行为记录或退出登录接口权限。
+
+PostgreSQL 按账号保存整个 dashboard 的 JSONB、版本号与最后一笔 mutation ID。
+采用账号行锁与版本比较，重试沿用 mutation，冲突由用户选择保留版本，当前不提供字段级合并。
+本机分别保存匿名配置、账号草稿、同步基线和未确认写入；账号退出或变化恢复匿名配置，迟到响应不能重新接入账号。
+迁移 `002_trend_sync.sql` 向后兼容，不重建原用户、会话或数据卷。部署和真实 OAuth 验收单独记录。

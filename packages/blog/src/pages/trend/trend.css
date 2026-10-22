@@ -1,3 +1,35 @@
+.trend-sync {
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  border: 1px solid var(--trend-border);
+  border-radius: 14px;
+  background: var(--trend-surface);
+  color: var(--trend-text);
+  font-size: 13px;
+}
+.trend-sync-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.trend-sync-heading > span,
+.trend-sync-note {
+  color: var(--trend-muted);
+  font-size: 12px;
+}
+.trend-sync-note,
+.trend-sync-conflict {
+  margin-top: 12px;
+}
+.trend-sync-conflict {
+  padding-top: 12px;
+  border-top: 1px solid var(--trend-border);
+}
+.trend-sync-conflict p {
+  margin-bottom: 10px;
+}
 .trend-page {
   --trend-border: #e1e5e2;
   --trend-surface: #fff;

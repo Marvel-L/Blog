@@ -1,15 +1,16 @@
 # @d-blog/project-notes
 
-云端增强版的长期工程记录。结构版本 0.2.0，Go 后端版本 0.3.0，账号功能版本 0.1.0；运维修订 0.1.3。
+云端增强版的长期工程记录。Trend 同步版本 0.5.0，结构版本 0.2.0，Go 后端版本 0.3.0，账号功能版本 0.1.0；运维修订 0.1.3。
 
 | 文档 | 内容 |
 | --- | --- |
 | [features/book.md](features/book.md) | Book 3D 分类书架、预览与后续批次状态 |
-| [features/trend.md](features/trend.md) | Trend 数据比较、阈值配色、配置保存与验证记录 |
+| [features/trend.md](features/trend.md) | Trend 数据比较、阈值配色、本地保存与账号同步 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 部署拓扑、package 边界、架构决策与迁移条件 |
 | [deployments/2026-10-21.md](deployments/2026-10-21.md) | 发文同步、自动发布验收与备份恢复 |
 | [deployments/2026-10-20.md](deployments/2026-10-20.md) | 服务器检查、IP HTTPS 方案和待处理事项 |
 | [PROGRESS.md](PROGRESS.md) | 本版进度、待验证项和下一版任务 |
+| [versions/0.5.0.md](versions/0.5.0.md) | Trend Go API、PostgreSQL、跨端自动同步与冲突处理 |
 | [versions/0.4.0.md](versions/0.4.0.md) | Book 导航、3D 书架与分类章节预览第一批 |
 | [versions/0.3.0.md](versions/0.3.0.md) | Go 后端、兼容性、SQL 集成测试与部署切换 |
 | [versions/0.2.0.md](versions/0.2.0.md) | 前端 workspace、共用内容与 Pages/cloud 部署边界 |

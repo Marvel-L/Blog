@@ -55,7 +55,7 @@ Pages 沿用原 custom 分支发布工作流，与云端上线相互独立。
 首版 CI 仅构建两种制品；0.1.2 增加下述自动云端发布，需先完成一次性配置。
 
 回滚前端/API：将 SITE_IMAGE_TAG/API_IMAGE_TAG 改为之前保留的标签，运行 `docker compose --env-file deploy/cloud/.env -f deploy/cloud/compose.yml up -d --no-build`。
-前提是对应镜像仍存在、旧 API 与当前 schema 兼容。首次版本仅有初始迁移。
+前提是对应镜像仍存在、旧 API 与当前 schema 兼容。0.5.0 新增 Trend 兼容迁移，回滚旧 API 不删除新增数据表。
 未来变更采用向后兼容迁移；应用回滚不会自动还原数据库，破坏性迁移必须另行制定恢复步骤。
 更新数据库密码时不能只修改 .env：已有数据卷保留原密码，需按 PostgreSQL 方式先修改实际数据库用户密码。
 
@@ -192,3 +192,54 @@ Go 开发与测试步骤见 [packages/server](../../packages/server/README.md)�
 按正常发布流程同步更新镜像与 Compose 文件；不得只将 Go 镜像标签写入旧 Node Compose。
 若回退至 Node 版，使用旧 release 目录的 Compose 文件与旧镜像一起恢复，数据库保持原卷。
 代码验证与线上状态见 [0.3.0 记录](../../packages/project-notes/versions/0.3.0.md)。
+
+## 0.5.0 Trend 跨端自动同步
+
+Trend 使用现有 Go API、GitHub OAuth 与 PostgreSQL，Pages、本地开发站和云端连接同一账号后共享配置。
+本轮代码尚未生产发布；需按正常流程一起发布 API 与前端并执行 `002_trend_sync.sql`。
+无需重建数据卷，原 OAuth App 和回调地址继续使用。
+
+服务端配置 `TREND_ALLOWED_ORIGINS`，为逗号分隔的精确来源，例如：
+
+```dotenv
+TREND_ALLOWED_ORIGINS=https://marvel-l.github.io,http://localhost:3000,http://localhost:3001
+```
+
+来源包含协议、主机和端口，不包含 `/Blog/`、路径或末尾斜杠；禁止通配符。
+更换 Pages 域名或本地端口时调整此列表。Compose 已提供上面的默认值；
+生产 `/opt/dblog/shared/cloud.env` 若已定义该变量，必须检查并修改实际值。
+仅 `/api/v1/trend/` 提供上述来源的 CORS，不开放跨源 Cookie。
+外部站点通过云端弹窗获取一次性 code，以 S256 PKCE 交换来源绑定的专用 token；token 仅保存在内存中，有效期 1 小时。
+刷新 Pages/本地页面后需再次点击连接；已登录云端时弹窗直接完成授权。退出云端账号使其关联的 Trend 授权失效。
+
+前端构建变量 `VITE_TREND_API_ORIGIN` 必须是完整 origin，默认 Pages 指向 `https://43.138.216.53`，cloud 使用当前站点同源：
+
+```sh
+# 使用其他 API 域名时，Pages/cloud 均在构建时设置
+VITE_TREND_API_ORIGIN=https://api.example.com npm run build
+VITE_TREND_API_ORIGIN=https://api.example.com npm run build:cloud
+```
+
+本地页面连接已部署云端无需运行本地数据库：
+
+```sh
+VITE_TREND_API_ORIGIN=https://43.138.216.53 npm run dev
+```
+
+服务端白名单须与 Vite 实际监听的端口一致。调试独立本地 API 时按照 [Go 后端说明](../../packages/server/README.md)运行数据库、迁移和 API；
+设置 `VITE_TREND_API_ORIGIN=http://localhost:3001`，页面使用 3000，API 的 `APP_ORIGIN` 应是浏览器访问授权 API 的 `http://localhost:3001`，
+并使用匹配 `http://localhost:3001/api/v1/auth/github/callback` 的独立本地 OAuth App。
+
+部署后验收：
+
+1. 云端健康检查通过，迁移账本包含 `002_trend_sync.sql`；未登录读取 dashboard 返回 401。
+2. Pages `/Blog/trend` 点击“使用 GitHub 连接同步”，完成云端 GitHub 授权；页面显示账号与同步状态。
+3. 新增条目或修改阈值，等待“已同步到云端”；另一台设备/本地站连接同一账号，15 秒内或点击“立即同步”看到相同数据。
+4. 两端离线编辑不同内容，恢复网络时出现版本冲突；选择保留版本后两端最终一致，另一账号不读取到本账号配置。
+5. 刷新后账号草稿仍保留，重新连接继续同步；断开恢复原匿名配置，退出云端账号后外部同步授权失效。
+6. 普通 Pages 阅读不请求账号 API，拒绝白名单外的跨源请求，API 响应不被 Service Worker 缓存。
+
+数据包含全部类别、条目、坐标、阈值和 dashboard 设置。修改防抖 700ms 上传；
+页面可见时每 15 秒拉取，窗口聚焦和网络恢复也触发。跨端同时修改采用版本冲突选择，当前不提供字段级合并。
+断网和上传响应丢失保留账号草稿、同步基线与 mutation ID，重试不会重复增加版本。
+迁移新增表纳入现有数据库备份；不在 Git 仓库中保存用户数据，GitHub Pages 本身仍为静态站点。

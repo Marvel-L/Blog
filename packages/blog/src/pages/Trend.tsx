@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUpRight,
   Check,
@@ -29,8 +29,12 @@ import {
   type Metric,
   type TrendCategory,
   type TrendItem,
+  type TrendState,
 } from './trend/model';
+import type { SyncUser } from './trend/sync';
 import './trend/trend.css';
+
+const TrendSync = lazy(() => import('./trend/TrendSync'));
 
 const NumberField = ({
   value,
@@ -99,6 +103,13 @@ export const Trend = () => {
   const skipInitialSave = useRef(true);
   const mounted = useRef(false);
   const importGeneration = useRef(0);
+  const syncScope = useRef<string | null>(null);
+  const applySyncedState = useCallback((next: TrendState, user: SyncUser | null) => {
+    syncScope.current = user?.id ?? null;
+    importGeneration.current += 1;
+    setState(next);
+    setDeletingCategory(false);
+  }, []);
   useEffect(() => {
     mounted.current = true;
     if (!initialized.current) {
@@ -117,7 +128,7 @@ export const Trend = () => {
     };
   }, []);
   useEffect(() => {
-    if (!storageReady) return;
+    if (!storageReady || syncScope.current) return;
     if (skipInitialSave.current) {
       skipInitialSave.current = false;
       return;
@@ -212,7 +223,7 @@ export const Trend = () => {
     <div className="trend-page">
       <Seo
         title="Trend · 数据趋势"
-        description="配置类别与条目，用折线图比较零食价格、单位热量性价比与自定义数据。支持横纵坐标切换、阈值颜色渐变、垂直蚂蚁线、本地保存与 JSON 导入导出。"
+        description="配置类别与条目，用折线图比较零食价格、单位热量性价比与自定义数据。支持阈值颜色渐变、垂直蚂蚁线、本地保存、云端自动同步与 JSON 导入导出。"
         url="/trend"
       />
       <header className="trend-page-header">
@@ -244,6 +255,11 @@ export const Trend = () => {
           />
         </div>
       </header>
+      {storageReady && (
+        <Suspense fallback={<p className="trend-sync-note">正在加载同步功能…</p>}>
+          <TrendSync state={state} onApply={applySyncedState} />
+        </Suspense>
+      )}
       <div className="trend-workspace">
         <aside className="trend-sidebar" aria-label="Trend 类别">
           <div className="trend-sidebar-heading">

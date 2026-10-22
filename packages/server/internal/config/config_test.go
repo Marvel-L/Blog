@@ -31,4 +31,13 @@ func TestConfiguration(t *testing.T) {
 	if err != nil || c.SecureCookies || c.Port != 3002 {
 		t.Fatal("local development config rejected")
 	}
+	c, err = load(map[string]string{"TREND_ALLOWED_ORIGINS": "https://marvel-l.github.io,http://localhost:3000"})
+	if err != nil || len(c.TrendAllowedOrigins) != 2 {
+		t.Fatal("exact Trend origins rejected")
+	}
+	for _, origin := range []string{"*", "https://*.example.com", "https://example.com/Blog", "https://example.com/", "https://user:pass@example.com", "http://example.com", "https://example.com#", "https://example.com,"} {
+		if _, err := load(map[string]string{"TREND_ALLOWED_ORIGINS": origin}); err == nil {
+			t.Fatal("invalid Trend origin accepted")
+		}
+	}
 }

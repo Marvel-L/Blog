@@ -94,6 +94,7 @@ export default function CloudAccount() {
     setTracking(false);
     return action(async () => {
       await cloudRequest('/auth/logout', { method: 'POST' });
+      window.dispatchEvent(new Event('dblog-account-change'));
       if (mounted.current) {
         setUser(null);
         setEvents([]);

@@ -9,10 +9,24 @@
 - 白色画布与网格中的折线按 X 数值排序；每个条目一个点，一条同色垂直蚂蚁线投影到 X 轴。支持悬停、点击、键盘选点与详情。
 - 阈值可选择 X/Y 轴以及上限/下限。阈值内按接近程度从绿、蓝、紫、橙变到红；越界后从淡红逐渐加深，并显示阈值线与越界区域。
 - 可将多个类别加入 dashboard；当前类别显示完整图表，其他已加入类别显示预览卡片。
-- 配置保存在当前浏览器的 `d-blog-trend-v1`，支持 JSON 导入导出。导入校验版本、数值、指标、单位和 ID，异步导入不会覆盖期间的新编辑；读取、写入与导出失败会反馈。当前没有账号同步。
+- 未连接时配置保存在当前浏览器的 `d-blog-trend-v1`，支持 JSON 导入导出。导入校验版本、数值、指标、单位和 ID，异步导入不会覆盖期间的新编辑；读取、写入与导出失败会反馈。
 - SVG 在水合后使用 ResizeObserver 适配容器宽度，手机端保留完整折线和可读标签。SSR 首帧始终使用确定性示例，浏览器配置在 effect 中恢复。
 - 已接入页面预加载、SSG、SEO、sitemap 和站内链接白名单。
 
 验证：类型检查、ESLint、相关单测、完整 Pages 构建与审计通过。真实 Chrome 验证了阈值修改与刷新恢复、开关、点详情、类别添加、自定义负值、dashboard 预览、JSON 往返、桌面更多导航与 390px 手机布局。
 
-全量测试的环境限制：系统 Python 3.9.6 不支持既有 `publish-ip.sh` 的 `tarfile.extractall(filter='data')`，导致 materialize-cloud-release 的两个测试失败。并发时超时的 upload-cloud-release 测试单独重跑已通过。Go 服务测试通过；需要 TEST_DATABASE_URL 的数据库集成测试按既有规则跳过。
+初版验证时的环境限制：系统 Python 3.9.6 不支持既有 `publish-ip.sh` 的 `tarfile.extractall(filter='data')`，导致 materialize-cloud-release 的两个测试失败。并发时超时的 upload-cloud-release 测试单独重跑已通过。Go 服务测试通过；需要 TEST_DATABASE_URL 的数据库集成测试按既有规则跳过。0.5.0 本轮已使用临时 Python 3.13 与独立 PostgreSQL 完成全量验证，结果见下方版本记录。
+
+## 0.5.0 自动同步
+
+依据用户“按 Go API + PostgreSQL 方案实现自动同步”的授权，Trend 在 GitHub Pages、本地与云端共用 `/api/v1/trend/`；仅 Trend 的 effect 后动态模块包含跨源接口，Pages 其他页面沿用原有账号隔离。
+
+- 云端同源使用既有 HttpOnly Cookie；Pages/本地点击“使用 GitHub 连接同步”，弹窗通过云端 GitHub OAuth 获取一次性授权码，S256 PKCE 交换为绑定来源的 Trend 专用 token。token 仅在内存中保存，有效期 1 小时，刷新后重新连接；退出云端账号会使关联授权失效。
+- 所有类别、条目、坐标、阈值和 dashboard 配置保存到本账号 PostgreSQL JSONB。本地选中的类别保留，切换类别本身不触发上传。修改防抖 700ms 上传，页面可见时每 15 秒、窗口聚焦和网络恢复时同步。
+- 使用服务端版本号与行锁防止并发覆盖。重试沿用同一 mutation ID；本机持久化账号草稿、同步基线与未确认写入，刷新后可恢复。版本冲突暂停上传，用户可先导出 JSON，再采用云端版本或保留本地并上传。
+- 首次连接空云端上传当前配置；未修改的示例可自动采用已有云端配置。已有匿名修改或离线账号草稿与新云端版本不同，先显示冲突。损坏的账号草稿不会被自动覆盖。
+- 断开同步恢复原匿名配置，账号草稿与匿名存储分开。账号变化、退出、卸载取消请求，迟到响应不会恢复已退出的身份。存储失败、服务端拒绝、授权过期和撤销失败均显示实际结果。
+- 新增 `002_trend_sync.sql`，保留原用户、会话和数据卷。接口限制 50 类别、每类 500 条目、2 MiB 配置，严格校验字段、指标、数值与 ID。
+- 服务端 `TREND_ALLOWED_ORIGINS` 精确列出 Pages/本地 origin，不使用通配符或跨源 Cookie；前端 `VITE_TREND_API_ORIGIN` 默认指向现有 IP HTTPS 云端，cloud 默认同源。
+
+部署步骤、API 契约与验证边界见 [0.5.0 记录](../versions/0.5.0.md)和[云端部署说明](../../../deploy/cloud/README.md)。本轮尚未推送或部署。

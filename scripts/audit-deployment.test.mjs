@@ -31,6 +31,16 @@ describe('release isolation audit', () => {
     expect((await auditDeployment('cloud', await fixture(true))).hasCloudApi).toBe(true);
     await expect(auditDeployment('cloud', await fixture())).rejects.toThrow('隔离检查失败');
   });
+  it('allows only Trend APIs in the optional shared Trend bundle', async () => {
+    const root = await fixture();
+    await writeFile(path.join(root, 'assets', 'TrendSync-a.js'), 'fetch("/api/v1/trend/dashboard")');
+    expect((await auditDeployment('pages', root)).hasCloudApi).toBe(false);
+    await writeFile(path.join(root, 'assets', 'TrendSync-a.js'), 'fetch("/api/v1/me")');
+    await expect(auditDeployment('pages', root)).rejects.toThrow('Trend API 隔离检查失败');
+    await writeFile(path.join(root, 'assets', 'TrendSync-a.js'), 'fetch("/api/v1/trend/dashboard")');
+    await writeFile(path.join(root, 'assets', 'index-a.js'), 'fetch("/api/v1/trend/dashboard")');
+    await expect(auditDeployment('pages', root)).rejects.toThrow('隔离检查失败');
+  });
   it('fails unknown targets and missing build output', async () => {
     await expect(auditDeployment('typo', await fixture())).rejects.toThrow('VITE_DEPLOY_TARGET');
     const root = await fixture();

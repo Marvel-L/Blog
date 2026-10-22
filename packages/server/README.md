@@ -1,6 +1,6 @@
 # Go 后端
 
-独立 Go module，使用标准库 `net/http` 和 pgx，提供 GitHub 登录、数据库会话和访问记录。
+独立 Go module，使用标准库 `net/http` 和 pgx，提供 GitHub 登录、数据库会话、访问记录和 Trend 自动同步。
 前端与 Pages 构建无需引入 Go 运行时。生产 API 为不依赖 Node 的静态 Go 二进制。
 
 ## 目录
@@ -62,6 +62,7 @@ npm run typecheck
 未设置 `TEST_DATABASE_URL` 时，本地明确跳过 SQL 集成用例，只运行不依赖数据库的测试；CI 缺少此变量直接失败。
 CI 和手动云端发布内置 PostgreSQL service，必须通过 SQL 集成用例才可发布。
 测试覆盖 PKCE、授权重放/过期、Cookie、CSRF、会话替换/注销、旧会话、账号隔离、去重、非法事件、清理、故障脱敏、事务回滚及并发迁移。
+Trend 集成测试覆盖真实 JSONB 保存、并发版本比较、mutation 幂等、账号隔离、严格输入、跨源白名单、专用 PKCE code 的重放/过期和会话撤销。
 真实 GitHub 授权仍需浏览器生产验收，测试不提供假登录端点。
 
 ## 接口与兼容
@@ -75,17 +76,29 @@ CI 和手动云端发布内置 PostgreSQL service，必须通过 SQL 集成用�
 | POST | /api/v1/auth/logout | 撤销会话并清除 Cookie |
 | POST | /api/v1/events/batch | 登录后上报 1–20 个页面事件 |
 | GET | /api/v1/me/events | 本账号最近 20 条记录 |
+| GET | /api/v1/trend/dashboard | 本账号的配置、版本号与更新时间 |
+| PUT | /api/v1/trend/dashboard | 比较 baseRevision 并保存配置，冲突返回 409 与云端快照 |
+| GET | /api/v1/trend/connect | 登录云端并向白名单来源的弹窗 opener 返回一次性 code |
+| POST | /api/v1/trend/exchange | S256 PKCE code 交换来源绑定的 1 小时 Trend token |
+| DELETE | /api/v1/trend/session | 撤销当前来源的 Trend token |
 
-POST 必须携带与 APP_ORIGIN 精确相同的 Origin。事件只接受 eventId/name/path/occurredAt，
+非 Trend POST 必须携带与 APP_ORIGIN 精确相同的 Origin。事件只接受 eventId/name/path/occurredAt，
 不接受 user_id、任意 properties、查询参数或 fragment。账号始终取自服务端会话。
 OAuth 仅请求公开身份；state 10 分钟一次性使用，S256 PKCE，禁止跟随携带凭据的重定向。
 会话有效期 7 天，仅保存 SHA-256 十六进制摘要；Cookie 名、格式与旧 Node 后端一致。
 用户、新会话、旧会话撤销和 login_success 事件在同一数据库事务提交。
 不输出 Cookie、密码、连接串、OAuth code/token/secret 或完整请求 URL。
 
-沿用原 `001_initial.sql`、`schema_migrations` 和迁移锁 7102026，无数据格式转换或数据卷重建。
+Trend 跨源仅允许 `TREND_ALLOWED_ORIGINS` 的精确 origin，使用 `Authorization: Bearer ...`，不携带跨源 Cookie。
+同源 dashboard 可使用既有 Cookie。所有账号从服务端会话解析，不接受客户端 user_id。
+PUT JSON 为 `{baseRevision, mutationId, state}`，state 是 Trend 导出的 version:1 配置；
+最大 2 MiB、50 类别、每类 500 条目，数值必须有限，字段、指标、单位与 ID 严格校验。
+重复提交相同 mutation 返回同一版本；其他设备已更新时返回 409，不覆盖新版本。
+token 仅存摘要且关联原会话，退出和过期会使其失效；code 有效期 60 秒，一次性消费。
+
+沿用原 `001_initial.sql`、`schema_migrations` 和迁移锁 7102026；新增 `002_trend_sync.sql`，无数据格式转换或数据卷重建。
 `migrate` 只需 DATABASE_URL；SQL 内嵌到二进制。启动不自动执行迁移，由 Compose 先迁移、再启 API。
-每小时清理过期 state、会话和 90 天前事件，失败脱敏记录并于下周期重试。
+每小时清理过期 OAuth state、会话、Trend code/token 和 90 天前事件，失败脱敏记录并于下周期重试。
 限流仍按后端连接来源聚合：120 次/分钟，授权入口 10 次/分钟，不信任 X-Forwarded-For。
 
 生产镜像和部署步骤见 [部署说明](../../deploy/cloud/README.md)。

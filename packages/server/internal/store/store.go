@@ -72,16 +72,23 @@ func (s *Store) Ready(ctx context.Context) error {
 	return err
 }
 func (s *Store) BeginOAuth(ctx context.Context, state, verifier string) error {
-	_, err := s.Pool.Exec(ctx, "INSERT INTO oauth_attempts(state_hash, verifier, expires_at) VALUES ($1,$2,now()+interval '10 minutes')", Hash(state), verifier)
+	return s.BeginOAuthReturn(ctx, state, verifier, "/Blog/")
+}
+func (s *Store) BeginOAuthReturn(ctx context.Context, state, verifier, returnPath string) error {
+	_, err := s.Pool.Exec(ctx, "INSERT INTO oauth_attempts(state_hash, verifier, return_path, expires_at) VALUES ($1,$2,$3,now()+interval '10 minutes')", Hash(state), verifier, returnPath)
 	return err
 }
 func (s *Store) ConsumeOAuth(ctx context.Context, state string) (string, error) {
-	var v string
-	err := s.Pool.QueryRow(ctx, "DELETE FROM oauth_attempts WHERE state_hash=$1 AND expires_at>now() RETURNING verifier", Hash(state)).Scan(&v)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return "", nil
-	}
+	v, _, err := s.ConsumeOAuthReturn(ctx, state)
 	return v, err
+}
+func (s *Store) ConsumeOAuthReturn(ctx context.Context, state string) (string, string, error) {
+	var v, path string
+	err := s.Pool.QueryRow(ctx, "DELETE FROM oauth_attempts WHERE state_hash=$1 AND expires_at>now() RETURNING verifier,return_path", Hash(state)).Scan(&v, &path)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", "", nil
+	}
+	return v, path, err
 }
 
 // Account, session, replacement revocation and audit event commit together.
@@ -157,7 +164,7 @@ func (s *Store) RecentEvents(ctx context.Context, userID string) ([]RecentEvent,
 	return result, rows.Err()
 }
 func (s *Store) Cleanup(ctx context.Context) error {
-	for _, sql := range []string{"DELETE FROM oauth_attempts WHERE expires_at<=now()", "DELETE FROM sessions WHERE expires_at<=now()", "DELETE FROM user_events WHERE received_at<now()-interval '90 days'"} {
+	for _, sql := range []string{"DELETE FROM oauth_attempts WHERE expires_at<=now()", "DELETE FROM sessions WHERE expires_at<=now()", "DELETE FROM trend_connect_codes WHERE expires_at<=now()", "DELETE FROM trend_sessions WHERE expires_at<=now()", "DELETE FROM user_events WHERE received_at<now()-interval '90 days'"} {
 		if _, err := s.Pool.Exec(ctx, sql); err != nil {
 			return err
 		}

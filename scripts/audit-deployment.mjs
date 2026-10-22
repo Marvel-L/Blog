@@ -10,7 +10,11 @@ export async function auditDeployment(target, distDir = fileURLToPath(new URL('.
   const hasCloudChunk = files.some((file) => file.startsWith('CloudAccount-'));
   let hasCloudApi = false;
   for (const file of files) {
-    if ((await readFile(path.join(assets, file), 'utf8')).includes('/api/v1')) hasCloudApi = true;
+    const source = await readFile(path.join(assets, file), 'utf8');
+    // Trend is explicitly shared across Pages/cloud, loaded only on its route.
+    if (file.startsWith('TrendSync-')) {
+      if (/\/api\/v1(?!\/trend)/.test(source)) throw new Error(`${target} Trend API 隔离检查失败`);
+    } else if (source.includes('/api/v1')) hasCloudApi = true;
   }
   const expected = target === 'cloud';
   if (hasCloudChunk !== expected || hasCloudApi !== expected)
