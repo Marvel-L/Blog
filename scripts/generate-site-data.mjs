@@ -29,6 +29,7 @@ import { getGitFileDates, resolvePostDates } from './lib/git-file-dates.mjs';
 import { listMarkdownFiles } from './lib/list-markdown-files.mjs';
 import { runCompressContentImagesCli, writeImageCompressReport } from './compress-content-images.mjs';
 import { copyContentImages } from './lib/copy-content-images.mjs';
+import { loadBookPackages, writeBookData } from './lib/book-content.mjs';
 
 const logger = createBuildLogger('gen:data');
 logger.start('Generate site data');
@@ -768,18 +769,11 @@ const shuoshuo = shuoshuoRecords
   .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id))
   .map(({ filename: _filename, ...record }) => record);
 
-// Book links use the same public catalog as the generated site, never private records.
-const bookValidationPosts = postRecords
-  .filter((record) => !record.draft && !isHiddenPostCore(record.data, hiddenContentMatcher))
-  .map((record) => ({
-    ...record.data,
-    id: record.id,
-    category: normalizeCategory(record.data.category),
-    filePath: `/posts/${record.filename}`,
-  }));
+// Discover local packages once; routes and client/SSR use this exact snapshot.
+const bookPackages = loadBookPackages();
 const contentStaticRoutes = new Set([
   ...DEFAULT_STATIC_ROUTES,
-  ...getBookRoutes(bookValidationPosts).map((route) => new URL(`/${route}`, 'https://build.invalid').pathname),
+  ...getBookRoutes(bookPackages).map((route) => new URL(`/${route}`, 'https://build.invalid').pathname),
 ]);
 
 postRecords.forEach((record) => {
@@ -831,6 +825,12 @@ postRecords.forEach((record) => {
 if (validationErrors.length > 0) {
   throw new Error(validationErrors.join('\n'));
 }
+
+writeBookData(bookPackages);
+logger.step(
+  'Generated books.json',
+  `books=${bookPackages.length} chapters=${bookPackages.reduce((total, book) => total + book.chapters.length, 0)}`,
+);
 
 // 幂等压缩内容旁路图：已在清单中的文件跳过，避免多次有损压缩。
 // SKIP_IMAGE_COMPRESS=1 可跳过。dev / CI build 都走 gen:data，因此会自动覆盖。
@@ -982,7 +982,7 @@ const generateSitemap = () => {
           .split('T')[0]
       : new Date().toISOString().split('T')[0];
   const staticPages = [
-    ...getBookRoutes(posts, false).map((path) => ({
+    ...getBookRoutes(bookPackages).map((path) => ({
       path,
       changefreq: 'weekly',
       priority: '0.7',

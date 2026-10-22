@@ -12,6 +12,17 @@ const __dirname = path.dirname(__filename);
 
 const POSTS_FILE = path.join(__dirname, '../generated/posts.json');
 
+/** Book routes must come from the snapshot already bundled into client/SSR. */
+export const loadBookDefinitions = () => {
+  try {
+    const books = JSON.parse(fs.readFileSync(path.join(__dirname, '../generated/books.json'), 'utf8'));
+    if (!Array.isArray(books)) throw new Error('expected an array');
+    return books;
+  } catch (error) {
+    throw new Error(`Failed to load generated/books.json: ${error.message}; run "npm run gen:data" before SSG.`);
+  }
+};
+
 /**
  * 读取 generated/posts.json，并把每篇文章的 markdown 正文（已剥离 frontmatter）
  * 挂到 content 字段上。数组顺序与客户端 getPosts() 一致（新 → 旧）。

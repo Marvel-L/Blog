@@ -1,0 +1,8 @@
+{
+  "id": "prompts",
+  "name": "Prompt 工具箱",
+  "subtitle": "把一次有效对话沉淀成可复用的工作模板。",
+  "edition": "WORDS INTO TOOLS",
+  "accent": "#62607d",
+  "order": 9
+}

@@ -1,0 +1,9 @@
+{
+  "id": "algorithms",
+  "name": "算法学习手册",
+  "subtitle": "把题目、方法与复盘组织成可连续阅读的知识包。",
+  "edition": "ALGORITHM FIELD NOTES",
+  "accent": "#365348",
+  "order": 1,
+  "chapters": ["start.md", "linked-list.md", "number-theory.md"]
+}

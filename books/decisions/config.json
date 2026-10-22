@@ -1,0 +1,8 @@
+{
+  "id": "decisions",
+  "name": "重要选择",
+  "subtitle": "记录决策发生时的约束、权衡与验证信号。",
+  "edition": "THE PATH WE TAKE",
+  "accent": "#7c4045",
+  "order": 5
+}

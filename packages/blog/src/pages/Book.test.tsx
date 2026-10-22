@@ -7,6 +7,7 @@ import { renderToString } from 'react-dom/server';
 import { BookPage } from './Book';
 import { catalog } from '@/books/book-fixtures';
 import { getInitialPosts } from '@/services/posts';
+import * as bookService from '@/services/books';
 
 vi.mock('@/services/posts', () => ({ getInitialPosts: vi.fn() }));
 const Probe = () => <output data-testid="path">{useLocation().pathname}</output>;
@@ -77,6 +78,29 @@ describe('Book package detail', () => {
     render(app('/book'));
     expect(screen.getByRole('link', { name: '打开 算法学习手册，3 个章节' })).toBeInTheDocument();
     expect(screen.queryByText(/书架还空着/)).not.toBeInTheDocument();
+  });
+
+  it('renders newly discovered packages from the generated snapshot', () => {
+    vi.spyOn(bookService, 'getBookPackageDefinitions').mockReturnValue([
+      {
+        id: 'local',
+        name: '本地手册',
+        subtitle: '',
+        edition: 'LOCAL NOTES',
+        accent: '#365348',
+        chapters: [{ id: 'intro', title: '新建章节', content: '# 新建章节\n\n## 方法\n\n来自本地 Markdown 的正文。' }],
+      },
+    ]);
+    render(app('/book/local/chapter/intro'));
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('新建章节');
+    expect(screen.getByText('来自本地 Markdown 的正文。')).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: '本地手册章节目录' })).toBeInTheDocument();
+  });
+
+  it('shows the empty shelf when there are no local packages', () => {
+    vi.spyOn(bookService, 'getBookPackageDefinitions').mockReturnValue([]);
+    render(app('/book'));
+    expect(screen.getByText(/书架还空着/)).toBeInTheDocument();
   });
 
   it('SSR exposes deterministic package content and routes', () => {

@@ -1,0 +1,9 @@
+{
+  "id": "golang",
+  "name": "Go 语言笔记",
+  "subtitle": "从语义、指针到工程判断，记录真正容易混淆的地方。",
+  "edition": "THINKING IN GO",
+  "accent": "#365d74",
+  "order": 2,
+  "chapters": ["language-basics.md", "pointers.md"]
+}

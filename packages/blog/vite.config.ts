@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import fs from 'node:fs';
 import path from 'node:path';
 import { normalizeBasePath } from '../../config/basePath';
+import { watchBookContent } from '../../scripts/lib/book-content-watch.mjs';
 
 const repositoryRoot = path.resolve(__dirname, '../..');
 
@@ -187,6 +188,7 @@ export default defineConfig(({ command, mode }) => {
     define: { 'import.meta.env.VITE_DEPLOY_TARGET': JSON.stringify(deployTarget) },
     plugins: [
       react(),
+      watchBookContent(),
       serveSiblingImages('/posts-img/', 'posts'),
       serveSiblingImages('/shuoshuo-img/', 'shuoshuo'),
       serveSiblingImages('/summary-img/', 'Summary'),

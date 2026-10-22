@@ -1,6 +1,6 @@
 # Book 功能进度
 
-更新日期：2026-10-21。参考 [OI Wiki](https://oi-wiki.org/) 的「顶部分类 → 左侧层级目录 → 内容预览」组织方式，沿用博客自身主题与内容。
+更新日期：2026-10-22。参考 [OI Wiki](https://oi-wiki.org/) 的「顶部分类 → 左侧层级目录 → 内容预览」组织方式，沿用博客自身主题与内容。
 
 ## 第一批：书架与分类预览（0.4.0）
 
@@ -31,11 +31,35 @@
 ## 后续增强
 
 - [ ] package 正文图片、公式和 Mermaid 的完整复用与资源校验。
-- [ ] 独立 Book CMS 编辑入口、配置校验与作者预览。
+- [ ] 独立 Book CMS 编辑入口与作者预览（本地配置校验已完成）。
 - [ ] 章节搜索、移动目录体验与本机阅读状态。
+
+## 第三批：本地内容 Package（0.4.2）
+
+- [x] 按用户要求删除 `.mjs` 作者内容入口；`books/<package>/` 自动发现书籍和 Markdown 章节。
+- [x] 可选 `config.json` / `config.yaml` / `config.yml` 控制封面、名称、书架顺序和优先章节顺序；未登记的章节自动追加。
+- [x] 章节 front matter 支持稳定 ID、标题、分组、排序、草稿和可选关联文章；无配置时取文件与目录默认值。
+- [x] 现有 9 本书、12 个章节迁移前后逐项比对一致，保留封面、正文、顺序与旧 URL。
+- [x] 生成 `generated/books.json`，客户端/SSR、SSG 路由、sitemap 与 Blog 内容链接校验共用目录快照；章节加入 sitemap。
+- [x] 开发模式监听本地内容增删改，配置错误显示诊断；配置与内容读取失败阻断构建。
+- [x] 提供 [Book 内容维护](../../../books/README.md) 说明与创建示例。
+- [x] Book 回归测试、类型检查与 Pages/cloud 构建验收（全量环境限制见第三批验证记录）。
+- [ ] 推送与线上发布验收。
+
+## 第三批验证记录
+
+- 迁移前用深比较确认 9 本书、12 个章节的封面、正文、分组、顺序与关联 ID 完全一致；额外字段只有源文件路径。
+- Book 读取、开发监听、目录模型与页面测试通过，覆盖无需配置的新书、递归章节、JSON/YAML、配置覆盖与排序、草稿、错误诊断、公开关联、旧链接及 `/Blog/` 路径。
+- 123 个可运行测试文件 / 927 项测试通过；覆盖率语句 61.29%、分支 53.10%，通过既有门槛。回归复跑限定 4 个 worker，文件上传等 I/O 用例使用 20 秒 CLI 超时，未更改仓库测试配置。
+- 完整首轮回归中两项既有 `materialize-cloud-release` 测试因系统 Python 的 `tarfile.extractall(filter=...)` 不可用而失败；覆盖率复跑排除了该文件的 7 个测试，不将其报告为通过。上传超时用例在复跑中通过。
+- TypeScript、Go vet 和本地非数据库 Go 测试通过；Go 通过现有 SDK 的自动工具链选择匹配 module 版本，未改 SDK 配置。ESLint 无错误，保留原有 4 条 Fast Refresh 警告；未配置测试数据库，SQL 集成测试按既有约定跳过。
+- Pages/cloud 完整构建、SSG、SEO 与部署隔离门禁通过；两种产物的 22 个 Book 路由均检查了真实章节标题与 `/Blog/` 链接，章节出现在 sitemap。
+- 本地验证使用 `SKIP_IMAGE_COMPRESS=1`；未推送、未部署。
 
 ## 文件入口
 
+- 作者内容与配置：`books/`，使用说明 `books/README.md`
+- 内容读取与开发监听：`scripts/lib/book-content.mjs`、`scripts/lib/book-content-watch.mjs`
 - 模型与目录：`packages/blog/src/books/`
 - 页面：`packages/blog/src/pages/Book.tsx`
 - 导航：`packages/blog/src/components/Layout.tsx`

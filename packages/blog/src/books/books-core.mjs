@@ -1,6 +1,4 @@
 /** Pure package model shared by the client, SSG and sitemap generation. */
-import { getBookPackageDefinitions } from './book-packages.mjs';
-
 const compareText = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
 export const bookPath = (bookId) => `/book/${encodeURIComponent(bookId)}`;
@@ -33,9 +31,9 @@ export const flattenChapters = (tree) =>
   tree.flatMap((node) => (node.chapter ? [node.chapter] : flattenChapters(node.children)));
 
 /** Book packages are author-maintained; posts are optional related reading only. */
-export const buildBooks = (posts) => {
+export const buildBooks = (posts, definitions) => {
   const postsById = publicPostMap(posts);
-  return getBookPackageDefinitions().map((definition) => {
+  return definitions.map((definition) => {
     const chapters = definition.chapters.map((chapter) => ({
       ...chapter,
       relatedPosts: (chapter.relatedPostIds ?? []).map((id) => postsById.get(id)).filter(Boolean),
@@ -59,10 +57,10 @@ export const findLegacyChapter = (book, chapterId) => {
 };
 
 /** Decoded output paths, matching existing SSG filesystem semantics. */
-export const getBookRoutes = (posts, includeChapters = true) =>
+export const getBookRoutes = (definitions, includeChapters = true) =>
   [
     'book',
-    ...buildBooks(posts).flatMap((book) => [
+    ...definitions.flatMap((book) => [
       `book/${book.id}`,
       ...(includeChapters ? book.chapters.map((chapter) => `book/${book.id}/chapter/${chapter.id}`) : []),
     ]),

@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Library, ListTree, Newsp
 import { Seo } from '@/components/Seo';
 import { CompactPostCard } from '@/components/CompactPostCard';
 import { getInitialPosts } from '@/services/posts';
+import { getBookPackageDefinitions } from '@/services/books';
 import { extractMarkdownHeadings, extractTextFromReactNode, stripInlineMarkdown } from '@/utils/headings';
 import { remarkPostBasePlugins } from '@/utils/markdownPlugins';
 import {
@@ -165,7 +166,7 @@ function ChapterArticle({ book, chapter }: { book: Book; chapter: BookChapter })
 
 export function BookPage() {
   const { bookId, chapterId } = useParams<{ bookId: string; chapterId: string }>();
-  const books = useMemo(() => buildBooks(getInitialPosts()), []);
+  const books = useMemo(() => buildBooks(getInitialPosts(), getBookPackageDefinitions()), []);
   const total = books.reduce((sum, book) => sum + book.chapters.length, 0);
 
   if (!bookId) {

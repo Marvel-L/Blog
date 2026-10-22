@@ -11,7 +11,7 @@ import { loadSiteConfig, getSiteBasePath, toAbsoluteUrl } from './site-config-lo
 import { withBasePath } from './base-path.mjs';
 import { parseEnvNumber } from './lib/env.mjs';
 import { createBuildLogger } from './build-logger.mjs';
-import { loadPostsWithContent } from './ssg-data-loader.mjs';
+import { loadBookDefinitions, loadPostsWithContent } from './ssg-data-loader.mjs';
 
 const logger = createBuildLogger('ssg');
 
@@ -416,6 +416,7 @@ export const runSsg = async ({
 
   const { renderApp } = await import(pathToFileURL(path.join(ssrDir, 'entry-server.js')).href);
   const posts = loadPostsWithContent();
+  const books = loadBookDefinitions();
   const shuoshuoItems = loadShuoShuoItems();
 
   logger.start('Static site generation');
@@ -436,7 +437,7 @@ export const runSsg = async ({
   };
 
   const staticPages = [
-    ...getBookRoutes(posts).map((path) => ({ path, schemaFromSeo: true, schemaType: 'CollectionPage' })),
+    ...getBookRoutes(books).map((path) => ({ path, schemaFromSeo: true, schemaType: 'CollectionPage' })),
     {
       path: 'archive',
       // schemaFromSeo: 页面级 title/description/schema 均由页面组件 Seo 输出，
