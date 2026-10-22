@@ -29,7 +29,7 @@ import { getGitFileDates, resolvePostDates } from './lib/git-file-dates.mjs';
 import { listMarkdownFiles } from './lib/list-markdown-files.mjs';
 import { runCompressContentImagesCli, writeImageCompressReport } from './compress-content-images.mjs';
 import { copyContentImages } from './lib/copy-content-images.mjs';
-import { loadBookPackages, writeBookData } from './lib/book-content.mjs';
+import { BOOKS_ROOT, loadBookPackages, writeBookData } from './lib/book-content.mjs';
 
 const logger = createBuildLogger('gen:data');
 logger.start('Generate site data');
@@ -855,6 +855,10 @@ if (copiedShuoShuoImages > 0) {
 const copiedSummaryImages = copyContentImages(SUMMARY_DIR, path.join(PUBLIC_DIR, 'summary-img'));
 if (copiedSummaryImages > 0) {
   logger.step('Copied summary images', `files=${copiedSummaryImages} dest=public/summary-img`);
+}
+const copiedBookImages = copyContentImages(BOOKS_ROOT, path.join(PUBLIC_DIR, 'books-img'));
+if (copiedBookImages > 0) {
+  logger.step('Copied book images', `files=${copiedBookImages} dest=public/books-img`);
 }
 
 const builtPostsWithSearch = (await Promise.all(postRecords.map(buildPost)))

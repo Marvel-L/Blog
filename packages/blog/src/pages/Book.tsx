@@ -1,14 +1,19 @@
-import { useMemo, type CSSProperties, type ReactNode } from 'react';
+import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ReactMarkdown, { type Components, type ExtraProps } from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Library, ListTree, Newspaper } from 'lucide-react';
 import { Seo } from '@/components/Seo';
 import { CompactPostCard } from '@/components/CompactPostCard';
+import { ImageViewer } from '@/components/ImageViewer';
+import { ProgressiveImage } from '@/components/ProgressiveImage';
 import { getInitialPosts } from '@/services/posts';
 import { getBookPackageDefinitions } from '@/services/books';
 import { extractMarkdownHeadings, extractTextFromReactNode, stripInlineMarkdown } from '@/utils/headings';
 import { remarkPostBasePlugins } from '@/utils/markdownPlugins';
+import { imageFigureLayoutClass, resolveImageDisplayOptions } from '@/utils/markdownImageDisplay';
+import { siblingContentImageUrl } from '@/utils/post-image-src.mjs';
+import { assetUrl, isExternalUrl } from '@/utils/siteUrl';
 import {
   buildBooks,
   bookPath,
@@ -43,7 +48,13 @@ function BookCover({ book, number, small = false }: { book: Book; number: number
   );
 }
 
-const createMarkdownComponents = (headings: ReturnType<typeof extractMarkdownHeadings>): Components => {
+type PreviewImage = { src: string; alt?: string };
+
+const createMarkdownComponents = (
+  headings: ReturnType<typeof extractMarkdownHeadings>,
+  filePath: string | undefined,
+  onPreviewImage: (image: PreviewImage) => void,
+): Components => {
   let cursor = 0;
   const headingIds = new WeakMap<object, string>();
   const heading = (level: 2 | 3) =>
@@ -65,6 +76,49 @@ const createMarkdownComponents = (headings: ReturnType<typeof extractMarkdownHea
   return {
     h2: heading(2),
     h3: heading(3),
+    p: ({ children, node }) => {
+      // 图片渲染为 figure，避免嵌入 p 导致浏览器修正 DOM 后 SSR 水合不一致。
+      const hasImage = node?.children.some(
+        (child) =>
+          child.type === 'element' &&
+          (child.tagName === 'img' || child.children.some((item) => item.type === 'element' && item.tagName === 'img')),
+      );
+      return hasImage ? <div>{children}</div> : <p>{children}</p>;
+    },
+    img: ({ src, alt, title, className, node: _node, ...props }) => {
+      const siblingUrl = siblingContentImageUrl(filePath, src, { contentDir: 'books' });
+      const resolvedSrc = siblingUrl
+        ? assetUrl(siblingUrl)
+        : src && (isExternalUrl(src) || src.startsWith('/'))
+          ? assetUrl(src)
+          : undefined;
+      const display = resolveImageDisplayOptions(className, title);
+      return (
+        <figure
+          data-role="markdown-figure"
+          data-size={display.size === 'default' ? undefined : display.size}
+          data-inline={display.inline ? true : undefined}
+          className={[imageFigureLayoutClass(display), ...display.passthroughClasses].join(' ')}
+        >
+          <button
+            type="button"
+            disabled={!resolvedSrc}
+            onClick={() => resolvedSrc && onPreviewImage({ src: resolvedSrc, alt })}
+            className="relative block w-full overflow-hidden rounded-[6px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-zinc-900 dark:focus-visible:outline-zinc-100"
+            aria-label={alt ? `预览图片：${alt}` : '预览图片'}
+          >
+            <ProgressiveImage
+              {...props}
+              src={resolvedSrc}
+              alt={alt || ''}
+              loading="lazy"
+              wrapperClassName="w-full rounded-[6px]"
+              className={`h-auto w-full cursor-zoom-in object-contain ${display.noDark ? 'no-dark-adapt' : ''}`}
+            />
+          </button>
+        </figure>
+      );
+    },
     a: ({ href, children }) => {
       if (!href) return <span>{children}</span>;
       if (href.startsWith('/')) return <Link to={href}>{children}</Link>;
@@ -98,12 +152,24 @@ function RelatedReading({ chapter }: { chapter: BookChapter }) {
 }
 
 function ChapterArticle({ book, chapter, chapters }: { book: Book; chapter: BookChapter; chapters: BookChapter[] }) {
+  const [previewImage, setPreviewImage] = useState<PreviewImage | null>(null);
   const chapterIndex = chapters.indexOf(chapter);
   const previous = chapterIndex > 0 ? chapters[chapterIndex - 1] : undefined;
   const next = chapters[chapterIndex + 1];
   const body = withoutLeadingTitle(chapter.content);
-  const headings = extractMarkdownHeadings(body).filter((item) => item.level >= 2);
-  const markdownComponents = createMarkdownComponents(headings);
+  const headings = useMemo(() => extractMarkdownHeadings(body).filter((item) => item.level >= 2), [body]);
+  const markdown = useMemo(
+    () => (
+      <ReactMarkdown
+        remarkPlugins={remarkPostBasePlugins}
+        rehypePlugins={[rehypeHighlight]}
+        components={createMarkdownComponents(headings, chapter.filePath, setPreviewImage)}
+      >
+        {body}
+      </ReactMarkdown>
+    ),
+    [body, headings, chapter.filePath],
+  );
 
   return (
     <>
@@ -119,15 +185,7 @@ function ChapterArticle({ book, chapter, chapters }: { book: Book; chapter: Book
             <span>{chapter.relatedPosts.length} 篇关联文章</span>
           </div>
         </header>
-        <div className="book-markdown prose max-w-none dark:prose-invert prose-headings:scroll-mt-24">
-          <ReactMarkdown
-            remarkPlugins={remarkPostBasePlugins}
-            rehypePlugins={[rehypeHighlight]}
-            components={markdownComponents}
-          >
-            {body}
-          </ReactMarkdown>
-        </div>
+        <div className="book-markdown prose max-w-none dark:prose-invert prose-headings:scroll-mt-24">{markdown}</div>
         <RelatedReading chapter={chapter} />
         <nav className="book-chapter-pagination" aria-label="相邻章节">
           {previous ? (
@@ -170,6 +228,9 @@ function ChapterArticle({ book, chapter, chapters }: { book: Book; chapter: Book
           <p>本章暂无小节</p>
         )}
       </aside>
+      {previewImage && (
+        <ImageViewer src={previewImage.src} alt={previewImage.alt} onClose={() => setPreviewImage(null)} />
+      )}
     </>
   );
 }

@@ -451,6 +451,36 @@
 .book-markdown blockquote {
   border-left-color: var(--book-accent);
 }
+.book-markdown .markdown-image-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-block: 1.5rem;
+}
+.book-markdown figure.md-img-figure {
+  width: 100%;
+  margin: 1.5rem auto;
+}
+.book-markdown figure.md-img-figure[data-size='small']:not([data-inline]) {
+  max-width: 24rem;
+}
+.book-markdown figure.md-img-figure[data-size='medium']:not([data-inline]) {
+  max-width: 36rem;
+}
+.book-markdown figure.md-img-figure[data-inline] {
+  flex: 0 0 auto;
+  width: 13rem;
+  max-width: calc(50% - 0.375rem);
+  margin-block: 0;
+}
+.book-markdown figure.md-img-figure[data-inline][data-size='medium'] {
+  width: 18rem;
+}
+.book-markdown figure.md-img-figure img {
+  margin: 0;
+}
 .book-page-toc {
   position: sticky;
   top: 7rem;

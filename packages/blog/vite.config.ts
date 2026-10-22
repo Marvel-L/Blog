@@ -17,7 +17,7 @@ const POST_IMAGE_TYPES: Record<string, string> = {
   '.svg': 'image/svg+xml',
 };
 
-/** 开发服务器把 /posts-img/、/shuoshuo-img/、/summary-img/ 映射到对应目录里和 Markdown 放在一起的图片。 */
+/** 开发服务器把各 /...-img/ 路径映射到对应内容目录里和 Markdown 放在一起的图片。 */
 const serveSiblingImages = (urlPrefix: `/${string}/`, contentDir: string): Plugin => {
   const contentRoot = path.resolve(repositoryRoot, contentDir);
   return {
@@ -192,6 +192,7 @@ export default defineConfig(({ command, mode }) => {
       serveSiblingImages('/posts-img/', 'posts'),
       serveSiblingImages('/shuoshuo-img/', 'shuoshuo'),
       serveSiblingImages('/summary-img/', 'Summary'),
+      serveSiblingImages('/books-img/', 'books'),
       injectEntryCssPreload(),
       trimKatexFonts(),
     ],

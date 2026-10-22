@@ -26,7 +26,10 @@ const app = (path: string, basename = '/') => (
   </HelmetProvider>
 );
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+});
 
 beforeEach(() => {
   vi.mocked(getInitialPosts).mockReturnValue(catalog);
@@ -156,6 +159,68 @@ describe('Book package detail', () => {
     vi.spyOn(bookService, 'getBookPackageDefinitions').mockReturnValue([]);
     render(app('/book'));
     expect(screen.getByText(/书架还空着/)).toBeInTheDocument();
+  });
+
+  it.each(['/', '/Blog/'])('loads sibling chapter images and opens the viewer under %s', async (base) => {
+    vi.stubEnv('BASE_URL', base);
+    const definition = bookService.getBookPackageDefinitions()[0];
+    vi.spyOn(bookService, 'getBookPackageDefinitions').mockReturnValue([
+      {
+        ...definition,
+        chapters: [
+          {
+            id: 'images',
+            directory: ['业务'],
+            title: '图片章节',
+            filePath: '/books/demo/业务/readme.md',
+            content: '# 图片章节\n\n## 流程\n\n![业务流程](img.png){.small}{.no-dark}',
+          },
+        ],
+      },
+    ]);
+    const user = userEvent.setup();
+    const { container } = render(app(`${base}book/${definition.id}/chapter/images`, base.replace(/\/$/, '') || '/'));
+    const expectedSrc = `${base}books-img/demo/${encodeURIComponent('业务')}/img.png`;
+    const image = screen.getByRole('img', { name: '业务流程' });
+    expect(image).toHaveAttribute('src', expectedSrc);
+    expect(image).toHaveClass('no-dark-adapt');
+    expect(image.closest('figure')).toHaveAttribute('data-size', 'small');
+    expect(container.querySelector('p figure')).toBeNull();
+    expect(container).not.toHaveTextContent('{.small}');
+    await user.click(screen.getByRole('button', { name: '预览图片：业务流程' }));
+    const viewer = screen.getByRole('dialog', { name: '图片预览：业务流程' });
+    expect(within(viewer).getByRole('img', { name: '业务流程' })).toHaveAttribute('src', expectedSrc);
+    await user.click(within(viewer).getByRole('button', { name: '关闭图片预览' }));
+    expect(screen.queryByRole('dialog', { name: '图片预览：业务流程' })).not.toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '业务流程' })).toBe(image);
+    expect(screen.getByRole('heading', { name: '流程' })).toHaveAttribute('id', '流程');
+  });
+
+  it('SSR resolves inline images from the source directory and preserves external URLs', () => {
+    vi.stubEnv('BASE_URL', '/Blog/');
+    const definition = bookService.getBookPackageDefinitions()[0];
+    vi.spyOn(bookService, 'getBookPackageDefinitions').mockReturnValue([
+      {
+        ...definition,
+        chapters: [
+          {
+            id: 'images',
+            directory: [],
+            title: '图片章节',
+            filePath: '/books/demo/readme.md',
+            content: '# 图片章节\n\n![本地](./img.png){.inline} ![外链](https://example.com/img.png){.inline}{.medium}',
+          },
+        ],
+      },
+    ]);
+    const html = renderToString(app(`/Blog/book/${definition.id}/chapter/images`, '/Blog'));
+    expect(html).toContain('src="/Blog/books-img/demo/img.png"');
+    expect(html).toContain('src="https://example.com/img.png"');
+    expect(html).toContain('data-role="markdown-image-row"');
+    expect(html).toContain('data-size="small" data-inline="true"');
+    expect(html).toContain('data-size="medium" data-inline="true"');
+    expect(html).not.toContain('{.inline}');
+    expect(html).not.toContain('<p><figure');
   });
 
   it('renders and collapses multiple levels of physical subpackages', async () => {
