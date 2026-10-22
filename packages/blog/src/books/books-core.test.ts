@@ -10,7 +10,7 @@ describe('Book package catalog', () => {
     const original = JSON.stringify(catalog);
     const books = buildBooks(catalog, definitions);
     expect(books.map((book) => book.id)).toContain('algorithms');
-    expect(books.map((book) => book.id)).toContain('golang');
+    expect(books.map((book) => book.id)).toEqual(definitions.map((definition) => definition.id));
     expect(books.find((book) => book.id === 'algorithms')?.chapters.map((chapter) => chapter.id)).toEqual([
       'start',
       'linked-list',

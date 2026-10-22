@@ -1,6 +1,6 @@
 import { useMemo, type CSSProperties, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import ReactMarkdown, { type Components } from 'react-markdown';
+import ReactMarkdown, { type Components, type ExtraProps } from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Library, ListTree, Newspaper } from 'lucide-react';
 import { Seo } from '@/components/Seo';
@@ -13,6 +13,7 @@ import {
   buildBooks,
   bookPath,
   chapterPath,
+  flattenChapters,
   findLegacyChapter,
   type Book,
   type BookChapter,
@@ -21,7 +22,7 @@ import { BookTree } from '@/books/BookTree';
 import { NotFound } from './NotFound';
 
 const bookStyle = (book: Book): CSSProperties => ({ '--book-accent': book.accent }) as CSSProperties;
-const withoutLeadingTitle = (content: string) => content.replace(/^\s*#\s+[^\n]+\n+/, '');
+const withoutLeadingTitle = (content: string) => content.replace(/^\s*#\s+[^\n]+(?:\n+|$)/, '');
 
 function BookCover({ book, number, small = false }: { book: Book; number: number; small?: boolean }) {
   return (
@@ -44,13 +45,22 @@ function BookCover({ book, number, small = false }: { book: Book; number: number
 
 const createMarkdownComponents = (headings: ReturnType<typeof extractMarkdownHeadings>): Components => {
   let cursor = 0;
+  const headingIds = new WeakMap<object, string>();
   const heading = (level: 2 | 3) =>
-    function BookHeading({ children }: { children?: ReactNode }) {
-      const text = stripInlineMarkdown(extractTextFromReactNode(children));
-      const match = headings.slice(cursor).find((item) => item.level === level && item.rawText === text);
-      if (match) cursor = headings.indexOf(match) + 1;
+    function BookHeading({ children, node }: { children?: ReactNode } & ExtraProps) {
+      let id = node && headingIds.get(node);
+      if (!id) {
+        const text = stripInlineMarkdown(extractTextFromReactNode(children));
+        const match = headings.slice(cursor).find((item) => item.level === level && item.rawText === text);
+        if (match) {
+          cursor = headings.indexOf(match) + 1;
+          id = match.id;
+          // React can render the same Markdown node twice in StrictMode.
+          if (node) headingIds.set(node, match.id);
+        }
+      }
       const Tag = `h${level}` as const;
-      return <Tag id={match?.id}>{children}</Tag>;
+      return <Tag id={id}>{children}</Tag>;
     };
   return {
     h2: heading(2),
@@ -87,10 +97,10 @@ function RelatedReading({ chapter }: { chapter: BookChapter }) {
   );
 }
 
-function ChapterArticle({ book, chapter }: { book: Book; chapter: BookChapter }) {
-  const chapterIndex = book.chapters.indexOf(chapter);
-  const previous = chapterIndex > 0 ? book.chapters[chapterIndex - 1] : undefined;
-  const next = book.chapters[chapterIndex + 1];
+function ChapterArticle({ book, chapter, chapters }: { book: Book; chapter: BookChapter; chapters: BookChapter[] }) {
+  const chapterIndex = chapters.indexOf(chapter);
+  const previous = chapterIndex > 0 ? chapters[chapterIndex - 1] : undefined;
+  const next = chapters[chapterIndex + 1];
   const body = withoutLeadingTitle(chapter.content);
   const headings = extractMarkdownHeadings(body).filter((item) => item.level >= 2);
   const markdownComponents = createMarkdownComponents(headings);
@@ -100,7 +110,7 @@ function ChapterArticle({ book, chapter }: { book: Book; chapter: BookChapter })
       <article className="book-package-article">
         <header className="book-article-header">
           <p className="book-eyebrow">
-            CHAPTER {String(chapterIndex + 1).padStart(2, '0')} / {String(book.chapters.length).padStart(2, '0')}
+            CHAPTER {String(chapterIndex + 1).padStart(2, '0')} / {String(chapters.length).padStart(2, '0')}
           </p>
           <h1>{chapter.title}</h1>
           <p>{book.subtitle}</p>
@@ -239,6 +249,11 @@ export function BookPage() {
     : book.chapters[0];
   if (chapterId && !selected) return <NotFound />;
   const index = books.indexOf(book);
+  const sections = book.tree.map((node) => ({
+    node,
+    chapters: node.chapter ? [node.chapter] : flattenChapters(node.children),
+  }));
+  const activeSection = sections.find((section) => section.chapters.some((chapter) => chapter.id === selected?.id));
 
   return (
     <div className="book-app book-reader" style={bookStyle(book)}>
@@ -252,14 +267,19 @@ export function BookPage() {
         </Link>
         <span>PACKAGE / {book.name}</span>
       </div>
-      <nav className="book-category-nav" aria-label="Book packages">
-        {books.map((item) => (
-          <Link key={item.id} to={bookPath(item.id)} aria-current={item.id === book.id ? 'page' : undefined}>
-            {item.name}
-            <span>{item.chapters.length}</span>
-          </Link>
-        ))}
-      </nav>
+      {book.tree.length > 0 && (
+        <nav className="book-category-nav" aria-label={`${book.name}栏目导航`}>
+          {sections.map((section) => (
+            <Link
+              key={section.node.id}
+              to={chapterPath(book.id, section.chapters[0].id)}
+              aria-current={section === activeSection ? 'page' : undefined}
+            >
+              {section.node.label} <span>{section.chapters.length}</span>
+            </Link>
+          ))}
+        </nav>
+      )}
       <section className="book-package-banner">
         <div>
           <p className="book-eyebrow">VOLUME {String(index + 1).padStart(2, '0')} / PACKAGE</p>
@@ -268,21 +288,21 @@ export function BookPage() {
         </div>
         <BookCover book={book} number={index + 1} small />
       </section>
-      {selected ? (
+      {selected && activeSection ? (
         <div className="book-reader-layout">
           <aside className="book-sidebar">
-            <details open>
+            <details open key={activeSection.node.id}>
               <summary className="book-sidebar-heading">
-                <span>Package 目录</span>
-                <small>{book.chapters.length} 章 · 收起 / 展开</small>
+                <span>{activeSection.node.label}目录</span>
+                <small>{activeSection.chapters.length} 章 · 收起 / 展开</small>
               </summary>
               <nav aria-label={`${book.name}章节目录`}>
-                <BookTree tree={book.tree} bookId={book.id} selectedId={selected.id} />
+                <BookTree tree={[activeSection.node]} bookId={book.id} selectedId={selected.id} />
               </nav>
             </details>
           </aside>
           <section className="book-reading-pane" aria-label={`${book.name}内容`}>
-            <ChapterArticle book={book} chapter={selected} />
+            <ChapterArticle book={book} chapter={selected} chapters={activeSection.chapters} />
           </section>
         </div>
       ) : (
