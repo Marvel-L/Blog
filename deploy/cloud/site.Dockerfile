@@ -2,3 +2,5 @@
 FROM nginx:1.28-alpine
 COPY deploy/cloud/nginx.conf /etc/nginx/conf.d/default.conf
 COPY dist/ /usr/share/nginx/html/Blog/
+# Delta releases may inherit umask 077; nginx workers must read the public artifact.
+RUN chmod -R a+rX /usr/share/nginx/html/Blog/

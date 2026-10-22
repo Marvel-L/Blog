@@ -87,6 +87,8 @@ PY
     [[ -n $relative ]] || continue
     rm -f "$staging/$relative"
   done < <(python3 -c 'import json,sys; print("\n".join(json.load(open(sys.argv[1]))["removed"]))' "$delta/DELTA.json")
+  # The manifest is also hard-linked to the baseline; unlink it before copying.
+  rm -f "$staging/SHA256SUMS"
   cp "$delta/SHA256SUMS" "$staging/SHA256SUMS"
   (cd "$staging" && sha256sum --check --status SHA256SUMS)
   python3 - "$staging" <<'PY'
