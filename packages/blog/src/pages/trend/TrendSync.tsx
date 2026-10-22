@@ -2,6 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { Cloud, RefreshCw } from 'lucide-react';
 import type { TrendState } from './model';
 import {
+  clearAuthorization,
+  parseAuthorization,
+  readAuthorization,
+  saveAuthorization,
+  type Authorization,
+} from './authorization';
+import {
   parseResponse,
   SyncError,
   TrendSynchronizer,
@@ -56,10 +63,23 @@ async function request(origin: string, token: string, path: string, signal: Abor
   if (!response.ok) throw new SyncError(response.status);
   return parseResponse(await response.json());
 }
-const transportFor = (origin: string, token: string): Transport => ({
-  load: (signal) => request(origin, token, '/dashboard', signal),
-  save: (mutation, signal) => request(origin, token, '/dashboard', signal, mutation),
-});
+const transportFor = (origin: string, token: string, onUnauthorized = () => {}): Transport => {
+  const send = async (signal: AbortSignal, mutation?: Mutation) => {
+    try {
+      return await request(origin, token, '/dashboard', signal, mutation);
+    } catch (cause) {
+      if (cause instanceof SyncError && cause.status === 401) onUnauthorized();
+      throw cause;
+    }
+  };
+  return { load: (signal) => send(signal), save: (mutation, signal) => send(signal, mutation) };
+};
+// Retrieving sessionStorage itself can throw, so access it inside guarded helpers.
+const authorizationStorage = {
+  getItem: (key: string) => window.sessionStorage.getItem(key),
+  setItem: (key: string, value: string) => window.sessionStorage.setItem(key, value),
+  removeItem: (key: string) => window.sessionStorage.removeItem(key),
+};
 
 export default function TrendSync({
   state,
@@ -76,10 +96,15 @@ export default function TrendSync({
   });
   const [error, setError] = useState('');
   const [authorizing, setAuthorizing] = useState(false);
+  const syncView = useRef(view);
   const engine = useRef<TrendSynchronizer | null>(null);
   const initial = useRef(state);
   const applyRef = useRef(onApply);
-  const token = useRef('');
+  const authorization = useRef<Authorization | null>(null);
+  const authorizingRef = useRef(false);
+  const connectSaved = useRef<() => Promise<void>>(async () => {});
+  const clearSaved = useRef<() => void>(() => {});
+  const tickRef = useRef<() => void>(() => {});
   const mounted = useRef(false);
   const connectGeneration = useRef(0);
   const popupCleanup = useRef<() => void>(() => {});
@@ -88,13 +113,17 @@ export default function TrendSync({
   }, [onApply]);
   useEffect(() => {
     mounted.current = true;
+    let active = true;
     const synchronizer = new TrendSynchronizer(
       initial.current,
       (next, user) => {
         if (mounted.current) applyRef.current(next, user);
       },
       (next) => {
-        if (mounted.current) setView(next);
+        if (active) {
+          syncView.current = next;
+          setView(next);
+        }
       },
       // Wrap access: even retrieving window.localStorage can fail in privacy mode.
       {
@@ -105,19 +134,55 @@ export default function TrendSync({
     engine.current = synchronizer;
     try {
       const origin = apiOrigin();
-      if (import.meta.env.VITE_DEPLOY_TARGET === 'cloud' && origin === window.location.origin) {
+      clearSaved.current = () => {
+        authorization.current = null;
+        try {
+          clearAuthorization(authorizationStorage, origin);
+        } catch (cause) {
+          if (active) setError((cause as Error).message);
+        }
+      };
+      connectSaved.current = async () => {
+        const saved = authorization.current;
+        if (!active || !saved || authorizingRef.current) return;
+        const generation = ++connectGeneration.current;
+        await synchronizer.connect(
+          transportFor(origin, saved.token, () => {
+            if (active && generation === connectGeneration.current && authorization.current?.token === saved.token)
+              clearSaved.current();
+          }),
+        );
+      };
+      try {
+        authorization.current = readAuthorization(authorizationStorage, origin, Date.now());
+      } catch (cause) {
+        setError((cause as Error).message);
+      }
+      if (authorization.current) {
+        void connectSaved.current();
+      } else if (import.meta.env.VITE_DEPLOY_TARGET === 'cloud' && origin === window.location.origin) {
         void synchronizer.connect(transportFor(origin, ''));
       }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '云端配置无效');
     }
     const tick = () => {
-      void synchronizer.tick();
+      if (authorizingRef.current) return;
+      if (authorization.current && authorization.current.expiresAt <= Date.now()) {
+        connectGeneration.current += 1;
+        clearSaved.current();
+        synchronizer.disconnect();
+        setError((previous) => previous || '授权已到期，请重新连接');
+      } else if (authorization.current && !syncView.current.user && !syncView.current.connecting) {
+        void connectSaved.current();
+      } else void synchronizer.tick();
     };
+    tickRef.current = tick;
     const accountChanged = () => {
       connectGeneration.current += 1;
       popupCleanup.current();
-      token.current = '';
+      clearSaved.current();
+      authorizingRef.current = false;
       setAuthorizing(false);
       synchronizer.disconnect();
     };
@@ -128,11 +193,16 @@ export default function TrendSync({
     window.addEventListener('online', tick);
     window.addEventListener('dblog-account-change', accountChanged);
     return () => {
+      active = false;
       mounted.current = false;
       connectGeneration.current += 1;
       popupCleanup.current();
       synchronizer.stop();
-      token.current = '';
+      authorization.current = null;
+      authorizingRef.current = false;
+      connectSaved.current = async () => {};
+      clearSaved.current = () => {};
+      tickRef.current = () => {};
       clearInterval(interval);
       window.removeEventListener('focus', tick);
       window.removeEventListener('online', tick);
@@ -146,6 +216,8 @@ export default function TrendSync({
   const connect = async () => {
     popupCleanup.current();
     const generation = ++connectGeneration.current;
+    engine.current?.stop();
+    authorizingRef.current = true;
     let popup: Window | null = null;
     let controller: AbortController | undefined;
     try {
@@ -175,6 +247,7 @@ export default function TrendSync({
       const fail = (message: string) => {
         cleanup();
         if (mounted.current && generation === connectGeneration.current) {
+          authorizingRef.current = false;
           setAuthorizing(false);
           setError(message);
         }
@@ -203,13 +276,18 @@ export default function TrendSync({
               body: JSON.stringify({ code: event.data.code, verifier }),
             });
             if (!response.ok) throw new SyncError(response.status);
-            const data = (await response.json()) as { token: string };
-            if (!/^[A-Za-z0-9_-]{43}$/.test(data.token)) throw new Error('授权响应无效');
+            const data = parseAuthorization(await response.json(), Date.now());
             if (!mounted.current || generation !== connectGeneration.current) return;
-            token.current = data.token;
+            authorization.current = data;
+            try {
+              saveAuthorization(authorizationStorage, origin, data);
+            } catch (cause) {
+              setError((cause as Error).message);
+            }
             cleanup();
+            authorizingRef.current = false;
             setAuthorizing(false);
-            await engine.current?.connect(transportFor(origin, data.token));
+            await connectSaved.current();
           } catch (cause) {
             fail(cause instanceof Error ? cause.message : '授权失败，请重试');
           }
@@ -226,6 +304,7 @@ export default function TrendSync({
       popup?.close();
       controller?.abort();
       if (mounted.current && generation === connectGeneration.current) {
+        authorizingRef.current = false;
         setAuthorizing(false);
         setError(cause instanceof Error ? cause.message : '当前浏览器无法完成授权');
       }
@@ -233,9 +312,10 @@ export default function TrendSync({
   };
   const disconnect = () => {
     popupCleanup.current();
-    connectGeneration.current += 1;
-    const previous = token.current;
-    token.current = '';
+    const generation = ++connectGeneration.current;
+    const previous = authorization.current?.token;
+    clearSaved.current();
+    authorizingRef.current = false;
     setAuthorizing(false);
     engine.current?.disconnect();
     if (previous) {
@@ -251,7 +331,10 @@ export default function TrendSync({
             if (!response.ok) throw new Error('远端授权撤销失败');
           })
           .catch(() => {
-            if (mounted.current) setError('本机已断开；远端授权撤销失败，将在到期或退出云端账号后失效');
+            if (mounted.current && generation === connectGeneration.current)
+              setError((message) =>
+                [message, '本机已断开；远端授权撤销失败，将在到期或退出云端账号后失效'].filter(Boolean).join('；'),
+              );
           });
       } catch {
         setError('本机已断开，远端授权撤销失败');
@@ -273,7 +356,7 @@ export default function TrendSync({
             <button
               className="trend-button"
               onClick={() => {
-                void engine.current?.tick();
+                tickRef.current();
               }}
             >
               <RefreshCw size={14} />

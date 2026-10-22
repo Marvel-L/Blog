@@ -198,7 +198,7 @@ Go 开发与测试步骤见 [packages/server](../../packages/server/README.md)�
 
 Trend 使用现有 Go API、GitHub OAuth 与 PostgreSQL，Pages、本地开发站和云端连接同一账号后共享配置。
 2026-10-22 已按正常流程发布 `d77bed5` 的云端 API 与前端，成功执行 `002_trend_sync.sql`；
-生产健康、迁移账本、精确 CORS 和 Trend 页面检查通过。本轮未推送 Git，Pages 尚未更新，
+生产健康、迁移账本、精确 CORS 和 Trend 页面检查通过。首次部署后已推送并更新 Pages，
 真实 GitHub 授权及跨端同步仍待生产验收。执行证据见 [部署记录](../../packages/project-notes/deployments/2026-10-22.md)。
 无需重建数据卷，原 OAuth App 和回调地址继续使用。
 
@@ -212,8 +212,12 @@ TREND_ALLOWED_ORIGINS=https://marvel-l.github.io,http://localhost:3000,http://lo
 更换 Pages 域名或本地端口时调整此列表。Compose 已提供上面的默认值；
 生产 `/opt/dblog/shared/cloud.env` 若已定义该变量，必须检查并修改实际值。
 仅 `/api/v1/trend/` 提供上述来源的 CORS，不开放跨源 Cookie。
-外部站点通过云端弹窗获取一次性 code，以 S256 PKCE 交换来源绑定的专用 token；token 仅保存在内存中，有效期 1 小时。
-刷新 Pages/本地页面后需再次点击连接；已登录云端时弹窗直接完成授权。退出云端账号使其关联的 Trend 授权失效。
+外部站点通过云端弹窗获取一次性 code，以 S256 PKCE 交换来源绑定的专用 token；有效期 1 小时。
+0.5.1 起 token 与到期时间保存在当前标签页 sessionStorage，按 API origin 隔离；不写入 localStorage。
+刷新 Pages/本地页面后自动请求 dashboard 验证并恢复账号与同步，不延长授权有效期。
+恢复网络失败保留授权，在聚焦、网络恢复和 15 秒轮询时重试；关闭标签页、授权到期或主动断开后需重新连接。
+退出云端账号使其关联的 Trend 授权失效，客户端收到 401 会删除记录。
+浏览器无法保存授权时仍可完成本次同步，并提示刷新需要重新连接。
 
 前端构建变量 `VITE_TREND_API_ORIGIN` 必须是完整 origin，默认 Pages 指向 `https://43.138.216.53`，cloud 使用当前站点同源：
 
@@ -239,7 +243,8 @@ VITE_TREND_API_ORIGIN=https://43.138.216.53 npm run dev
 2. Pages `/Blog/trend` 点击“使用 GitHub 连接同步”，完成云端 GitHub 授权；页面显示账号与同步状态。
 3. 新增条目或修改阈值，等待“已同步到云端”；另一台设备/本地站连接同一账号，15 秒内或点击“立即同步”看到相同数据。
 4. 两端离线编辑不同内容，恢复网络时出现版本冲突；选择保留版本后两端最终一致，另一账号不读取到本账号配置。
-5. 刷新后账号草稿仍保留，重新连接继续同步；断开恢复原匿名配置，退出云端账号后外部同步授权失效。
+5. 在授权有效期内刷新，账号、草稿与同步自动恢复，不再弹出授权窗口；修改仍可上传。恢复请求暂时失败后可自动重试。
+   断开后刷新不恢复授权，并恢复原匿名配置；退出云端账号后外部授权失效，到期后提示重新连接。
 6. 普通 Pages 阅读不请求账号 API，拒绝白名单外的跨源请求，API 响应不被 Service Worker 缓存。
 
 数据包含全部类别、条目、坐标、阈值和 dashboard 设置。修改防抖 700ms 上传；
