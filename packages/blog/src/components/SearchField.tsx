@@ -40,9 +40,6 @@ interface SearchFieldProps extends Omit<React.InputHTMLAttributes<HTMLInputEleme
   compositionWatchdogMs?: number;
 }
 
-const variantClasses =
-  'border-zinc-300 bg-paper focus:border-zinc-900 dark:border-zinc-700 dark:bg-void dark:focus:border-zinc-100';
-
 /**
  * 组合看门狗超时（毫秒）：组合开始后若长时间没有组合相关输入活动（部分
  * 浏览器/输入法取消组合时不派发 compositionend，Escape、切换输入法、移动端
@@ -141,7 +138,7 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(
     useEffect(() => () => clearCompositionWatchdog(), []);
 
     return (
-      <div className={`group relative min-w-0 ${disabled ? 'opacity-75' : ''} ${containerClassName}`}>
+      <div className={`frosted-field group relative min-w-0 ${disabled ? 'opacity-75' : ''} ${containerClassName}`}>
         <Search
           aria-hidden="true"
           size={16}
@@ -254,7 +251,7 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(
             inputProps.onBlur?.(event);
           }}
           disabled={disabled}
-          className={`w-full min-w-0 appearance-none rounded-control border pl-10 text-ink outline-none transition-[background-color,border-color,color,box-shadow] duration-150 placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/15 disabled:cursor-not-allowed dark:text-white dark:placeholder:text-zinc-500 dark:hover:border-zinc-600 dark:focus:border-zinc-100 dark:focus:ring-zinc-100/15 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden [&::-webkit-search-results-button]:hidden [&::-webkit-search-results-decoration]:hidden ${variantClasses} ${sizeClass} ${inputSpacing} ${className}`}
+          className={`w-full min-w-0 appearance-none border-0 bg-transparent pl-10 text-ink outline-none transition-colors duration-150 placeholder:text-zinc-500 disabled:cursor-not-allowed dark:text-white dark:placeholder:text-zinc-400 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden [&::-webkit-search-results-button]:hidden [&::-webkit-search-results-decoration]:hidden ${sizeClass} ${inputSpacing} ${className}`}
         />
         {(showClear || endAction) && (
           <div className="absolute inset-y-0 right-0 flex items-center">
@@ -262,7 +259,7 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(
               <button
                 type="button"
                 onClick={onClear}
-                className={`inline-flex ${clearButtonSizeClass} w-10 items-center justify-center text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-zinc-900 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 dark:focus-visible:outline-zinc-100`}
+                className={`inline-flex ${clearButtonSizeClass} w-10 items-center justify-center rounded-r-[0.8rem] text-zinc-500 transition-colors hover:bg-white/30 hover:text-zinc-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-zinc-900 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-zinc-100 dark:focus-visible:outline-zinc-100`}
                 aria-label={clearLabel}
               >
                 <X size={16} />

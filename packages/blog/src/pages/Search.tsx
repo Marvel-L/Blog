@@ -223,11 +223,7 @@ export const Search = () => {
                   type="button"
                   aria-pressed={searchScope === option.value}
                   onClick={() => handleScopeChange(option.value)}
-                  className={`min-h-11 rounded-control border px-3 py-2 text-xs font-semibold transition-colors active:scale-[.98] ${
-                    searchScope === option.value
-                      ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
-                      : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:text-ink dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:text-white'
-                  }`}
+                  className="frosted-control min-h-11 px-3 py-2 text-xs font-semibold transition-colors active:scale-[.98]"
                 >
                   {option.label}
                 </button>
@@ -247,7 +243,7 @@ export const Search = () => {
                   key={keyword}
                   type="button"
                   onClick={() => handleSearchChange(keyword)}
-                  className="min-h-11 rounded-control border border-zinc-200 px-3 py-2 text-sm text-zinc-700 transition-colors hover:border-zinc-400 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:bg-zinc-800"
+                  className="frosted-control min-h-11 px-3 py-2 text-sm transition-colors"
                 >
                   {keyword}
                 </button>

@@ -343,7 +343,7 @@ const ThemeToggle = ({
       <button
         type="button"
         onClick={() => setIsMenuOpen((open) => !open)}
-        className="group relative inline-flex h-11 w-11 items-center justify-center rounded-icon border border-zinc-300 bg-zinc-100 text-ink transition-colors hover:border-zinc-500 hover:bg-zinc-200 active:bg-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-zinc-500 dark:active:bg-zinc-700"
+        className="frosted-control group relative inline-flex h-11 w-11 items-center justify-center transition-colors"
         aria-label={`${TEXT.atmosphereMenu}，当前${currentThemeLabel} · ${currentEffectLabel}`}
         aria-haspopup="dialog"
         aria-expanded={isMenuOpen}
@@ -370,7 +370,7 @@ const ThemeToggle = ({
           id={menuId}
           role="dialog"
           aria-label={TEXT.atmosphereMenu}
-          className="absolute right-0 top-full z-popover mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-surface border border-zinc-200 bg-paper p-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-950"
+          className="frosted-panel absolute right-0 top-full z-popover mt-2 w-64 max-w-[calc(100vw-2rem)] p-3"
         >
           <div className="space-y-3">
             <div>
@@ -391,11 +391,7 @@ const ThemeToggle = ({
                       type="button"
                       onClick={() => setThemePreference(id)}
                       aria-pressed={active}
-                      className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-control border px-2 text-xs font-semibold transition-colors ${
-                        active
-                          ? 'border-ink bg-ink text-white dark:border-white dark:bg-white dark:text-ink'
-                          : 'border-zinc-300 bg-paper text-zinc-700 hover:border-ink hover:bg-zinc-100 dark:border-zinc-700 dark:bg-void dark:text-zinc-300 dark:hover:border-white dark:hover:bg-zinc-900'
-                      }`}
+                      className="frosted-option inline-flex min-h-11 items-center justify-center gap-1.5 px-2 text-xs font-semibold transition-colors"
                     >
                       <Icon size={14} aria-hidden="true" />
                       {label}
@@ -424,18 +420,10 @@ const ThemeToggle = ({
                       aria-pressed={active}
                       disabled={disabled}
                       title={disabled ? '最多同时开启两个特效，请先关闭一个' : option.hint}
-                      className={`inline-flex min-h-11 flex-col items-center justify-center rounded-control border px-2 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                        active
-                          ? 'border-ink bg-ink text-white dark:border-white dark:bg-white dark:text-ink'
-                          : 'border-zinc-300 bg-paper text-zinc-700 hover:border-ink hover:bg-zinc-100 dark:border-zinc-700 dark:bg-void dark:text-zinc-300 dark:hover:border-white dark:hover:bg-zinc-900'
-                      }`}
+                      className="frosted-option inline-flex min-h-11 flex-col items-center justify-center px-2 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <span>{option.label}</span>
-                      <span
-                        className={`mt-0.5 text-[10px] font-normal ${active ? 'text-white/70 dark:text-ink/60' : 'text-zinc-400 dark:text-zinc-500'}`}
-                      >
-                        {option.hint}
-                      </span>
+                      <span className="mt-0.5 text-[10px] font-normal opacity-75">{option.hint}</span>
                     </button>
                   );
                 })}
@@ -1226,7 +1214,7 @@ const Navbar = ({
                       id="desktop-more-menu"
                       role="menu"
                       data-open={isMoreMenuOpen}
-                      className="nav-more-menu-panel absolute right-0 top-full z-popover w-64 max-w-[calc(100vw-2rem)] rounded-surface border border-zinc-200 bg-paper p-1.5 shadow-lg dark:border-zinc-700 dark:bg-zinc-950"
+                      className="frosted-panel nav-more-menu-panel absolute right-0 top-full z-popover w-64 max-w-[calc(100vw-2rem)] p-1.5"
                     >
                       {moreNavItems.map((item, index) => {
                         const Icon = item.icon;
@@ -1276,7 +1264,7 @@ const Navbar = ({
                 <div className="flex shrink-0 items-center gap-2 border-l border-zinc-300 pl-4 dark:border-zinc-700">
                   <button
                     onClick={onSearchNavigate}
-                    className="group relative inline-flex h-11 w-11 items-center justify-center rounded-icon border border-zinc-300 bg-zinc-100 text-ink transition-colors hover:border-zinc-500 hover:bg-zinc-200 active:bg-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:bg-zinc-800 dark:active:bg-zinc-700"
+                    className="frosted-control group relative inline-flex h-11 w-11 items-center justify-center transition-colors"
                     aria-label="打开搜索页"
                   >
                     <Search size={18} />

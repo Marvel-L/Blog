@@ -1,0 +1,114 @@
+/* 控件与浮层共用磨砂材质；正文与书架继续沿用页面背景。 */
+:root {
+  --glass-control-fill: rgb(255 255 255 / 0.48);
+  --glass-panel-fill: rgb(250 249 245 / 0.82);
+  --glass-edge: rgb(255 255 255 / 0.76);
+  --glass-highlight: rgb(255 255 255 / 0.62);
+  --glass-shadow: rgb(47 42 32 / 0.08);
+  --glass-text: #3f3f46;
+  --glass-hover-fill: rgb(255 255 255 / 0.7);
+  --glass-accent-fill: rgb(219 234 254 / 0.65);
+  --glass-accent-edge: rgb(96 165 250 / 0.45);
+  --glass-accent-text: #1d4ed8;
+  --glass-fallback: #f7f6f2;
+}
+
+html.dark {
+  --glass-control-fill: rgb(39 39 42 / 0.58);
+  --glass-panel-fill: rgb(24 24 27 / 0.86);
+  --glass-edge: rgb(255 255 255 / 0.14);
+  --glass-highlight: rgb(255 255 255 / 0.08);
+  --glass-shadow: rgb(0 0 0 / 0.22);
+  --glass-text: #e4e4e7;
+  --glass-hover-fill: rgb(63 63 70 / 0.68);
+  --glass-accent-fill: rgb(30 64 112 / 0.62);
+  --glass-accent-edge: rgb(147 197 253 / 0.4);
+  --glass-accent-text: #bfdbfe;
+  --glass-fallback: #27272a;
+}
+
+.frosted-control,
+.frosted-option,
+.frosted-field,
+.frosted-panel {
+  border: 1px solid var(--glass-edge);
+  background: linear-gradient(145deg, var(--glass-highlight), transparent 65%), var(--glass-control-fill);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 4px 16px var(--glass-shadow);
+  -webkit-backdrop-filter: blur(14px) saturate(145%);
+  backdrop-filter: blur(14px) saturate(145%);
+  color: var(--glass-text);
+}
+
+.frosted-control,
+.frosted-option,
+.frosted-field {
+  border-radius: 0.8rem;
+}
+
+.frosted-panel {
+  background: linear-gradient(145deg, var(--glass-highlight), transparent 55%), var(--glass-panel-fill);
+  border-radius: 1.1rem;
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 12px 36px var(--glass-shadow);
+  -webkit-backdrop-filter: blur(22px) saturate(145%);
+  backdrop-filter: blur(22px) saturate(145%);
+}
+
+.frosted-option {
+  /* 菜单已有一层背景模糊，内部选项只需半透明材质。 */
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.frosted-control:hover:not(:disabled),
+.frosted-option:hover:not(:disabled) {
+  background-color: var(--glass-hover-fill);
+}
+
+.frosted-option[aria-pressed='true'],
+.frosted-control[aria-pressed='true'] {
+  background-color: var(--glass-accent-fill);
+  border-color: var(--glass-accent-edge);
+  color: var(--glass-accent-text);
+}
+
+.frosted-field:focus-within {
+  border-color: var(--glass-accent-edge);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 0 0 3px var(--glass-accent-fill),
+    0 4px 16px var(--glass-shadow);
+}
+
+.frosted-field input {
+  border-radius: inherit;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .frosted-control,
+  .frosted-option,
+  .frosted-field,
+  .frosted-panel {
+    background-color: var(--glass-fallback);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .frosted-control,
+  .frosted-option,
+  .frosted-field,
+  .frosted-panel {
+    background: var(--glass-fallback);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .frosted-option[aria-pressed='true'],
+  .frosted-control[aria-pressed='true'] {
+    background: var(--glass-fallback);
+  }
+}
