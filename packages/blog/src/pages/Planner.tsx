@@ -1,14 +1,16 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, ChevronLeft, ChevronRight, Download, FileText, Plus, Save, Trash2, Upload } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Download, FileText, Plus, Trash2 } from 'lucide-react';
 import { Seo } from '@/components/Seo';
 import { downloadBlob } from '@/utils/download';
-import { CalendarProgress, PlannerClock } from './planner/PlannerStatus';
+import { assetUrl } from '@/utils/siteUrl';
+import { PlannerClock, TaskCharge } from './planner/PlannerStatus';
 import { parsePlannerMarkdown, plannerToMarkdown, tasksFor } from './planner/markdown';
 import {
   emptyPlannerState,
   monthKey,
   parsePlannerState,
   PLANNER_STORAGE_KEY,
+  taskProgress,
   type MonthlyPlannerState,
 } from './planner/model';
 import type { PlannerSyncUser } from './planner/sync';
@@ -16,12 +18,7 @@ import './planner/planner.css';
 
 const PlannerSync = lazy(() => import('./planner/PlannerSync'));
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-type WritableHandle = {
-  name: string;
-  getFile: () => Promise<File>;
-  createWritable: () => Promise<{ write: (value: string) => Promise<void>; close: () => Promise<void> }>;
-};
-type PickerWindow = Window & { showOpenFilePicker?: (options: object) => Promise<WritableHandle[]> };
+const PROJECT_FILE_URL = '/planner-data/monthly-planner.md';
 
 export const Planner = () => {
   const [state, setState] = useState<MonthlyPlannerState>(emptyPlannerState);
@@ -30,46 +27,108 @@ export const Planner = () => {
   const [selectedMonth, setSelectedMonth] = useState(1);
   const [newTask, setNewTask] = useState('');
   const [message, setMessage] = useState('');
-  const [fileName, setFileName] = useState('monthly-planner.md');
-  const fileHandle = useRef<WritableHandle | null>(null);
-  const importRef = useRef<HTMLInputElement>(null);
   const mounted = useRef(false);
-  const importGeneration = useRef(0);
-  const syncScope = useRef<string | null>(null);
+  const projectFileLoaded = useRef(false);
+  const skipInitialProjectWrite = useRef(true);
+  const writeGeneration = useRef(0);
   useEffect(() => {
     mounted.current = true;
+    const controller = new AbortController();
     const now = new Date();
     setSelectedYear(now.getFullYear());
     setSelectedMonth(now.getMonth() + 1);
-    try {
-      const stored = localStorage.getItem(PLANNER_STORAGE_KEY);
-      if (stored) setState(parsePlannerState(stored));
-    } catch {
-      setMessage('无法读取浏览器中的计划，可重新导入 Markdown。');
-    }
-    setReady(true);
+    void (async () => {
+      try {
+        const response = await fetch(assetUrl(PROJECT_FILE_URL), {
+          cache: 'no-store',
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10_000)]),
+        });
+        if (!response.ok) throw new Error('项目文件读取失败');
+        const projectState = parsePlannerMarkdown(await response.text());
+        if (!mounted.current || controller.signal.aborted) return;
+        setState(projectState);
+        try {
+          localStorage.setItem(PLANNER_STORAGE_KEY, JSON.stringify(projectState));
+        } catch {
+          setMessage('项目 Markdown 已读取，但浏览器缓存保存失败。');
+        }
+      } catch (cause) {
+        if (controller.signal.aborted) return;
+        try {
+          const stored = localStorage.getItem(PLANNER_STORAGE_KEY);
+          if (stored) setState(parsePlannerState(stored));
+          setMessage(
+            stored ? '项目 Markdown 读取失败，已使用浏览器缓存。' : '项目 Markdown 读取失败，当前使用空计划。',
+          );
+        } catch {
+          setMessage(cause instanceof Error ? cause.message : '项目 Markdown 读取失败。');
+        }
+      } finally {
+        if (mounted.current && !controller.signal.aborted) {
+          projectFileLoaded.current = true;
+          setReady(true);
+        }
+      }
+    })();
     return () => {
       mounted.current = false;
-      importGeneration.current += 1;
+      controller.abort();
+      writeGeneration.current += 1;
     };
   }, []);
   useEffect(() => {
-    if (!ready || syncScope.current) return;
+    if (!ready || !projectFileLoaded.current) return;
+    if (skipInitialProjectWrite.current) {
+      skipInitialProjectWrite.current = false;
+      return;
+    }
     try {
       localStorage.setItem(PLANNER_STORAGE_KEY, JSON.stringify(state));
     } catch {
-      setMessage('浏览器保存失败，请保存或导出 Markdown 备份。');
+      setMessage('浏览器缓存保存失败。');
     }
+    if (!import.meta.env.DEV) return;
+    const generation = ++writeGeneration.current;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      void fetch(PROJECT_FILE_URL, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'text/markdown;charset=utf-8' },
+        body: plannerToMarkdown(state),
+        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10_000)]),
+      })
+        .then((response) => {
+          if (!response.ok) throw new Error('项目 Markdown 写入失败');
+          if (mounted.current && generation === writeGeneration.current)
+            setMessage('已写入项目文件 public/planner-data/monthly-planner.md');
+        })
+        .catch((cause) => {
+          if (controller.signal.aborted || !mounted.current || generation !== writeGeneration.current) return;
+          setMessage(cause instanceof Error ? cause.message : '项目 Markdown 写入失败');
+        });
+    }, 500);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
   }, [ready, state]);
-  const applySynced = useCallback((next: MonthlyPlannerState, user: PlannerSyncUser | null) => {
-    syncScope.current = user?.id ?? null;
+  const applySynced = useCallback((next: MonthlyPlannerState, _user: PlannerSyncUser | null) => {
     setState(next);
   }, []);
   const key = monthKey(selectedYear, selectedMonth);
   const tasks = useMemo(() => tasksFor(state, selectedYear, selectedMonth), [state, selectedYear, selectedMonth]);
+  const progress = useMemo(
+    () => taskProgress(state, selectedYear, selectedMonth),
+    [state, selectedYear, selectedMonth],
+  );
   const completed = tasks.filter((task) => task.completed).length;
   const updateTasks = (next: typeof tasks) =>
-    setState((current) => ({ ...current, months: { ...current.months, [key]: next } }));
+    setState((current) => {
+      const months = { ...current.months };
+      if (next.length === 0) delete months[key];
+      else months[key] = next;
+      return { ...current, months };
+    });
   const addTask = (event: React.FormEvent) => {
     event.preventDefault();
     const text = newTask.trim();
@@ -80,54 +139,6 @@ export const Planner = () => {
     }
     updateTasks([...tasks, { id: crypto.randomUUID(), text, completed: false }]);
     setNewTask('');
-  };
-  const loadFile = async (file: File) => {
-    const generation = ++importGeneration.current;
-    try {
-      const next = parsePlannerMarkdown(await file.text());
-      if (!mounted.current || generation !== importGeneration.current) return;
-      syncScope.current = null;
-      setState(next);
-      setFileName(file.name || 'monthly-planner.md');
-      setMessage(`已载入 ${file.name}`);
-    } catch (cause) {
-      if (mounted.current && generation === importGeneration.current)
-        setMessage(cause instanceof Error ? `导入失败：${cause.message}` : '导入失败');
-    }
-  };
-  const openLocalFile = async () => {
-    const picker = (window as PickerWindow).showOpenFilePicker;
-    if (!picker) {
-      importRef.current?.click();
-      return;
-    }
-    try {
-      const [handle] = await picker({
-        multiple: false,
-        types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md', '.markdown'] } }],
-      });
-      if (!handle) return;
-      fileHandle.current = handle;
-      await loadFile(await handle.getFile());
-    } catch (cause) {
-      if ((cause as DOMException).name !== 'AbortError') setMessage('无法打开本地 Markdown 文件。');
-    }
-  };
-  const saveMarkdown = async () => {
-    const markdown = plannerToMarkdown(state);
-    try {
-      if (fileHandle.current) {
-        const writer = await fileHandle.current.createWritable();
-        await writer.write(markdown);
-        await writer.close();
-        setMessage(`已写入 ${fileHandle.current.name}`);
-        return;
-      }
-      downloadBlob(new Blob([markdown], { type: 'text/markdown;charset=utf-8' }), fileName);
-      setMessage('已下载 Markdown；重新用“打开 Markdown”选择该文件后可直接覆盖保存。');
-    } catch {
-      setMessage('保存 Markdown 失败，请重试。');
-    }
   };
   return (
     <div className="planner-page">
@@ -168,14 +179,10 @@ export const Planner = () => {
           </button>
         </div>
         <div className="planner-file-actions">
-          <button onClick={() => void openLocalFile()}>
-            <Upload />
-            打开 Markdown
-          </button>
-          <button onClick={() => void saveMarkdown()}>
-            <Save />
-            保存 Markdown
-          </button>
+          <span className="planner-project-file">
+            <FileText aria-hidden="true" />
+            public/planner-data/monthly-planner.md
+          </span>
           <button
             onClick={() => {
               downloadBlob(
@@ -187,20 +194,9 @@ export const Planner = () => {
             <Download />
             导出副本
           </button>
-          <input
-            ref={importRef}
-            className="sr-only"
-            type="file"
-            accept=".md,.markdown,text/markdown,text/plain"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.target.value = '';
-              if (file) void loadFile(file);
-            }}
-          />
         </div>
       </div>
-      <CalendarProgress />
+      <TaskCharge progress={progress} />
       {ready && (
         <Suspense fallback={<p className="planner-sync-loading">正在加载同步状态…</p>}>
           <PlannerSync state={state} onApply={applySynced} />

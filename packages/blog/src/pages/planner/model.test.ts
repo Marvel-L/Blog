@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parsePlannerMarkdown, plannerToMarkdown } from './markdown';
-import { calendarProgress, emptyPlannerState, monthKey, parsePlannerState, samePlannerData } from './model';
+import { emptyPlannerState, monthKey, parsePlannerState, samePlannerData, taskProgress } from './model';
 
 describe('月度计划模型', () => {
   it('Markdown 往返保留月份、顺序、完成状态和稳定 ID', () => {
@@ -47,13 +47,27 @@ describe('月度计划模型', () => {
     expect(samePlannerData(first, second)).toBe(true);
   });
 
-  it('按真实日历边界计算年、月、季度进度', () => {
-    const progress = calendarProgress(new Date(2024, 1, 15, 12));
-    expect(progress.month).toBeGreaterThan(49);
-    expect(progress.month).toBeLessThan(51);
-    expect(progress.quarter).toBeGreaterThan(49);
-    expect(progress.quarter).toBeLessThan(51);
-    expect(progress.year).toBeGreaterThan(12);
-    expect(progress.year).toBeLessThan(13);
+  it('按月、季度和年份的任务完成率计算 Charge，无任务为 0%', () => {
+    expect(taskProgress(emptyPlannerState(), 2026, 10)).toEqual({ year: 0, month: 0, quarter: 0 });
+    const state = parsePlannerState(
+      JSON.stringify({
+        version: 1,
+        months: {
+          '2026-01': [
+            { id: 'jan-1', text: '一月已完成', completed: true },
+            { id: 'jan-2', text: '一月未完成', completed: false },
+          ],
+          '2026-10': [
+            { id: 'oct-1', text: '十月已完成', completed: true },
+            { id: 'oct-2', text: '十月已完成二', completed: true },
+          ],
+          '2026-11': [{ id: 'nov-1', text: '十一月未完成', completed: false }],
+        },
+      }),
+    );
+    const progress = taskProgress(state, 2026, 10);
+    expect(progress.month).toBe(100);
+    expect(progress.quarter).toBeCloseTo(200 / 3);
+    expect(progress.year).toBe(60);
   });
 });

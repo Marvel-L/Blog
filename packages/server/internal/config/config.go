@@ -11,7 +11,7 @@ type Config struct {
 	Origin, DatabaseURL, ClientID, ClientSecret string
 	PlannerGithubToken, PlannerGithubOwner      string
 	PlannerGithubRepo, PlannerGithubBranch      string
-	PlannerGithubPath                           string
+	PlannerGithubFile                           string
 	Port                                        int
 	SecureCookies                               bool
 	TrendAllowedOrigins                         []string
@@ -48,11 +48,11 @@ func Load(get func(string) string) (Config, error) {
 	c.PlannerGithubOwner = strings.TrimSpace(get("PLANNER_GITHUB_OWNER"))
 	c.PlannerGithubRepo = strings.TrimSpace(get("PLANNER_GITHUB_REPO"))
 	c.PlannerGithubBranch = strings.TrimSpace(get("PLANNER_GITHUB_BRANCH"))
-	c.PlannerGithubPath = strings.Trim(strings.TrimSpace(get("PLANNER_GITHUB_PATH")), "/")
+	c.PlannerGithubFile = strings.Trim(strings.TrimSpace(get("PLANNER_GITHUB_FILE")), "/")
 	if c.PlannerGithubToken != "" {
-		if c.PlannerGithubOwner == "" || c.PlannerGithubRepo == "" || c.PlannerGithubBranch == "" || c.PlannerGithubPath == "" ||
+		if c.PlannerGithubOwner == "" || c.PlannerGithubRepo == "" || c.PlannerGithubBranch == "" || c.PlannerGithubFile == "" ||
 			strings.ContainsAny(c.PlannerGithubOwner+c.PlannerGithubRepo+c.PlannerGithubBranch, " /\\?#") ||
-			strings.Contains(c.PlannerGithubPath, "..") || strings.ContainsAny(c.PlannerGithubPath, " \\?#") {
+			strings.Contains(c.PlannerGithubFile, "..") || strings.ContainsAny(c.PlannerGithubFile, " \\?#") || !strings.HasSuffix(c.PlannerGithubFile, ".md") {
 			return c, errors.New("invalid planner GitHub configuration")
 		}
 	}

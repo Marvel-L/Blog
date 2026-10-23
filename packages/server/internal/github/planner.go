@@ -37,7 +37,7 @@ func NewPlannerCommitter(c config.Config, transport http.RoundTripper) PlannerCo
 				return errors.New("invalid login")
 			}
 		}
-		filePath := strings.Trim(c.PlannerGithubPath, "/") + "/" + login + ".md"
+		filePath := c.PlannerGithubFile
 		endpoint := "https://api.github.com/repos/" + url.PathEscape(c.PlannerGithubOwner) + "/" + url.PathEscape(c.PlannerGithubRepo) + "/contents/" + strings.Join(strings.Split(filePath, "/"), "/")
 		sha := ""
 		req, err := http.NewRequestWithContext(ctx, "GET", endpoint+"?ref="+url.QueryEscape(c.PlannerGithubBranch), nil)

@@ -46,7 +46,7 @@ services:
       PLANNER_GITHUB_OWNER: ${PLANNER_GITHUB_OWNER:-}
       PLANNER_GITHUB_REPO: ${PLANNER_GITHUB_REPO:-}
       PLANNER_GITHUB_BRANCH: ${PLANNER_GITHUB_BRANCH:-custom}
-      PLANNER_GITHUB_PATH: ${PLANNER_GITHUB_PATH:-planner-data}
+      PLANNER_GITHUB_FILE: ${PLANNER_GITHUB_FILE:-public/planner-data/monthly-planner.md}
       NODE_ENV: production
       PORT: "3001"
     depends_on:

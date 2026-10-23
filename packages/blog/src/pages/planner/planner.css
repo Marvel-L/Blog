@@ -151,6 +151,16 @@
   width: 14px;
   height: 14px;
 }
+.planner-project-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: min(58vw, 360px);
+  color: var(--planner-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
 .planner-progress {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);

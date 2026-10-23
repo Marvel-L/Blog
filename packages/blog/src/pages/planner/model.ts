@@ -69,23 +69,20 @@ const canonical = (value: unknown): string => {
 export const samePlannerData = (a: MonthlyPlannerState | null, b: MonthlyPlannerState | null) =>
   canonical(a?.months ?? null) === canonical(b?.months ?? null);
 
-export type CalendarProgress = { year: number; month: number; quarter: number };
+export type TaskProgress = { year: number; month: number; quarter: number };
 
-export const calendarProgress = (now: Date): CalendarProgress => {
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const quarterStartMonth = Math.floor(month / 3) * 3;
-  const yearStart = new Date(year, 0, 1).getTime();
-  const yearEnd = new Date(year + 1, 0, 1).getTime();
-  const monthStart = new Date(year, month, 1).getTime();
-  const monthEnd = new Date(year, month + 1, 1).getTime();
-  const quarterStart = new Date(year, quarterStartMonth, 1).getTime();
-  const quarterEnd = new Date(year, quarterStartMonth + 3, 1).getTime();
-  const current = now.getTime();
-  const percent = (start: number, end: number) => Math.max(0, Math.min(100, ((current - start) / (end - start)) * 100));
+const completionRate = (tasks: MonthlyTask[]) => {
+  if (tasks.length === 0) return 0;
+  return (tasks.filter((task) => task.completed).length / tasks.length) * 100;
+};
+
+export const taskProgress = (state: MonthlyPlannerState, year: number, month: number): TaskProgress => {
+  const selectedMonth = Math.max(1, Math.min(12, month));
+  const quarterStart = Math.floor((selectedMonth - 1) / 3) * 3 + 1;
+  const collect = (months: number[]) => months.flatMap((value) => state.months[monthKey(year, value)] ?? []);
   return {
-    year: percent(yearStart, yearEnd),
-    month: percent(monthStart, monthEnd),
-    quarter: percent(quarterStart, quarterEnd),
+    year: completionRate(collect(Array.from({ length: 12 }, (_, index) => index + 1))),
+    month: completionRate(collect([selectedMonth])),
+    quarter: completionRate(collect([quarterStart, quarterStart + 1, quarterStart + 2])),
   };
 };

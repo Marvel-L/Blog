@@ -35,13 +35,13 @@ func TestConfiguration(t *testing.T) {
 	if err != nil || len(c.TrendAllowedOrigins) != 2 {
 		t.Fatal("exact Trend origins rejected")
 	}
-	c, err = load(map[string]string{"PLANNER_GITHUB_TOKEN": "token", "PLANNER_GITHUB_OWNER": "Marvel-L", "PLANNER_GITHUB_REPO": "Blog", "PLANNER_GITHUB_BRANCH": "custom", "PLANNER_GITHUB_PATH": "planner-data"})
+	c, err = load(map[string]string{"PLANNER_GITHUB_TOKEN": "token", "PLANNER_GITHUB_OWNER": "Marvel-L", "PLANNER_GITHUB_REPO": "Blog", "PLANNER_GITHUB_BRANCH": "custom", "PLANNER_GITHUB_FILE": "public/planner-data/monthly-planner.md"})
 	if err != nil || !c.PlannerGitHubEnabled() {
 		t.Fatal("valid planner GitHub configuration rejected")
 	}
 	for _, bad := range []map[string]string{
 		{"PLANNER_GITHUB_TOKEN": "token"},
-		{"PLANNER_GITHUB_TOKEN": "token", "PLANNER_GITHUB_OWNER": "Marvel-L", "PLANNER_GITHUB_REPO": "Blog", "PLANNER_GITHUB_BRANCH": "custom", "PLANNER_GITHUB_PATH": "../private"},
+		{"PLANNER_GITHUB_TOKEN": "token", "PLANNER_GITHUB_OWNER": "Marvel-L", "PLANNER_GITHUB_REPO": "Blog", "PLANNER_GITHUB_BRANCH": "custom", "PLANNER_GITHUB_FILE": "../private.md"},
 	} {
 		if _, err := load(bad); err == nil {
 			t.Fatal("invalid planner GitHub configuration accepted")

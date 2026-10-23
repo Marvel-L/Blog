@@ -6,6 +6,65 @@ import { normalizeBasePath } from '../../config/basePath';
 import { watchBookContent } from '../../scripts/lib/book-content-watch.mjs';
 
 const repositoryRoot = path.resolve(__dirname, '../..');
+const plannerFile = path.resolve(repositoryRoot, 'public/planner-data/monthly-planner.md');
+const PLANNER_ROUTE = '/planner-data/monthly-planner.md';
+
+const plannerFilePlugin = (): Plugin => ({
+  name: 'planner-project-file',
+  configureServer(server) {
+    server.middlewares.use((req, res, next) => {
+      const raw = req.url?.split('?')[0] ?? '';
+      const base = server.config.base === '/' ? '' : server.config.base.replace(/\/$/, '');
+      const pathname = raw.startsWith(base) ? raw.slice(base.length) : raw;
+      if (pathname !== PLANNER_ROUTE || req.method !== 'PUT') {
+        next();
+        return;
+      }
+      let size = 0;
+      const chunks: Buffer[] = [];
+      req.on('data', (chunk: Buffer) => {
+        size += chunk.length;
+        if (size > 2 * 1024 * 1024) req.destroy();
+        else chunks.push(chunk);
+      });
+      req.on('end', () => {
+        if (size > 2 * 1024 * 1024) {
+          res.statusCode = 413;
+          res.end('planner file too large');
+          return;
+        }
+        const markdown = Buffer.concat(chunks).toString('utf8');
+        if (!markdown.startsWith('# Monthly Planner')) {
+          res.statusCode = 400;
+          res.end('invalid planner markdown');
+          return;
+        }
+        const temporary = `${plannerFile}.tmp`;
+        try {
+          fs.mkdirSync(path.dirname(plannerFile), { recursive: true });
+          fs.writeFileSync(temporary, markdown, { encoding: 'utf8', mode: 0o644 });
+          fs.renameSync(temporary, plannerFile);
+          res.statusCode = 204;
+          res.end();
+        } catch {
+          try {
+            fs.rmSync(temporary, { force: true });
+          } catch {
+            // Best-effort cleanup; the write failure is reported below.
+          }
+          res.statusCode = 500;
+          res.end('planner file write failed');
+        }
+      });
+      req.on('error', () => {
+        if (!res.headersSent) {
+          res.statusCode = 400;
+          res.end('planner request failed');
+        }
+      });
+    });
+  },
+});
 
 const POST_IMAGE_TYPES: Record<string, string> = {
   '.jpg': 'image/jpeg',
@@ -188,6 +247,7 @@ export default defineConfig(({ command, mode }) => {
     define: { 'import.meta.env.VITE_DEPLOY_TARGET': JSON.stringify(deployTarget) },
     plugins: [
       react(),
+      plannerFilePlugin(),
       watchBookContent(),
       serveSiblingImages('/posts-img/', 'posts'),
       serveSiblingImages('/shuoshuo-img/', 'shuoshuo'),
