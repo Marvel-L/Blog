@@ -1,10 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeftRight, Coffee, MessageCircle, Minus, Moon, Pause, Play, Search, X } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  Coffee,
+  Hand,
+  Heart,
+  MessageCircle,
+  Minus,
+  Moon,
+  Pause,
+  PersonStanding,
+  Play,
+  Search,
+  X,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { hasOpenOverlay } from '@/hooks/useModalOverlay';
 import { RinArtwork } from './RinArtwork';
-import { readRinPreference, saveRinPreference, RIN_MESSAGES, rinConfig, type RinPreference } from './rinConfig';
+import {
+  readRinPreference,
+  saveRinPreference,
+  RIN_MESSAGES,
+  RIN_REACTION_DURATION,
+  rinConfig,
+  type RinPreference,
+  type RinReaction,
+} from './rinConfig';
 import type { RinDriver } from './live2dRuntime';
 import './rin-mascot.css';
 
@@ -12,7 +33,7 @@ export default function RinMascot() {
   const [preference, setPreference] = useState<RinPreference | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [message, setMessage] = useState<string>(RIN_MESSAGES[0]);
-  const [reaction, setReaction] = useState<'idle' | 'happy' | 'tea'>('idle');
+  const [reaction, setReaction] = useState<{ kind: RinReaction; sequence: number }>({ kind: 'idle', sequence: 0 });
   const [pageHidden, setPageHidden] = useState(false);
   const [storageUnavailable, setStorageUnavailable] = useState(false);
   const [modelState, setModelState] = useState<'preview' | 'loading' | 'ready' | 'error'>('preview');
@@ -27,6 +48,7 @@ export default function RinMascot() {
   const ready = preference !== null;
   const collapsed = preference?.collapsed ?? true;
   const paused = Boolean(preference?.paused || reducedMotion || pageHidden);
+  const activeReaction = paused || collapsed ? 'idle' : reaction.kind;
 
   useEffect(() => {
     setPreference({
@@ -56,10 +78,17 @@ export default function RinMascot() {
   }, [collapsed]);
 
   useEffect(() => {
-    if (reaction === 'idle') return;
-    const timer = window.setTimeout(() => setReaction('idle'), 2800);
+    if (reaction.kind === 'idle') return;
+    if (paused || collapsed) {
+      setReaction((current) => ({ ...current, kind: 'idle' }));
+      return;
+    }
+    const timer = window.setTimeout(
+      () => setReaction((current) => ({ ...current, kind: 'idle' })),
+      RIN_REACTION_DURATION[reaction.kind],
+    );
     return () => window.clearTimeout(timer);
-  }, [reaction]);
+  }, [reaction, paused, collapsed]);
 
   const closePanel = useCallback(() => {
     setPanelOpen(false);
@@ -144,18 +173,22 @@ export default function RinMascot() {
 
   if (!preference || !rinConfig.enabled) return null;
 
+  const perform = (kind: Exclude<RinReaction, 'idle'>, text: string) => {
+    setMessage(text);
+    setPanelOpen(true);
+    if (paused) return;
+    setReaction((current) => ({ kind, sequence: current.sequence + 1 }));
+    driverRef.current?.react();
+  };
   const greet = () => {
     messageIndex.current = (messageIndex.current + 1) % RIN_MESSAGES.length;
-    setMessage(RIN_MESSAGES[messageIndex.current]);
-    setReaction('happy');
-    setPanelOpen(true);
-    driverRef.current?.react();
+    perform('wave', RIN_MESSAGES[messageIndex.current]);
   };
   const takeTea = () => {
-    setMessage('呼——热茶好了。陪我歇一小会儿吧。');
-    setReaction('tea');
-    driverRef.current?.react();
+    perform('tea', '呼——热茶好了。陪我歇一小会儿吧。');
   };
+  const nod = () => perform('nod', '嗯，我在听。慢慢说就好。');
+  const stretch = () => perform('stretch', '唔——伸个懒腰。你也活动一下肩膀吧。');
   const toggleCollapsed = () => {
     restoreFocus.current = true;
     setPanelOpen(false);
@@ -170,7 +203,7 @@ export default function RinMascot() {
       data-side={preference.side}
       data-paused={paused}
       data-collapsed={collapsed}
-      data-reaction={reaction}
+      data-reaction={activeReaction}
       data-renderer={modelState === 'ready' ? 'cubism' : 'layered-preview'}
       onKeyDown={(event) => {
         if (event.key === 'Escape' && panelOpen) {
@@ -219,6 +252,18 @@ export default function RinMascot() {
                   找篇文章
                 </Link>
               </div>
+              <div className="rin-gestures" aria-label="肢体互动">
+                <button type="button" onClick={() => perform('wave', '嗨。今天也一起慢慢来吧。')}>
+                  <Hand size={13} /> 挥挥手
+                </button>
+                <button type="button" onClick={nod}>
+                  <Heart size={13} /> 点点头
+                </button>
+                <button type="button" onClick={stretch}>
+                  <PersonStanding size={13} /> 伸懒腰
+                </button>
+              </div>
+              {modelState !== 'ready' && <p className="rin-touch-hint">也可以点点我的头发、手和外套。</p>}
               <div className="rin-settings">
                 <button
                   type="button"
@@ -264,26 +309,29 @@ export default function RinMascot() {
             ref={characterRef}
             type="button"
             className="rin-character"
-            onClick={greet}
+            onClick={(event) => {
+              const target = event.target;
+              const touch =
+                event.detail !== 0 && target instanceof Element
+                  ? target.closest('[data-rin-touch]')?.getAttribute('data-rin-touch')
+                  : null;
+              if (touch === 'nod') nod();
+              else if (touch === 'stretch') stretch();
+              else greet();
+            }}
             aria-label="和凛打个招呼"
+            title="点头发会点头，点手会挥手，点外套会伸懒腰"
             aria-expanded={panelOpen}
             aria-controls={panelOpen ? 'rin-companion-panel' : undefined}
           >
             <span className="rin-ground" />
             <span className="rin-preview" hidden={modelState === 'ready'}>
-              <RinArtwork />
+              <RinArtwork key={reaction.sequence} reaction={activeReaction} />
             </span>
             {rinConfig.modelUrl && (
               <canvas ref={canvasRef} className="rin-canvas" hidden={modelState !== 'ready'} aria-hidden="true" />
             )}
-            {reaction === 'tea' && (
-              <span className="rin-tea" aria-hidden="true">
-                <Coffee size={24} />
-                <span />
-                <span />
-              </span>
-            )}
-            {reaction === 'happy' && (
+            {activeReaction === 'wave' && (
               <span className="rin-happy" aria-hidden="true">
                 ♪
               </span>

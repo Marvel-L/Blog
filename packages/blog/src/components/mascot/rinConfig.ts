@@ -1,5 +1,5 @@
 /**
- * The bundled artwork is a layered 2D preview, not a Cubism model.
+ * The bundled artwork is an opaque vector 2D preview, not a Cubism model.
  * Set modelUrl after supplying a complete exported Cubism model and its Core.
  * Both paths are site-relative and go through assetUrl for /Blog/ deployments.
  */
@@ -10,6 +10,9 @@ export const rinConfig = {
 };
 
 export const RIN_PREFERENCE_KEY = 'd-blog-rin-mascot';
+
+export const RIN_REACTION_DURATION = { idle: 0, wave: 2400, nod: 1800, stretch: 3200, tea: 3800 } as const;
+export type RinReaction = keyof typeof RIN_REACTION_DURATION;
 
 export type RinPreference = {
   collapsed: boolean;

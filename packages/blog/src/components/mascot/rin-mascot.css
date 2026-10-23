@@ -11,7 +11,7 @@
     var(--tab-bar-height, 0px) + var(--cookie-notice-height, 0px) + var(--service-worker-prompt-height, 0px) +
       max(18px, env(safe-area-inset-bottom, 0px))
   );
-  width: 148px;
+  width: 190px;
   color: var(--rin-ink);
   font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
   text-align: left;
@@ -46,7 +46,7 @@
   position: relative;
   display: block;
   width: 100%;
-  height: 290px;
+  height: 316px;
   cursor: pointer;
   border-radius: 40%;
   touch-action: manipulation;
@@ -56,40 +56,90 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  filter: drop-shadow(0 4px 3px rgb(29 43 54 / 12%));
-  animation: rin-breathe 4.8s ease-in-out infinite;
-  transform-origin: 50% 95%;
+  filter: drop-shadow(0 3px 2px rgb(29 43 54 / 10%));
 }
 
 .rin-artwork {
-  position: relative;
   display: block;
-  height: 100%;
-  aspect-ratio: 390 / 1179;
-  margin-inline: auto;
-}
-
-.rin-artwork img,
-.rin-head,
-.rin-eyelids {
-  position: absolute;
-  inset: 0;
   width: 100%;
   height: 100%;
-  max-width: none;
-  pointer-events: none;
+  overflow: visible;
   user-select: none;
+  pointer-events: none;
 }
 
-.rin-head {
-  transform-origin: 48% 28%;
+.rin-preview [data-rin-touch] {
+  pointer-events: visiblePainted;
+}
+
+.rin-artwork g {
+  transform-box: view-box;
+}
+
+.rin-figure {
+  transform-origin: 150px 455px;
+  animation: rin-breathe 4.8s ease-in-out infinite;
+}
+
+.rin-head-look {
+  transform-origin: 150px 185px;
   transform: translate(var(--rin-look-x, 0px), var(--rin-look-y, 0px)) rotate(var(--rin-look-angle, 0deg));
   transition: transform 180ms ease-out;
 }
 
-.rin-eyelids {
-  opacity: 0;
-  animation: rin-blink 5.7s infinite;
+.rin-head {
+  transform-origin: 150px 182px;
+}
+
+.rin-pupils {
+  transform: translate(calc(var(--rin-look-x, 0px) * 0.45), calc(var(--rin-look-y, 0px) * 0.35));
+  transition: transform 180ms ease-out;
+}
+
+.rin-eyes-open {
+  animation: rin-eyes-open 5.7s step-end infinite;
+}
+
+.rin-eyes-closed {
+  visibility: hidden;
+  animation: rin-eyes-closed 5.7s step-end infinite;
+}
+
+.rin-mouth-smile {
+  display: none;
+}
+
+.rin-upper-body {
+  transform-origin: 147px 301px;
+}
+
+.rin-arm-near {
+  transform-origin: 104px 217px;
+}
+
+.rin-forearm-near {
+  transform-origin: 93px 258px;
+}
+
+.rin-hand-near {
+  transform-origin: 89px 305px;
+}
+
+.rin-arm-far {
+  transform-origin: 185px 217px;
+}
+
+.rin-forearm-far {
+  transform-origin: 200px 258px;
+}
+
+.rin-leg-back {
+  transform-origin: 167px 326px;
+}
+
+.rin-scarf-tail {
+  transform-origin: 172px 198px;
+  animation: rin-scarf 4.8s ease-in-out infinite;
 }
 
 .rin-canvas {
@@ -106,10 +156,10 @@
 
 .rin-ground {
   position: absolute;
-  bottom: 0;
-  left: 24%;
-  width: 54%;
-  height: 10px;
+  bottom: 7%;
+  left: 28%;
+  width: 43%;
+  height: 7px;
   border-radius: 50%;
   background: rgb(67 81 74 / 13%);
   filter: blur(3px);
@@ -121,7 +171,9 @@
   align-items: center;
   justify-content: center;
   gap: 2px;
-  margin-top: 8px;
+  width: max-content;
+  max-width: 100%;
+  margin: -10px auto 0;
   border: 1px solid var(--rin-line);
   border-radius: 24px;
   background: var(--rin-paper);
@@ -213,6 +265,32 @@
   gap: 5px;
 }
 
+.rin-gestures {
+  display: flex;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.rin-gestures button {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 34px;
+  border: 1px solid var(--rin-line);
+  border-radius: 8px;
+  color: var(--rin-accent);
+  font-size: 10px;
+}
+
+.rin-touch-hint {
+  margin-top: 8px;
+  color: var(--rin-muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+
 .rin-actions button,
 .rin-actions a {
   display: flex;
@@ -231,6 +309,7 @@
 
 .rin-actions button:hover,
 .rin-actions a:hover,
+.rin-gestures button:hover,
 .rin-settings button:hover,
 .rin-panel-heading button:hover {
   background: color-mix(in srgb, var(--rin-accent) 9%, transparent);
@@ -288,10 +367,10 @@
 }
 
 .rin-launcher .rin-artwork {
-  width: 67px;
-  height: 202px;
-  margin-top: 0;
-  margin-left: -9px;
+  width: 93px;
+  height: 155px;
+  margin-top: -15px;
+  margin-left: -25px;
 }
 
 .rin-launcher-dot {
@@ -302,61 +381,100 @@
   height: 6px;
 }
 
-.rin-launcher .rin-head {
+.rin-launcher .rin-head-look,
+.rin-launcher .rin-pupils {
   transform: none;
 }
 
-.rin-launcher .rin-eyelids {
+.rin-launcher * {
   animation: none;
 }
 
-.rin-tea,
 .rin-happy {
   position: absolute;
-  top: 40%;
-  right: 6px;
+  top: 18%;
+  right: 16px;
   color: var(--rin-accent);
   pointer-events: none;
-}
-
-.rin-tea {
-  padding: 8px;
-  border: 1px solid var(--rin-line);
-  border-radius: 50%;
-  background: var(--rin-paper);
-  transform: rotate(-8deg);
-}
-
-.rin-tea span {
-  position: absolute;
-  left: 18px;
-  top: -3px;
-  width: 4px;
-  height: 13px;
-  border-left: 1.5px solid var(--rin-accent);
-  border-radius: 50%;
-  animation: rin-steam 1.4s ease-out infinite;
-}
-
-.rin-tea span:last-child {
-  left: 25px;
-  animation-delay: 0.5s;
-}
-
-.rin-happy {
-  top: 16%;
   font-size: 25px;
   animation: rin-note 1.4s ease-in-out infinite;
 }
 
-.rin-mascot[data-reaction='happy'] .rin-preview {
-  animation: rin-greet 700ms ease-in-out;
+.rin-mascot[data-reaction='wave'] .rin-arm-near {
+  animation: rin-wave-arm 2.4s ease-in-out both;
+}
+
+.rin-mascot[data-reaction='wave'] .rin-forearm-near {
+  animation: rin-wave-elbow 2.4s ease-in-out both;
+}
+
+.rin-mascot[data-reaction='wave'] .rin-hand-near {
+  animation: rin-wave-hand 2.4s ease-in-out both;
+}
+
+.rin-mascot[data-reaction='wave'] .rin-head {
+  animation: rin-head-greet 2.4s ease-in-out both;
+}
+
+.rin-mascot[data-reaction='nod'] .rin-head {
+  animation: rin-nod 1.8s ease-in-out both;
+}
+
+.rin-mascot[data-reaction='stretch'] .rin-arm-near {
+  animation: rin-stretch-near 3.2s ease-in-out both;
+}
+
+.rin-mascot[data-reaction='stretch'] .rin-arm-far {
+  animation: rin-stretch-far 3.2s ease-in-out both;
+}
+
+.rin-mascot[data-reaction='stretch'] .rin-upper-body {
+  animation: rin-stretch-body 3.2s ease-in-out both;
+}
+
+.rin-mascot[data-reaction='stretch'] .rin-leg-back {
+  animation: rin-stretch-leg 3.2s ease-in-out both;
+}
+
+.rin-mascot[data-reaction='tea'] .rin-arm-near {
+  animation: rin-tea-arm 3.8s ease-in-out both;
+}
+
+.rin-mascot[data-reaction='tea'] .rin-forearm-near {
+  animation: rin-tea-elbow 3.8s ease-in-out both;
+}
+
+.rin-cup-steam {
+  animation: rin-steam 1.8s ease-out infinite;
+}
+
+.rin-cup-upright {
+  transform-origin: 89px 305px;
+  animation: rin-tea-cup 3.8s ease-in-out both;
+}
+
+.rin-mascot:is([data-reaction='nod'], [data-reaction='tea'], [data-reaction='stretch']) .rin-eyes-open {
+  visibility: hidden;
+  animation: none;
+}
+
+.rin-mascot:is([data-reaction='nod'], [data-reaction='tea'], [data-reaction='stretch']) .rin-eyes-closed {
+  visibility: visible;
+  animation: none;
+}
+
+.rin-mascot:is([data-reaction='wave'], [data-reaction='stretch']) .rin-mouth-rest {
+  display: none;
+}
+
+.rin-mascot:is([data-reaction='wave'], [data-reaction='stretch']) .rin-mouth-smile {
+  display: inline;
 }
 
 .rin-mascot[data-paused='true'] *,
 .rin-mascot[data-paused='true'] *::before,
 .rin-mascot[data-paused='true'] *::after {
-  animation-play-state: paused !important;
+  animation: none !important;
   transition: none !important;
 }
 
@@ -366,43 +484,201 @@
     transform: translateY(0) scaleY(1);
   }
   50% {
-    transform: translateY(-1.5px) scaleY(1.006);
+    transform: translateY(-1px) scaleY(1.004);
   }
 }
 
-@keyframes rin-blink {
+@keyframes rin-eyes-open {
   0%,
-  93%,
   98%,
   100% {
-    opacity: 0;
+    visibility: visible;
   }
-  94%,
-  96% {
-    opacity: 1;
+  95% {
+    visibility: hidden;
   }
 }
 
-@keyframes rin-greet {
+@keyframes rin-eyes-closed {
+  0%,
+  98%,
+  100% {
+    visibility: hidden;
+  }
+  95% {
+    visibility: visible;
+  }
+}
+
+@keyframes rin-scarf {
   0%,
   100% {
     transform: rotate(0);
   }
-  35% {
-    transform: rotate(-2.5deg) translateY(-3px);
+  50% {
+    transform: rotate(-2deg);
   }
-  70% {
-    transform: rotate(1.5deg);
+}
+
+@keyframes rin-wave-arm {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  22%,
+  78% {
+    transform: rotate(112deg);
+  }
+}
+
+@keyframes rin-wave-elbow {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  24%,
+  76% {
+    transform: rotate(28deg);
+  }
+  38%,
+  63% {
+    transform: rotate(44deg);
+  }
+  50% {
+    transform: rotate(16deg);
+  }
+}
+
+@keyframes rin-wave-hand {
+  0%,
+  20%,
+  80%,
+  100% {
+    transform: rotate(0);
+  }
+  34%,
+  60% {
+    transform: rotate(-13deg);
+  }
+  47%,
+  72% {
+    transform: rotate(12deg);
+  }
+}
+
+@keyframes rin-head-greet {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  28%,
+  72% {
+    transform: rotate(-5deg);
+  }
+}
+
+@keyframes rin-nod {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  25%,
+  65% {
+    transform: translateY(5px) rotate(4deg);
+  }
+  45%,
+  82% {
+    transform: translateY(-1px) rotate(-2deg);
+  }
+}
+
+@keyframes rin-stretch-near {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  30%,
+  72% {
+    transform: rotate(152deg);
+  }
+}
+
+@keyframes rin-stretch-far {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  30%,
+  72% {
+    transform: rotate(-150deg);
+  }
+}
+
+@keyframes rin-stretch-body {
+  0%,
+  100% {
+    transform: rotate(0) translateY(0);
+  }
+  35%,
+  65% {
+    transform: rotate(-3deg) translateY(-4px);
+  }
+}
+
+@keyframes rin-stretch-leg {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  35%,
+  65% {
+    transform: rotate(-3deg);
+  }
+}
+
+@keyframes rin-tea-arm {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25%,
+  78% {
+    transform: rotate(-94deg);
+  }
+}
+
+@keyframes rin-tea-elbow {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25%,
+  78% {
+    transform: rotate(-80deg);
+  }
+}
+
+@keyframes rin-tea-cup {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25%,
+  78% {
+    transform: rotate(174deg);
   }
 }
 
 @keyframes rin-steam {
-  from {
+  0% {
     transform: translateY(0);
-    opacity: 0.65;
+    opacity: 0;
   }
-  to {
-    transform: translateY(-12px);
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-7px);
     opacity: 0;
   }
 }
@@ -419,10 +695,10 @@
 
 @media (max-width: 1023px) {
   .rin-mascot {
-    width: 120px;
+    width: 142px;
   }
   .rin-character {
-    height: 216px;
+    height: 237px;
   }
   .rin-caption span {
     font-size: 9px;
@@ -442,6 +718,7 @@
     right: min(0px, calc(100vw - 344px));
   }
   .rin-settings button,
+  .rin-gestures button,
   .rin-panel-heading button {
     min-width: 36px;
     min-height: 36px;

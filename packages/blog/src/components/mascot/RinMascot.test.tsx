@@ -5,7 +5,13 @@ import { renderToString } from 'react-dom/server';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import RinMascot from './RinMascot';
-import { RIN_PREFERENCE_KEY, readRinPreference, saveRinPreference, rinConfig } from './rinConfig';
+import {
+  RIN_PREFERENCE_KEY,
+  RIN_REACTION_DURATION,
+  readRinPreference,
+  saveRinPreference,
+  rinConfig,
+} from './rinConfig';
 import { createLive2D, type RinDriver } from './live2dRuntime';
 
 vi.mock('./live2dRuntime', () => ({ createLive2D: vi.fn() }));
@@ -41,6 +47,7 @@ describe('RinMascot', () => {
   });
   afterEach(() => {
     rinConfig.modelUrl = '';
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     vi.resetAllMocks();
@@ -133,6 +140,73 @@ describe('RinMascot', () => {
     await user.click(screen.getByRole('button', { name: '和凛打个招呼' }));
     expect(screen.getByRole('complementary')).toHaveAttribute('data-paused', 'true');
     expect(screen.getByRole('button', { name: '暂停角色动画' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: '伸懒腰' }));
+    expect(screen.getByRole('complementary')).toHaveAttribute('data-reaction', 'idle');
+    expect(screen.getByText(/活动一下肩膀/)).toBeInTheDocument();
+  });
+
+  it('同一动作连续点击会重新开始，并以最后一次点击计时', () => {
+    vi.useFakeTimers();
+    const view = mount();
+    fireEvent.click(screen.getByRole('button', { name: '和凛打个招呼' }));
+    const artwork = view.container.querySelector('.rin-preview svg');
+    act(() => vi.advanceTimersByTime(2000));
+    fireEvent.click(screen.getByRole('button', { name: '挥挥手' }));
+    expect(view.container.querySelector('.rin-preview svg')).not.toBe(artwork);
+    act(() => vi.advanceTimersByTime(2000));
+    expect(screen.getByRole('complementary')).toHaveAttribute('data-reaction', 'wave');
+    act(() => vi.advanceTimersByTime(RIN_REACTION_DURATION.wave - 2000));
+    expect(screen.getByRole('complementary')).toHaveAttribute('data-reaction', 'idle');
+  });
+
+  it('新动作取消旧动作倒计时，卸载后清理动作计时器', () => {
+    vi.useFakeTimers();
+    const view = mount();
+    fireEvent.click(screen.getByRole('button', { name: '和凛打个招呼' }));
+    act(() => vi.advanceTimersByTime(2000));
+    fireEvent.click(screen.getByRole('button', { name: '喝杯热茶' }));
+    act(() => vi.advanceTimersByTime(1000));
+    expect(screen.getByRole('complementary')).toHaveAttribute('data-reaction', 'tea');
+    view.unmount();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('点击头发、外套和手臂分别触发点头、伸展和挥手，键盘点击仍打招呼', () => {
+    const view = mount();
+    const tap = (part: string) => {
+      const path = view.container.querySelector(`[data-rin-touch="${part}"] path`);
+      expect(path).not.toBeNull();
+      fireEvent.click(path!, { detail: 1 });
+    };
+    tap('nod');
+    expect(screen.getByRole('complementary')).toHaveAttribute('data-reaction', 'nod');
+    expect(screen.getByRole('region', { name: '和凛互动' })).toHaveTextContent('我在听');
+    tap('stretch');
+    expect(screen.getByRole('complementary')).toHaveAttribute('data-reaction', 'stretch');
+    tap('wave');
+    expect(screen.getByRole('complementary')).toHaveAttribute('data-reaction', 'wave');
+    fireEvent.click(screen.getByRole('button', { name: '点点头' }));
+    expect(screen.getByRole('complementary')).toHaveAttribute('data-reaction', 'nod');
+    fireEvent.click(screen.getByRole('button', { name: '和凛打个招呼' }), { detail: 0 });
+    expect(screen.getByRole('complementary')).toHaveAttribute('data-reaction', 'wave');
+  });
+
+  it('动作中暂停或收起会回到站姿，恢复和唤醒不重放旧动作', () => {
+    const view = mount();
+    fireEvent.click(screen.getByRole('button', { name: '和凛打个招呼' }));
+    fireEvent.click(screen.getByRole('button', { name: '喝杯热茶' }));
+    expect(view.container.querySelector('.rin-cup')).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '暂停角色动画' }));
+    expect(screen.getByRole('complementary')).toHaveAttribute('data-reaction', 'idle');
+    expect(view.container.querySelector('.rin-cup')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '挥挥手' }));
+    expect(screen.getByRole('complementary')).toHaveAttribute('data-reaction', 'idle');
+    fireEvent.click(screen.getByRole('button', { name: '恢复角色动画' }));
+    expect(screen.getByRole('complementary')).toHaveAttribute('data-reaction', 'idle');
+    fireEvent.click(screen.getByRole('button', { name: '伸懒腰' }));
+    fireEvent.click(screen.getAllByRole('button', { name: '收起看板娘凛' })[0]);
+    fireEvent.click(screen.getByRole('button', { name: '唤醒看板娘凛' }));
+    expect(screen.getByRole('complementary')).toHaveAttribute('data-reaction', 'idle');
   });
 
   it('后台暂停、恢复可见时继续，卸载清理监听与帧请求', () => {
@@ -197,6 +271,8 @@ describe('RinMascot', () => {
     expect(driver.react).toHaveBeenCalledOnce();
     await user.click(screen.getByRole('button', { name: '暂停角色动画' }));
     expect(driver.setPaused).toHaveBeenLastCalledWith(true);
+    await user.click(screen.getByRole('button', { name: '喝杯热茶' }));
+    expect(driver.react).toHaveBeenCalledOnce();
     await user.click(screen.getAllByRole('button', { name: '收起看板娘凛' })[0]);
     expect(driver.destroy).toHaveBeenCalledOnce();
   });
