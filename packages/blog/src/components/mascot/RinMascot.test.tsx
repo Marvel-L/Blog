@@ -74,7 +74,7 @@ describe('RinMascot', () => {
     expect(screen.queryByRole('region', { name: '和凛互动' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '和凛打个招呼' }));
     const panel = screen.getByRole('region', { name: '和凛互动' });
-    expect(panel).toHaveTextContent('2D 预览');
+    expect(panel).toHaveTextContent('连续帧动画');
     expect(panel).toHaveTextContent('代码看累了');
     await user.click(within(panel).getByRole('button', { name: '聊一会儿' }));
     expect(panel).toHaveTextContent('今天也有好好吃饭吗');
@@ -149,10 +149,10 @@ describe('RinMascot', () => {
     vi.useFakeTimers();
     const view = mount();
     fireEvent.click(screen.getByRole('button', { name: '和凛打个招呼' }));
-    const artwork = view.container.querySelector('.rin-preview svg');
+    const artwork = view.container.querySelector('.rin-preview .rin-frame-animation');
     act(() => vi.advanceTimersByTime(2000));
     fireEvent.click(screen.getByRole('button', { name: '挥挥手' }));
-    expect(view.container.querySelector('.rin-preview svg')).not.toBe(artwork);
+    expect(view.container.querySelector('.rin-preview .rin-frame-animation')).not.toBe(artwork);
     act(() => vi.advanceTimersByTime(2000));
     expect(screen.getByRole('complementary')).toHaveAttribute('data-reaction', 'wave');
     act(() => vi.advanceTimersByTime(RIN_REACTION_DURATION.wave - 2000));
@@ -174,9 +174,9 @@ describe('RinMascot', () => {
   it('点击头发、外套和手臂分别触发点头、伸展和挥手，键盘点击仍打招呼', () => {
     const view = mount();
     const tap = (part: string) => {
-      const path = view.container.querySelector(`[data-rin-touch="${part}"] path`);
-      expect(path).not.toBeNull();
-      fireEvent.click(path!, { detail: 1 });
+      const target = view.container.querySelector(`[data-rin-touch="${part}"]`);
+      expect(target).not.toBeNull();
+      fireEvent.click(target!, { detail: 1 });
     };
     tap('nod');
     expect(screen.getByRole('complementary')).toHaveAttribute('data-reaction', 'nod');
@@ -209,9 +209,8 @@ describe('RinMascot', () => {
     expect(screen.getByRole('complementary')).toHaveAttribute('data-reaction', 'idle');
   });
 
-  it('后台暂停、恢复可见时继续，卸载清理监听与帧请求', () => {
+  it('后台暂停、恢复可见时继续，且不注册鼠标跟随监听', () => {
     const add = vi.spyOn(window, 'addEventListener');
-    const remove = vi.spyOn(window, 'removeEventListener');
     const first = mount();
     const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
     fireEvent(document, new Event('visibilitychange'));
@@ -220,10 +219,7 @@ describe('RinMascot', () => {
     fireEvent(document, new Event('visibilitychange'));
     expect(screen.getByRole('complementary')).toHaveAttribute('data-paused', 'false');
     first.unmount();
-    const added = add.mock.calls.filter(([type]) => type === 'pointermove').map(([, fn]) => fn);
-    const removed = remove.mock.calls.filter(([type]) => type === 'pointermove').map(([, fn]) => fn);
-    expect(added.length).toBeGreaterThan(0);
-    expect(removed).toEqual(added);
+    expect(add.mock.calls.filter(([type]) => type === 'pointermove')).toHaveLength(0);
   });
 
   it('损坏存储回退，写入失败反馈且当前操作依然有效', async () => {

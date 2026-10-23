@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { hasOpenOverlay } from '@/hooks/useModalOverlay';
 import { RinArtwork } from './RinArtwork';
 import {
   readRinPreference,
@@ -134,42 +133,9 @@ export default function RinMascot() {
   }, [paused, collapsed, modelState]);
 
   useEffect(() => {
-    const root = rootRef.current;
-    if (!root || !ready || collapsed || paused) return;
-    let frame = 0;
-    let x = 0;
-    let y = 0;
-    const apply = () => {
-      frame = 0;
-      root.style.setProperty('--rin-look-x', `${x * 3}px`);
-      root.style.setProperty('--rin-look-y', `${y * 1.5}px`);
-      root.style.setProperty('--rin-look-angle', `${x * 3}deg`);
-      driverRef.current?.lookAt(x, y);
-    };
-    const onMove = (event: PointerEvent) => {
-      if (event.pointerType === 'touch' || hasOpenOverlay()) return;
-      const bounds = characterRef.current?.getBoundingClientRect();
-      if (!bounds) return;
-      x = Math.max(-1, Math.min(1, (event.clientX - bounds.left - bounds.width / 2) / (window.innerWidth / 2)));
-      y = Math.max(-1, Math.min(1, (event.clientY - bounds.top - bounds.height / 3) / (window.innerHeight / 2)));
-      if (!frame) frame = window.requestAnimationFrame(apply);
-    };
-    const onLeave = () => {
-      x = 0;
-      y = 0;
-      if (!frame) frame = window.requestAnimationFrame(apply);
-    };
-    window.addEventListener('pointermove', onMove, { passive: true });
-    document.documentElement.addEventListener('pointerleave', onLeave);
-    return () => {
-      window.removeEventListener('pointermove', onMove);
-      document.documentElement.removeEventListener('pointerleave', onLeave);
-      if (frame) window.cancelAnimationFrame(frame);
-      root.style.removeProperty('--rin-look-x');
-      root.style.removeProperty('--rin-look-y');
-      root.style.removeProperty('--rin-look-angle');
-    };
-  }, [ready, collapsed, paused]);
+    if (!ready || collapsed) return;
+    driverRef.current?.lookAt(0, 0);
+  }, [ready, collapsed, modelState]);
 
   if (!preference || !rinConfig.enabled) return null;
 
@@ -229,7 +195,7 @@ export default function RinMascot() {
             <section className="rin-panel" aria-label="和凛互动" id="rin-companion-panel">
               <div className="rin-panel-heading">
                 <span>
-                  <span className="rin-status-dot" /> 志摩凛 <small>陪你慢慢读</small>
+                  <span className="rin-status-dot" /> 志摩凛 <small>安静的露营阅读时间</small>
                 </span>
                 <button type="button" onClick={closePanel} aria-label="关闭对话">
                   <X size={14} />
@@ -263,7 +229,7 @@ export default function RinMascot() {
                   <PersonStanding size={13} /> 伸懒腰
                 </button>
               </div>
-              {modelState !== 'ready' && <p className="rin-touch-hint">也可以点点我的头发、手和外套。</p>}
+              {modelState !== 'ready' && <p className="rin-touch-hint">点点帽子、外套和右手，会有不同回应。</p>}
               <div className="rin-settings">
                 <button
                   type="button"
@@ -283,7 +249,7 @@ export default function RinMascot() {
                 >
                   {preference.paused || reducedMotion ? <Play size={15} /> : <Pause size={15} />}
                 </button>
-                <span className="rin-renderer-label">{modelState === 'ready' ? 'Live2D' : '2D 预览'}</span>
+                <span className="rin-renderer-label">{modelState === 'ready' ? 'Cubism Live2D' : '连续帧动画'}</span>
                 <button type="button" onClick={toggleCollapsed} aria-label="收起看板娘凛" title="休息一下">
                   <Moon size={15} />
                 </button>
@@ -300,7 +266,7 @@ export default function RinMascot() {
               )}
               {modelState === 'error' && (
                 <p className="rin-notice" aria-live="polite">
-                  模型加载失败，暂时显示 2D 预览。
+                  模型加载失败，暂时显示互动 2D 角色。
                 </p>
               )}
             </section>
@@ -326,7 +292,7 @@ export default function RinMascot() {
           >
             <span className="rin-ground" />
             <span className="rin-preview" hidden={modelState === 'ready'}>
-              <RinArtwork key={reaction.sequence} reaction={activeReaction} />
+              <RinArtwork reaction={activeReaction} sequence={reaction.sequence} paused={paused || collapsed} />
             </span>
             {rinConfig.modelUrl && (
               <canvas ref={canvasRef} className="rin-canvas" hidden={modelState !== 'ready'} aria-hidden="true" />
