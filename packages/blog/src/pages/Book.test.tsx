@@ -55,7 +55,11 @@ describe('Book package detail', () => {
   it('opens an independently configured package from the shelf', async () => {
     const user = userEvent.setup();
     render(app('/book'));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('把零散的内容');
+    expect(screen.getByRole('heading', { level: 1, name: 'Book 书架' })).toHaveClass('sr-only');
+    expect(screen.queryByText(/把零散的内容|THE COLLECTION|Book 独立于 Category/)).not.toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: '知识包书架' })).getAllByRole('link')).toHaveLength(
+      packageDefinitions.length,
+    );
     await user.click(screen.getByRole('link', { name: '打开 算法学习手册，3 个章节' }));
     expect(screen.getByTestId('path')).toHaveTextContent('/book/algorithms');
     expect(screen.getByRole('navigation', { name: '算法学习手册章节目录' })).toBeInTheDocument();

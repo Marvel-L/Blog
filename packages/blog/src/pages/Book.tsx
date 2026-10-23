@@ -2,7 +2,7 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ReactMarkdown, { type Components, type ExtraProps } from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
-import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Library, ListTree, Newspaper } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, ListTree, Newspaper } from 'lucide-react';
 import { Seo } from '@/components/Seo';
 import { CompactPostCard } from '@/components/CompactPostCard';
 import { CodeBlock, MarkdownCode } from '@/components/CodeBlock';
@@ -260,7 +260,6 @@ function ChapterArticle({ book, chapter, chapters }: { book: Book; chapter: Book
 export function BookPage() {
   const { bookId, chapterId } = useParams<{ bookId: string; chapterId: string }>();
   const books = useMemo(() => buildBooks(getInitialPosts(), getBookPackageDefinitions()), []);
-  const total = books.reduce((sum, book) => sum + book.chapters.length, 0);
 
   if (!bookId) {
     return (
@@ -269,28 +268,7 @@ export function BookPage() {
           title="Book · 我的知识包"
           description="由作者独立维护的知识 package：正文形成连续的知识主线，Blog 文章作为案例与延伸阅读按需关联，适合从目录逐章阅读。"
         />
-        <header className="book-library-header">
-          <div>
-            <p className="book-eyebrow">
-              <Library size={14} aria-hidden="true" /> PERSONAL PACKAGES
-            </p>
-            <h1>
-              把零散的内容，
-              <br />
-              <em>整理成一条主线。</em>
-            </h1>
-            <p className="book-library-intro">
-              每本 Book 都是一份独立维护的 package。
-              <br />
-              正文负责讲清知识，Blog 文章作为延伸阅读。
-            </p>
-          </div>
-          <div className="book-library-index">
-            <span>THE COLLECTION</span>
-            <strong>{String(books.length).padStart(2, '0')}</strong>
-            <span>{total} 个 package 章节</span>
-          </div>
-        </header>
+        <h1 className="sr-only">Book 书架</h1>
         {books.length ? (
           <section aria-label="知识包书架" className="book-shelf">
             {books.map((book, index) => (
@@ -303,24 +281,12 @@ export function BookPage() {
                 <span className="book-shelf-volume">
                   <BookCover book={book} number={index + 1} />
                 </span>
-                <span className="book-shelf-label">
-                  <span>
-                    {book.name}
-                    <small>
-                      {book.chapters.length} 个章节 · {book.posts.length} 篇关联文章
-                    </small>
-                  </span>
-                  <ArrowUpRight size={19} aria-hidden="true" />
-                </span>
               </Link>
             ))}
           </section>
         ) : (
           <p className="book-empty">书架还空着，在 Book package 配置中添加第一本书后会显示在这里。</p>
         )}
-        <p className="book-library-note">
-          <BookOpen size={14} aria-hidden="true" /> Book 独立于 Category，内容与 Blog 文章按需关联。
-        </p>
       </div>
     );
   }
