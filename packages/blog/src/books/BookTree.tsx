@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, FileText, Folder } from 'lucide-react';
+import { ChevronDown, FileText } from 'lucide-react';
 import { chapterPath, type BookNode } from './books-core.mjs';
 
 const containsChapter = (node: BookNode, chapterId?: string): boolean =>
@@ -31,7 +31,6 @@ function Branch({ node, bookId, selectedId }: { node: BookNode; bookId: string; 
         className={containsChapter(node, selectedId) ? 'book-tree-current-group' : undefined}
       >
         <ChevronDown size={14} aria-hidden="true" className={open ? '' : 'book-tree-collapsed'} />
-        <Folder size={14} aria-hidden="true" />
         <span>{node.label}</span>
       </button>
       <ul hidden={!open}>

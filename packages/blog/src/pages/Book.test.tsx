@@ -55,10 +55,14 @@ describe('Book package detail', () => {
       }),
     );
     const tree = screen.getByRole('navigation', { name: '算法学习手册章节目录' });
-    const toggle = within(tree).getByRole('button', { name: '数据结构' });
+    expect(within(tree).queryByRole('button', { name: '数据结构' })).not.toBeInTheDocument();
+    const directory = tree.closest('details')!;
+    const toggle = directory.querySelector('summary')!;
     await user.click(toggle);
-    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(directory).not.toHaveAttribute('open');
+    expect(within(tree).getByRole('link', { name: '链表：从指针关系入手' })).not.toBeVisible();
     await user.click(toggle);
+    expect(directory).toHaveAttribute('open');
     await user.click(within(tree).getByRole('link', { name: '链表：从指针关系入手' }));
     expect(screen.getByTestId('path')).toHaveTextContent('/book/algorithms/chapter/linked-list');
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('链表：从指针关系入手');
@@ -147,7 +151,8 @@ describe('Book package detail', () => {
     render(app('/book/local/chapter/intro'));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('新建章节');
     expect(screen.getByText('来自本地 Markdown 的正文。')).toBeInTheDocument();
-    expect(screen.getByRole('navigation', { name: '本地手册章节目录' })).toBeInTheDocument();
+    const tree = screen.getByRole('navigation', { name: '本地手册章节目录' });
+    expect(within(tree).getByRole('link', { name: '新建章节' })).toHaveAttribute('aria-current', 'page');
     const navigation = screen.getByRole('navigation', { name: '本地手册栏目导航' });
     expect(within(navigation).getByRole('link', { name: '新建章节 1' })).toHaveAttribute(
       'href',
@@ -241,15 +246,19 @@ describe('Book package detail', () => {
     const section = within(navigation).getByRole('link', { name: '并发 2' });
     expect(section).toHaveAttribute('href', `/book/${definition.id}/chapter/nested`);
     expect(section).toHaveAttribute('aria-current', 'page');
-    const parent = within(tree).getByRole('button', { name: '并发' });
+    expect(within(tree).queryByRole('button', { name: '并发' })).not.toBeInTheDocument();
+    const directory = tree.closest('details')!;
+    const parent = directory.querySelector('summary')!;
     const child = within(tree).getByRole('button', { name: '取消' });
     expect(screen.getByText('并发 / 取消')).toBeInTheDocument();
     await user.click(child);
     expect(child).toHaveAttribute('aria-expanded', 'false');
     expect(within(tree).queryByRole('link', { name: '取消机制' })).not.toBeInTheDocument();
     await user.click(parent);
-    expect(within(tree).queryByRole('button', { name: '取消' })).not.toBeInTheDocument();
+    expect(directory).not.toHaveAttribute('open');
+    expect(child).not.toBeVisible();
     await user.click(parent);
+    expect(directory).toHaveAttribute('open');
     await user.click(child);
     expect(within(tree).getByRole('link', { name: '超时处理' })).toHaveAttribute('aria-current', 'page');
   });

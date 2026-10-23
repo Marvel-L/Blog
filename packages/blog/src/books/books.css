@@ -338,7 +338,6 @@
 .book-tree ul {
   margin-left: 0.65rem;
   padding-left: 0.6rem;
-  border-left: 1px solid var(--book-line);
 }
 .book-tree a,
 .book-tree button {
@@ -448,8 +447,14 @@
   border: 1px solid var(--book-line);
   border-radius: 4px;
 }
-.book-markdown blockquote {
-  border-left-color: var(--book-accent);
+/* Keep Book quotes visible when the optional resume typography removes prose quote borders. */
+.book-app.book-reader .book-markdown.prose blockquote {
+  border-inline-start: 3px solid var(--book-muted);
+  padding: 0.75rem 1rem;
+  margin-block: 1.5rem;
+  background: var(--book-paper);
+  color: var(--book-muted);
+  font-style: normal;
 }
 .book-markdown .markdown-image-row {
   display: flex;

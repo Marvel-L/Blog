@@ -326,7 +326,7 @@ export function BookPage() {
         <Link to="/book">
           <ArrowLeft size={15} aria-hidden="true" /> 返回书架
         </Link>
-        <span>PACKAGE / {book.name}</span>
+        <span>{book.name}</span>
       </div>
       {book.tree.length > 0 && (
         <nav className="book-category-nav" aria-label={`${book.name}栏目导航`}>
@@ -343,7 +343,7 @@ export function BookPage() {
       )}
       <section className="book-package-banner">
         <div>
-          <p className="book-eyebrow">VOLUME {String(index + 1).padStart(2, '0')} / PACKAGE</p>
+          <p className="book-eyebrow">VOLUME {String(index + 1).padStart(2, '0')}</p>
           <h2>{book.name}</h2>
           <p>{book.subtitle}</p>
         </div>
@@ -358,7 +358,11 @@ export function BookPage() {
                 <small>{activeSection.chapters.length} 章 · 收起 / 展开</small>
               </summary>
               <nav aria-label={`${book.name}章节目录`}>
-                <BookTree tree={[activeSection.node]} bookId={book.id} selectedId={selected.id} />
+                <BookTree
+                  tree={activeSection.node.chapter ? [activeSection.node] : activeSection.node.children}
+                  bookId={book.id}
+                  selectedId={selected.id}
+                />
               </nav>
             </details>
           </aside>
