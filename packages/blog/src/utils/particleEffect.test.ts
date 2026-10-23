@@ -12,6 +12,10 @@ describe('氛围特效选择与存储', () => {
     localStorage.clear();
   });
 
+  it('没有个人选择时默认开启小雨与 Ascall 鲸鱼', () => {
+    expect(readStoredAtmosphereEffects()).toEqual(['rain', 'ascii-whale']);
+  });
+
   it('开启第二个，拒绝第三个，再次点击选中项可移除直至全部关闭', () => {
     const two = toggleAtmosphereEffect(['sakura'], 'ascii-whale');
     expect(two).toEqual(['sakura', 'ascii-whale']);

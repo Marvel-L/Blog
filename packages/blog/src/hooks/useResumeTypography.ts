@@ -2,15 +2,15 @@ import { useCallback, useEffect, useState } from 'react';
 
 export const RESUME_TYPOGRAPHY_KEY = 'd-blog-resume-typography';
 
-/** 首帧使用原排版，水合后恢复用户选择；存储不可用时仍能在当前会话切换。 */
+/** 首帧默认开启 Aa 排版，水合后恢复用户选择；存储不可用时仍能在当前会话切换。 */
 export function useResumeTypography() {
-  const [enabled, setEnabled] = useState(false);
+  const [enabled, setEnabled] = useState(true);
 
   useEffect(() => {
     try {
-      setEnabled(window.localStorage.getItem(RESUME_TYPOGRAPHY_KEY) === 'true');
+      setEnabled(window.localStorage.getItem(RESUME_TYPOGRAPHY_KEY) !== 'false');
     } catch {
-      setEnabled(false);
+      setEnabled(true);
     }
   }, []);
 

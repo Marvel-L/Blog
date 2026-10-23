@@ -10,7 +10,7 @@ export type AsciiOceanEffectId = (typeof ASCII_OCEAN_EFFECT_IDS)[number];
 export const ATMOSPHERE_EFFECT_IDS = [...PARTICLE_EFFECT_IDS, ...ASCII_OCEAN_EFFECT_IDS] as const;
 export type AtmosphereEffectId = (typeof ATMOSPHERE_EFFECT_IDS)[number];
 export const MAX_ATMOSPHERE_EFFECTS = 2;
-export const DEFAULT_ATMOSPHERE_EFFECTS: readonly AtmosphereEffectId[] = ['sakura'];
+export const DEFAULT_ATMOSPHERE_EFFECTS: readonly AtmosphereEffectId[] = ['rain', 'ascii-whale'];
 
 export const ATMOSPHERE_EFFECT_OPTIONS: ReadonlyArray<{
   id: AtmosphereEffectId;

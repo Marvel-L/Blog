@@ -123,7 +123,21 @@ describe('Layout', () => {
     expect(screen.getAllByRole('button', { name: /外观与氛围/ }).length).toBeGreaterThanOrEqual(1);
   });
 
+  it('新访客默认开启小雨、Ascall 鲸鱼和 Aa 排版', async () => {
+    renderLayout();
+    await waitFor(() => expect(document.querySelector('[data-atmosphere-effect="ascii-whale"]')).toBeInTheDocument());
+    expect(document.querySelectorAll('.site-shell > canvas')).toHaveLength(2);
+    screen.getAllByRole('button', { name: /外观与氛围/ }).forEach((button) => {
+      expect(button).toHaveAccessibleName(/小雨 \+ Ascall 鲸鱼/);
+    });
+    expect(document.querySelector('.site-shell')).toHaveAttribute('data-typography', 'resume');
+    screen.getAllByRole('button', { name: 'Resume 排版' }).forEach((button) => {
+      expect(button).toHaveAttribute('aria-pressed', 'true');
+    });
+  });
+
   it('氛围支持双选，满额禁止第三个，移除选中项后重新开放选择', async () => {
+    localStorage.setItem(PARTICLE_EFFECT_STORAGE_KEY, '["sakura"]');
     const user = userEvent.setup();
     renderLayout();
     await user.click(screen.getAllByRole('button', { name: /外观与氛围/ })[0]);
@@ -175,7 +189,8 @@ describe('Layout', () => {
     const user = userEvent.setup();
     const first = renderLayout();
     await user.click(screen.getAllByRole('button', { name: /外观与氛围/ })[0]);
-    await user.click(within(screen.getByRole('group', { name: '氛围' })).getByRole('button', { name: /樱花/ }));
+    await user.click(within(screen.getByRole('group', { name: '氛围' })).getByRole('button', { name: /小雨/ }));
+    await user.click(within(screen.getByRole('group', { name: '氛围' })).getByRole('button', { name: /Ascall 鲸鱼/ }));
     expect(document.querySelectorAll('.site-shell > canvas')).toHaveLength(0);
     expect(localStorage.getItem(PARTICLE_EFFECT_STORAGE_KEY)).toBe('[]');
     first.unmount();
@@ -233,15 +248,16 @@ describe('Layout', () => {
     renderLayout();
     const toggles = screen.getAllByRole('button', { name: 'Resume 排版' });
     expect(toggles).toHaveLength(2);
-    expect(document.querySelector('.site-shell')).not.toHaveAttribute('data-typography');
-    await user.click(toggles[0]);
     expect(document.querySelector('.site-shell')).toHaveAttribute('data-typography', 'resume');
     toggles.forEach((toggle) => expect(toggle).toHaveAttribute('aria-pressed', 'true'));
-    expect(window.localStorage.getItem(RESUME_TYPOGRAPHY_KEY)).toBe('true');
-    await user.click(toggles[1]);
+    await user.click(toggles[0]);
     expect(document.querySelector('.site-shell')).not.toHaveAttribute('data-typography');
     toggles.forEach((toggle) => expect(toggle).toHaveAttribute('aria-pressed', 'false'));
     expect(window.localStorage.getItem(RESUME_TYPOGRAPHY_KEY)).toBe('false');
+    await user.click(toggles[1]);
+    expect(document.querySelector('.site-shell')).toHaveAttribute('data-typography', 'resume');
+    toggles.forEach((toggle) => expect(toggle).toHaveAttribute('aria-pressed', 'true'));
+    expect(window.localStorage.getItem(RESUME_TYPOGRAPHY_KEY)).toBe('true');
   });
 
   it('恢复排版选择，导航到其他页面仍保持新排版', async () => {
