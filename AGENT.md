@@ -10,10 +10,10 @@
 
 ## 二、项目身份与工作方式
 
-- 项目：D-blog（React 19 + Vite 6 + TypeScript 的 SSG 静态博客，客户端 SPA 水合；Node 构建脚本为 ESM .mjs）。
+- 项目：D-blog（npm workspaces：`packages/blog` 为 React 19 + Vite 6 + TypeScript 的 SSG 静态博客，客户端 SPA 水合；`packages/server` 为 Go 后端；`packages/project-notes` 记录架构、进度与功能说明且不参与运行时构建；根目录 Node 构建脚本为 ESM `.mjs`）。
 - 沟通语言：与用户使用**中文**交流；git 提交信息使用**中文**。
 - 每完成一个小任务提交一次 git，**只 commit 不 push**（除非用户明确要求推送）。
-- 提交前必须通过：`npm run typecheck`、`eslint`、相关单测；涉及构建逻辑的改动需 `npm run build` 验证。
+- 提交前必须通过：`npm run typecheck`、`npx eslint .`、相关单测；跨 workspace、共享逻辑或构建链路的改动需运行根目录 `npm test`；涉及构建逻辑时按影响范围执行 `npm run build`、`npm run build:cloud` 或 `npm run build --workspace @d-blog/server`。
 - 用户说「继续」时持续工作；用户没有喊停前不要自行停止。
 
 ## 三、技术硬性约束（全仓库通用）
@@ -33,19 +33,21 @@
 
 ## 四、目录约定
 
-- `src/` 前端源码（components/pages/hooks/services/utils/ssr）；
-- `scripts/` 构建与自动化脚本（Node ESM），共享库在 `scripts/lib/`；
+- `packages/blog/src/` 前端源码（components/pages/hooks/services/utils/ssr 等）；
+- `packages/server/` Go 后端及其工具链；
+- `packages/project-notes/` 架构决策、任务进度与功能记录，不参与运行时构建；
+- `scripts/` 根目录构建与自动化脚本（Node ESM），共享库在 `scripts/lib/`；
 - `ai-rules/` 功能规则集（见第一节）；
 - `config/` 构建配置与站点配置（`site.config.json` 等）；
-- 跨 src/scripts 共享的剥离/提取核心：`src/utils/*-core.mjs`，改动需同时考虑两端调用方。
+- 跨前端与根目录脚本共享的剥离/提取核心位于 `packages/blog/src/utils/*-core.mjs`，Book 共享核心位于 `packages/blog/src/books/books-core.mjs`；改动需同时考虑各端调用方。
 
 ## 五、验证清单（提交前自查）
 
 - [ ] 已阅读并遵守相关 ai-rules/*.md
 - [ ] `npm run typecheck` 通过
 - [ ] `npx eslint .` 无错误
-- [ ] 相关单测通过（全量 `npm test` 不回归）
-- [ ] 构建相关改动已 `npm run build` 验证
+- [ ] 相关单测通过；跨 workspace、共享逻辑或构建链路改动已运行根目录 `npm test`
+- [ ] 构建相关改动已按影响范围执行 `npm run build`、`npm run build:cloud` 或 `npm run build --workspace @d-blog/server`
 - [ ] 提交信息中文、粒度为一个逻辑任务、未 push
 
 ## 六、免责与授权
