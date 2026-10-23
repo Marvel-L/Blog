@@ -30,6 +30,7 @@ const pageLoaders: Record<string, ModuleLoader> = {
   '/tags': () => import('../pages/Tags').then((m) => ({ default: m.Tags })),
   '/stats': () => import('../pages/Stats').then((m) => ({ default: m.Stats })),
   '/trend': () => import('../pages/Trend').then((m) => ({ default: m.Trend })),
+  '/planner': () => import('../pages/Planner').then((m) => ({ default: m.Planner })),
   '/friends': () => import('../pages/Friends').then((m) => ({ default: m.Friends })),
   '/shuoshuo': () => import('../pages/ShuoShuo').then((m) => ({ default: m.ShuoShuo })),
   '/guestbook': () => import('../pages/Guestbook').then((m) => ({ default: m.Guestbook })),

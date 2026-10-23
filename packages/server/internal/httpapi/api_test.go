@@ -371,7 +371,7 @@ func TestMigrationSerializationAndRollback(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if count(t, db, "schema_migrations") != 2 || count(t, db, "users") != 1 {
+	if count(t, db, "schema_migrations") != 3 || count(t, db, "users") != 1 {
 		t.Fatal("migration rewrote existing data")
 	}
 	bad := fstest.MapFS{"999_failure.sql": &fstest.MapFile{Data: []byte("CREATE TABLE rollback_probe(id integer); SELECT * FROM nonexistent_table;")}}
@@ -379,7 +379,7 @@ func TestMigrationSerializationAndRollback(t *testing.T) {
 		t.Fatal("invalid migration succeeded")
 	}
 	var exists bool
-	if err := db.Pool.QueryRow(ctx, "SELECT to_regclass('rollback_probe') IS NOT NULL").Scan(&exists); err != nil || exists || count(t, db, "schema_migrations") != 2 {
+	if err := db.Pool.QueryRow(ctx, "SELECT to_regclass('rollback_probe') IS NOT NULL").Scan(&exists); err != nil || exists || count(t, db, "schema_migrations") != 3 {
 		t.Fatal("migration failed to roll back")
 	}
 }

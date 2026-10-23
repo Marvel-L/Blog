@@ -11,6 +11,8 @@ const RELATIVE_BASE_ROUTE_MARKERS = [
   '/archive',
   '/tags',
   '/stats',
+  '/trend',
+  '/planner',
   '/friends',
   '/shuoshuo',
   '/guestbook',

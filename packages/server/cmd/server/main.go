@@ -83,6 +83,22 @@ func run() error {
 		if err != nil {
 			return err
 		}
+		commitPlanner := github.NewPlannerCommitter(c, nil)
+		flushPlanner := func() {
+			deadline, done := context.WithTimeout(ctx, 45*time.Second)
+			defer done()
+			jobs, err := db.PendingPlannerCommits(deadline, 5)
+			if err != nil {
+				log.Print("月度计划 GitHub 队列读取失败，将在下一周期重试")
+				return
+			}
+			for _, job := range jobs {
+				err = commitPlanner(deadline, job.Login, job.Markdown, job.Revision)
+				if finishErr := db.FinishPlannerCommit(deadline, job.UserID, job.Revision, err == nil); finishErr != nil {
+					log.Print("月度计划 GitHub 队列状态更新失败，将在下一周期重试")
+				}
+			}
+		}
 		server := &http.Server{
 			Addr:              fmt.Sprintf(":%d", c.Port),
 			Handler:           httpapi.New(c, db, github.New(c, nil)),
@@ -95,6 +111,9 @@ func run() error {
 		}
 		result := make(chan error, 1)
 		go func() { result <- server.ListenAndServe() }()
+		queueTick := time.NewTicker(time.Minute)
+		defer queueTick.Stop()
+		go flushPlanner()
 		tick := time.NewTicker(time.Hour)
 		defer tick.Stop()
 		log.Printf("Go API 已启动，端口 %d", c.Port)
@@ -109,6 +128,8 @@ func run() error {
 				deadline, done := context.WithTimeout(context.Background(), 10*time.Second)
 				defer done()
 				return server.Shutdown(deadline)
+			case <-queueTick.C:
+				flushPlanner()
 			case <-tick.C:
 				deadline, done := context.WithTimeout(ctx, 30*time.Second)
 				err := db.Cleanup(deadline)

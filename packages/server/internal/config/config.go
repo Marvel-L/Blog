@@ -9,10 +9,15 @@ import (
 
 type Config struct {
 	Origin, DatabaseURL, ClientID, ClientSecret string
+	PlannerGithubToken, PlannerGithubOwner      string
+	PlannerGithubRepo, PlannerGithubBranch      string
+	PlannerGithubPath                           string
 	Port                                        int
 	SecureCookies                               bool
 	TrendAllowedOrigins                         []string
 }
+
+func (c Config) PlannerGitHubEnabled() bool { return c.PlannerGithubToken != "" }
 
 // Load accepts an environment reader so tests never need production credentials.
 func Load(get func(string) string) (Config, error) {
@@ -39,6 +44,18 @@ func Load(get func(string) string) (Config, error) {
 	}
 	c.Origin = u.Scheme + "://" + u.Host
 	c.SecureCookies = u.Scheme == "https"
+	c.PlannerGithubToken = strings.TrimSpace(get("PLANNER_GITHUB_TOKEN"))
+	c.PlannerGithubOwner = strings.TrimSpace(get("PLANNER_GITHUB_OWNER"))
+	c.PlannerGithubRepo = strings.TrimSpace(get("PLANNER_GITHUB_REPO"))
+	c.PlannerGithubBranch = strings.TrimSpace(get("PLANNER_GITHUB_BRANCH"))
+	c.PlannerGithubPath = strings.Trim(strings.TrimSpace(get("PLANNER_GITHUB_PATH")), "/")
+	if c.PlannerGithubToken != "" {
+		if c.PlannerGithubOwner == "" || c.PlannerGithubRepo == "" || c.PlannerGithubBranch == "" || c.PlannerGithubPath == "" ||
+			strings.ContainsAny(c.PlannerGithubOwner+c.PlannerGithubRepo+c.PlannerGithubBranch, " /\\?#") ||
+			strings.Contains(c.PlannerGithubPath, "..") || strings.ContainsAny(c.PlannerGithubPath, " \\?#") {
+			return c, errors.New("invalid planner GitHub configuration")
+		}
+	}
 	if origins := strings.TrimSpace(get("TREND_ALLOWED_ORIGINS")); origins != "" {
 		for _, origin := range strings.Split(origins, ",") {
 			origin = strings.TrimSpace(origin)

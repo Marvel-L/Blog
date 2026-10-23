@@ -35,6 +35,8 @@ type Persistence interface {
 	Logout(context.Context, string) error
 	RecordEvents(context.Context, string, []store.Event) (int64, error)
 	RecentEvents(context.Context, string) ([]store.RecentEvent, error)
+	Planner(context.Context, string) (store.PlannerSnapshot, error)
+	SavePlanner(context.Context, string, int64, string, json.RawMessage, string, bool) (store.PlannerSnapshot, bool, error)
 	Trend(context.Context, string) (store.TrendSnapshot, error)
 	SaveTrend(context.Context, string, int64, string, json.RawMessage) (store.TrendSnapshot, bool, error)
 	BeginTrendConnect(context.Context, string, string, string) (string, error)
@@ -67,6 +69,8 @@ func New(c config.Config, db Persistence, exchange github.Exchange) http.Handler
 	mux.HandleFunc("POST /api/v1/auth/logout", a.logout)
 	mux.HandleFunc("POST /api/v1/events/batch", a.events)
 	mux.HandleFunc("GET /api/v1/me/events", a.recent)
+	mux.HandleFunc("GET /api/v1/planner/dashboard", a.getPlanner)
+	mux.HandleFunc("PUT /api/v1/planner/dashboard", a.putPlanner)
 	mux.HandleFunc("GET /api/v1/trend/dashboard", a.getTrend)
 	mux.HandleFunc("PUT /api/v1/trend/dashboard", a.putTrend)
 	mux.HandleFunc("GET /api/v1/trend/connect", a.connectTrend)
@@ -81,11 +85,11 @@ func New(c config.Config, db Persistence, exchange github.Exchange) http.Handler
 				failure(w, 503)
 			}
 		}()
-		isTrend := strings.HasPrefix(r.URL.Path, "/api/v1/trend/")
-		if isTrend && !a.trendCORS(w, r) {
+		isCrossOriginSync := strings.HasPrefix(r.URL.Path, "/api/v1/trend/") || strings.HasPrefix(r.URL.Path, "/api/v1/planner/")
+		if isCrossOriginSync && !a.trendCORS(w, r) {
 			return
 		}
-		if r.Method != "GET" && r.Method != "HEAD" && r.Method != "OPTIONS" && (len(r.Header.Values("Origin")) != 1 || (!isTrend && r.Header.Get("Origin") != c.Origin)) {
+		if r.Method != "GET" && r.Method != "HEAD" && r.Method != "OPTIONS" && (len(r.Header.Values("Origin")) != 1 || (!isCrossOriginSync && r.Header.Get("Origin") != c.Origin)) {
 			failure(w, 403)
 			return
 		}
@@ -93,8 +97,8 @@ func New(c config.Config, db Persistence, exchange github.Exchange) http.Handler
 		if err != nil {
 			ip = r.RemoteAddr
 		}
-		auth := r.URL.Path == "/api/v1/auth/github/start" || r.URL.Path == "/api/v1/trend/connect" || r.URL.Path == "/api/v1/trend/exchange"
-		if !a.limit.allow(ip, auth, time.Now()) {
+		isAuthFlow := r.URL.Path == "/api/v1/auth/github/start" || r.URL.Path == "/api/v1/trend/connect" || r.URL.Path == "/api/v1/trend/exchange"
+		if !a.limit.allow(ip, isAuthFlow, time.Now()) {
 			w.Header().Set("Retry-After", "60")
 			failure(w, 429)
 			return
