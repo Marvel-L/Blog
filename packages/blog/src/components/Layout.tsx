@@ -38,11 +38,13 @@ import { preloadPage } from '@/utils/preload';
 import { WaveFishDivider } from '@/components/effects/WaveFishDivider';
 import { ParticleField } from '@/components/effects/ParticleField';
 import {
-  DEFAULT_PARTICLE_EFFECT,
-  PARTICLE_EFFECT_OPTIONS,
-  type ParticleEffectId,
-  readStoredParticleEffect,
-  writeStoredParticleEffect,
+  DEFAULT_ATMOSPHERE_EFFECTS,
+  ATMOSPHERE_EFFECT_OPTIONS,
+  MAX_ATMOSPHERE_EFFECTS,
+  type AtmosphereEffectId,
+  readStoredAtmosphereEffects,
+  writeStoredAtmosphereEffects,
+  toggleAtmosphereEffect,
 } from '@/utils/particleEffect';
 import { assetUrl } from '@/utils/siteUrl';
 import { siteConfig } from '@config/site.config';
@@ -64,6 +66,7 @@ import { PrivacyPasswordModal } from './PrivacyPasswordModal';
 import { grantPrivacyAccess } from '@/utils/privacyAccess';
 
 const BackToTop = lazy(() => import('./BackToTop').then((m) => ({ default: m.BackToTop })));
+const AsciiOceanField = lazy(() => import('./effects/AsciiOceanField').then((m) => ({ default: m.AsciiOceanField })));
 
 const TEXT = {
   theme: '外观',
@@ -290,13 +293,13 @@ const useTheme = () => {
 const ThemeToggle = ({
   theme,
   setThemePreference,
-  particleEffect,
-  onParticleEffectChange,
+  atmosphereEffects,
+  onAtmosphereEffectToggle,
 }: {
   theme: Theme;
   setThemePreference: (theme: Theme) => void;
-  particleEffect: ParticleEffectId;
-  onParticleEffectChange: (effect: ParticleEffectId) => void;
+  atmosphereEffects: readonly AtmosphereEffectId[];
+  onAtmosphereEffectToggle: (effect: AtmosphereEffectId) => void;
 }) => {
   const prefersReducedMotion = useSiteReducedMotion();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -334,7 +337,9 @@ const ThemeToggle = ({
 
   const currentThemeLabel = theme === 'light' ? TEXT.themeLight : TEXT.themeDark;
   const currentEffectLabel =
-    PARTICLE_EFFECT_OPTIONS.find((option) => option.id === particleEffect)?.label ?? particleEffect;
+    atmosphereEffects
+      .map((effect) => ATMOSPHERE_EFFECT_OPTIONS.find((option) => option.id === effect)?.label)
+      .join(' + ') || '无特效';
 
   return (
     <div ref={rootRef} className="relative">
@@ -404,20 +409,25 @@ const ThemeToggle = ({
             </div>
 
             <div>
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-                {TEXT.atmosphere}
-              </p>
+              <div className="mb-2 flex items-center justify-between text-[10px] font-semibold text-zinc-400 dark:text-zinc-500">
+                <span className="tracking-[0.18em]">{TEXT.atmosphere}</span>
+                <span role="status" aria-live="polite">
+                  已选 {atmosphereEffects.length}/{MAX_ATMOSPHERE_EFFECTS}
+                </span>
+              </div>
               <div className="grid grid-cols-2 gap-1.5" role="group" aria-label={TEXT.atmosphere}>
-                {PARTICLE_EFFECT_OPTIONS.map((option) => {
-                  const active = particleEffect === option.id;
+                {ATMOSPHERE_EFFECT_OPTIONS.map((option) => {
+                  const active = atmosphereEffects.includes(option.id);
+                  const disabled = !active && atmosphereEffects.length >= MAX_ATMOSPHERE_EFFECTS;
                   return (
                     <button
                       key={option.id}
                       type="button"
-                      onClick={() => onParticleEffectChange(option.id)}
+                      onClick={() => onAtmosphereEffectToggle(option.id)}
                       aria-pressed={active}
-                      title={option.hint}
-                      className={`inline-flex min-h-11 flex-col items-center justify-center rounded-control border px-2 py-1.5 text-xs font-semibold transition-colors ${
+                      disabled={disabled}
+                      title={disabled ? '最多同时开启两个特效，请先关闭一个' : option.hint}
+                      className={`inline-flex min-h-11 flex-col items-center justify-center rounded-control border px-2 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                         active
                           ? 'border-ink bg-ink text-white dark:border-white dark:bg-white dark:text-ink'
                           : 'border-zinc-300 bg-paper text-zinc-700 hover:border-ink hover:bg-zinc-100 dark:border-zinc-700 dark:bg-void dark:text-zinc-300 dark:hover:border-white dark:hover:bg-zinc-900'
@@ -433,6 +443,9 @@ const ThemeToggle = ({
                   );
                 })}
               </div>
+              <p className="mt-2 text-[10px] text-zinc-500 dark:text-zinc-400">
+                最多同时开启两个，再次点击已选特效即可关闭。
+              </p>
             </div>
           </div>
         </div>
@@ -558,8 +571,8 @@ const Navbar = ({
   onToggleTypography,
   theme,
   setThemePreference,
-  particleEffect,
-  onParticleEffectChange,
+  atmosphereEffects,
+  onAtmosphereEffectToggle,
   isLoveMode,
   onToggleLoveMode,
   loveNameEffect,
@@ -570,8 +583,8 @@ const Navbar = ({
   onToggleTypography: () => void;
   theme: Theme;
   setThemePreference: (theme: Theme) => void;
-  particleEffect: ParticleEffectId;
-  onParticleEffectChange: (effect: ParticleEffectId) => void;
+  atmosphereEffects: readonly AtmosphereEffectId[];
+  onAtmosphereEffectToggle: (effect: AtmosphereEffectId) => void;
   isLoveMode: boolean;
   onToggleLoveMode: () => void;
   loveNameEffect: LoveNameEffect;
@@ -1274,8 +1287,8 @@ const Navbar = ({
                   <ThemeToggle
                     theme={theme}
                     setThemePreference={setThemePreference}
-                    particleEffect={particleEffect}
-                    onParticleEffectChange={onParticleEffectChange}
+                    atmosphereEffects={atmosphereEffects}
+                    onAtmosphereEffectToggle={onAtmosphereEffectToggle}
                   />
                   <TypographyToggle enabled={resumeTypography} onToggle={onToggleTypography} />
                   <TbdPostsButton />
@@ -1295,8 +1308,8 @@ const Navbar = ({
                 <ThemeToggle
                   theme={theme}
                   setThemePreference={setThemePreference}
-                  particleEffect={particleEffect}
-                  onParticleEffectChange={onParticleEffectChange}
+                  atmosphereEffects={atmosphereEffects}
+                  onAtmosphereEffectToggle={onAtmosphereEffectToggle}
                 />
                 <TypographyToggle enabled={resumeTypography} onToggle={onToggleTypography} />
                 <TbdPostsButton />
@@ -1630,7 +1643,8 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const { theme, setThemePreference } = useTheme();
   const { enabled: resumeTypography, toggle: toggleTypography } = useResumeTypography();
   const { isLoveMode, setLoveMode } = useLoveMode();
-  const [particleEffect, setParticleEffect] = useState<ParticleEffectId>(DEFAULT_PARTICLE_EFFECT);
+  const [atmosphereEffects, setAtmosphereEffects] = useState<readonly AtmosphereEffectId[]>(DEFAULT_ATMOSPHERE_EFFECTS);
+  const [hasRestoredAtmosphere, setHasRestoredAtmosphere] = useState(false);
   const [loveNameEffect, setLoveNameEffect] = useState<LoveNameEffect>('marquee');
   const [isPrivacyDialogOpen, setIsPrivacyDialogOpen] = useState(false);
   // 搜索为独立页面（/search）：所有搜索入口（顶栏按钮、Ctrl+K、移动端抽屉快捷动作）
@@ -1638,9 +1652,8 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const goToSearch = useCallback(() => {
     navigate('/search');
   }, [navigate]);
-  const handleParticleEffectChange = useCallback((effect: ParticleEffectId) => {
-    setParticleEffect(effect);
-    writeStoredParticleEffect(effect);
+  const handleAtmosphereEffectToggle = useCallback((effect: AtmosphereEffectId) => {
+    setAtmosphereEffects((selected) => toggleAtmosphereEffect(selected, effect));
   }, []);
   const prefersReducedMotion = useSiteReducedMotion();
   const isParticleFrontRoute = PARTICLE_FRONT_ROUTES.has(location.pathname);
@@ -1699,8 +1712,15 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   }, [goToSearch]);
 
   useEffect(() => {
-    setParticleEffect(readStoredParticleEffect());
+    setAtmosphereEffects(readStoredAtmosphereEffects());
+    setHasRestoredAtmosphere(true);
   }, []);
+
+  useEffect(() => {
+    if (hasRestoredAtmosphere) {
+      writeStoredAtmosphereEffects(atmosphereEffects);
+    }
+  }, [atmosphereEffects, hasRestoredAtmosphere]);
 
   useEffect(() => {
     try {
@@ -1748,7 +1768,17 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
       data-particle-front={isParticleFrontRoute ? 'true' : undefined}
     >
       <BackgroundWithEffect isLoveMode={isLoveMode} loveNameEffect={loveNameEffect} />
-      {!isReadingMode && !isLoveMode && <ParticleField effect={particleEffect} />}
+      {!isReadingMode &&
+        !isLoveMode &&
+        atmosphereEffects.map((effect) =>
+          effect === 'ascii-whale' || effect === 'ascii-fish' ? (
+            <Suspense key={effect} fallback={null}>
+              <AsciiOceanField effect={effect} />
+            </Suspense>
+          ) : (
+            <ParticleField key={effect} effect={effect} />
+          ),
+        )}
       {!isReadingMode && (
         <Navbar
           theme={theme}
@@ -1756,8 +1786,8 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
           onSearchNavigate={goToSearch}
           resumeTypography={resumeTypography}
           onToggleTypography={toggleTypography}
-          particleEffect={particleEffect}
-          onParticleEffectChange={handleParticleEffectChange}
+          atmosphereEffects={atmosphereEffects}
+          onAtmosphereEffectToggle={handleAtmosphereEffectToggle}
           isLoveMode={isLoveMode}
           onToggleLoveMode={handleToggleLoveMode}
           loveNameEffect={loveNameEffect}

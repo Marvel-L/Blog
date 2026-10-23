@@ -7,6 +7,7 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 import { Layout } from './Layout';
 import { siteConfig } from '@config/site.config';
 import { RESUME_TYPOGRAPHY_KEY } from '@/hooks/useResumeTypography';
+import { PARTICLE_EFFECT_STORAGE_KEY } from '@/utils/particleEffect';
 
 // 懒加载子组件用简单 stub 替代，避免测试中等待 dynamic import 与动画。
 // 注意：Layout 以命名导出方式解构（import('./X').then(m => m.X)），mock 需提供同名导出。
@@ -15,6 +16,9 @@ vi.mock('@/components/BackToTop', () => ({
 }));
 vi.mock('@/components/CookieNotice', () => ({
   CookieNotice: () => <div data-testid="mock-cookie-notice" />,
+}));
+vi.mock('@/components/effects/AsciiOceanField', () => ({
+  AsciiOceanField: ({ effect }: { effect: string }) => <canvas data-atmosphere-effect={effect} />,
 }));
 // 不蒜子统计：避免测试环境发起真实网络请求。
 vi.mock('@/services/busuanzi', () => ({
@@ -120,6 +124,81 @@ describe('Layout', () => {
   it('渲染主题切换按钮（桌面端与移动端顶栏各一个）', () => {
     renderLayout();
     expect(screen.getAllByRole('button', { name: /外观与氛围/ }).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('氛围支持双选，满额禁止第三个，移除选中项后重新开放选择', async () => {
+    const user = userEvent.setup();
+    renderLayout();
+    await user.click(screen.getAllByRole('button', { name: /外观与氛围/ })[0]);
+    const effects = within(screen.getByRole('group', { name: '氛围' }));
+    const whale = effects.getByRole('button', { name: /Ascall 鲸鱼/ });
+    const rain = effects.getByRole('button', { name: /小雨/ });
+    const sakura = effects.getByRole('button', { name: /樱花/ });
+    await user.click(whale);
+    await waitFor(() => expect(document.querySelector('[data-atmosphere-effect="ascii-whale"]')).toBeTruthy());
+    expect(document.querySelectorAll('.site-shell > canvas')).toHaveLength(2);
+    expect(whale).toHaveAttribute('aria-pressed', 'true');
+    expect(sakura).toBeEnabled();
+    expect(rain).toBeDisabled();
+    await user.click(rain);
+    expect(rain).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('status')).toHaveTextContent('已选 2/2');
+    await user.click(sakura);
+    expect(rain).toBeEnabled();
+    await user.click(rain);
+    expect(JSON.parse(localStorage.getItem(PARTICLE_EFFECT_STORAGE_KEY)!)).toEqual(['ascii-whale', 'rain']);
+    await user.click(whale);
+    expect(document.querySelector('[data-atmosphere-effect="ascii-whale"]')).toBeNull();
+    expect(rain).toHaveAttribute('aria-pressed', 'true');
+    expect(document.querySelectorAll('.site-shell > canvas')).toHaveLength(1);
+  });
+
+  it('鲸鱼和鱼群可分别选择、同时开启，并独立关闭', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem(PARTICLE_EFFECT_STORAGE_KEY, '[]');
+    renderLayout();
+    await user.click(screen.getAllByRole('button', { name: /外观与氛围/ })[0]);
+    const effects = within(screen.getByRole('group', { name: '氛围' }));
+    const whale = effects.getByRole('button', { name: /Ascall 鲸鱼/ });
+    const fish = effects.getByRole('button', { name: /Ascall 鱼群/ });
+    await user.click(fish);
+    await waitFor(() => expect(document.querySelector('[data-atmosphere-effect="ascii-fish"]')).toBeTruthy());
+    expect(document.querySelector('[data-atmosphere-effect="ascii-whale"]')).toBeNull();
+    await user.click(whale);
+    await waitFor(() => expect(document.querySelector('[data-atmosphere-effect="ascii-whale"]')).toBeTruthy());
+    expect(document.querySelectorAll('.site-shell > canvas')).toHaveLength(2);
+    expect(effects.getByRole('button', { name: /樱花/ })).toBeDisabled();
+    await user.click(fish);
+    expect(document.querySelector('[data-atmosphere-effect="ascii-fish"]')).toBeNull();
+    expect(document.querySelector('[data-atmosphere-effect="ascii-whale"]')).toBeTruthy();
+    expect(localStorage.getItem(PARTICLE_EFFECT_STORAGE_KEY)).toBe('["ascii-whale"]');
+  });
+
+  it('全部关闭后重新挂载仍没有特效，桌面与移动端入口同步', async () => {
+    const user = userEvent.setup();
+    const first = renderLayout();
+    await user.click(screen.getAllByRole('button', { name: /外观与氛围/ })[0]);
+    await user.click(within(screen.getByRole('group', { name: '氛围' })).getByRole('button', { name: /樱花/ }));
+    expect(document.querySelectorAll('.site-shell > canvas')).toHaveLength(0);
+    expect(localStorage.getItem(PARTICLE_EFFECT_STORAGE_KEY)).toBe('[]');
+    first.unmount();
+    renderLayout();
+    expect(document.querySelectorAll('.site-shell > canvas')).toHaveLength(0);
+    screen.getAllByRole('button', { name: /外观与氛围/ }).forEach((button) => {
+      expect(button).toHaveAccessibleName(/无特效/);
+    });
+  });
+
+  it('恢复两个已选特效，专注阅读暂停，退出后恢复组合', async () => {
+    localStorage.setItem(PARTICLE_EFFECT_STORAGE_KEY, '["ascii-whale","fireflies"]');
+    const user = userEvent.setup();
+    renderLayout(['/post/test']);
+    await waitFor(() => expect(document.querySelectorAll('.site-shell > canvas')).toHaveLength(2));
+    await user.click(screen.getByRole('button', { name: '进入专注阅读' }));
+    expect(document.querySelectorAll('.site-shell > canvas')).toHaveLength(0);
+    await user.click(screen.getByRole('button', { name: '退出专注阅读' }));
+    await waitFor(() => expect(document.querySelectorAll('.site-shell > canvas')).toHaveLength(2));
+    expect(localStorage.getItem(PARTICLE_EFFECT_STORAGE_KEY)).toBe('["ascii-whale","fireflies"]');
   });
 
   it.each(['saved', 'selected'])('%s 深色外观在退出专注阅读后保持，且不会被延迟的主题动画覆盖', async (source) => {
