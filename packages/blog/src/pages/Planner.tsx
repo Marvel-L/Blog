@@ -100,7 +100,7 @@ export const Planner = () => {
         .then((response) => {
           if (!response.ok) throw new Error('项目 Markdown 写入失败');
           if (mounted.current && generation === writeGeneration.current)
-            setMessage('已写入项目文件 public/planner-data/monthly-planner.md');
+            setMessage('已写入项目文件 planner-data/monthly-planner.md');
         })
         .catch((cause) => {
           if (controller.signal.aborted || !mounted.current || generation !== writeGeneration.current) return;
@@ -123,12 +123,7 @@ export const Planner = () => {
   );
   const completed = tasks.filter((task) => task.completed).length;
   const updateTasks = (next: typeof tasks) =>
-    setState((current) => {
-      const months = { ...current.months };
-      if (next.length === 0) delete months[key];
-      else months[key] = next;
-      return { ...current, months };
-    });
+    setState((current) => ({ ...current, months: { ...current.months, [key]: next } }));
   const addTask = (event: React.FormEvent) => {
     event.preventDefault();
     const text = newTask.trim();
@@ -181,7 +176,7 @@ export const Planner = () => {
         <div className="planner-file-actions">
           <span className="planner-project-file">
             <FileText aria-hidden="true" />
-            public/planner-data/monthly-planner.md
+            planner-data/monthly-planner.md
           </span>
           <button
             onClick={() => {

@@ -20,11 +20,11 @@ func plannerResponse(status int, body string) *http.Response {
 }
 
 func TestPlannerCommitterCreatesAndUpdatesFile(t *testing.T) {
-	cfg := config.Config{PlannerGithubToken: "secret", PlannerGithubOwner: "Marvel-L", PlannerGithubRepo: "Blog", PlannerGithubBranch: "custom", PlannerGithubFile: "public/planner-data/monthly-planner.md"}
+	cfg := config.Config{PlannerGithubToken: "secret", PlannerGithubOwner: "Marvel-L", PlannerGithubRepo: "Blog", PlannerGithubBranch: "custom", PlannerGithubFile: "planner-data/monthly-planner.md"}
 	calls := 0
 	transport := roundTrip(func(r *http.Request) (*http.Response, error) {
 		calls++
-		if r.Header.Get("Authorization") != "Bearer secret" || !strings.Contains(r.URL.Path, "/repos/Marvel-L/Blog/contents/public/planner-data/monthly-planner.md") {
+		if r.Header.Get("Authorization") != "Bearer secret" || !strings.Contains(r.URL.Path, "/repos/Marvel-L/Blog/contents/planner-data/monthly-planner.md") {
 			t.Fatal("unsafe or incorrect GitHub request")
 		}
 		if r.Method == "GET" {
@@ -46,7 +46,7 @@ func TestPlannerCommitterCreatesAndUpdatesFile(t *testing.T) {
 }
 
 func TestPlannerCommitterRejectsUnsafeLoginAndRedirect(t *testing.T) {
-	cfg := config.Config{PlannerGithubToken: "secret", PlannerGithubOwner: "Marvel-L", PlannerGithubRepo: "Blog", PlannerGithubBranch: "custom", PlannerGithubFile: "public/planner-data/monthly-planner.md"}
+	cfg := config.Config{PlannerGithubToken: "secret", PlannerGithubOwner: "Marvel-L", PlannerGithubRepo: "Blog", PlannerGithubBranch: "custom", PlannerGithubFile: "planner-data/monthly-planner.md"}
 	committer := NewPlannerCommitter(cfg, roundTrip(func(*http.Request) (*http.Response, error) { return plannerResponse(302, ""), nil }))
 	if committer(context.Background(), "../admin", "x", 1) == nil {
 		t.Fatal("unsafe login accepted")

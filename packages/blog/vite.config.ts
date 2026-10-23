@@ -6,7 +6,7 @@ import { normalizeBasePath } from '../../config/basePath';
 import { watchBookContent } from '../../scripts/lib/book-content-watch.mjs';
 
 const repositoryRoot = path.resolve(__dirname, '../..');
-const plannerFile = path.resolve(repositoryRoot, 'public/planner-data/monthly-planner.md');
+const plannerFile = path.resolve(repositoryRoot, 'planner-data/monthly-planner.md');
 const PLANNER_ROUTE = '/planner-data/monthly-planner.md';
 
 const plannerFilePlugin = (): Plugin => ({
@@ -16,8 +16,28 @@ const plannerFilePlugin = (): Plugin => ({
       const raw = req.url?.split('?')[0] ?? '';
       const base = server.config.base === '/' ? '' : server.config.base.replace(/\/$/, '');
       const pathname = raw.startsWith(base) ? raw.slice(base.length) : raw;
-      if (pathname !== PLANNER_ROUTE || req.method !== 'PUT') {
+      if (pathname !== PLANNER_ROUTE) {
         next();
+        return;
+      }
+      if (req.method === 'GET' || req.method === 'HEAD') {
+        try {
+          const stat = fs.statSync(plannerFile);
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+          res.setHeader('Content-Length', stat.size);
+          if (req.method === 'HEAD') res.end();
+          else fs.createReadStream(plannerFile).pipe(res);
+        } catch {
+          res.statusCode = 404;
+          res.end('planner file not found');
+        }
+        return;
+      }
+      if (req.method !== 'PUT') {
+        res.statusCode = 405;
+        res.setHeader('Allow', 'GET, HEAD, PUT');
+        res.end('method not allowed');
         return;
       }
       let size = 0;
@@ -63,6 +83,10 @@ const plannerFilePlugin = (): Plugin => ({
         }
       });
     });
+  },
+  generateBundle() {
+    const markdown = fs.readFileSync(plannerFile, 'utf8');
+    this.emitFile({ type: 'asset', fileName: 'planner-data/monthly-planner.md', source: markdown });
   },
 });
 
