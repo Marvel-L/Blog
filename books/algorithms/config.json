@@ -4,6 +4,5 @@
   "subtitle": "把题目、方法与复盘组织成可连续阅读的知识包。",
   "edition": "ALGORITHM FIELD NOTES",
   "accent": "#365348",
-  "order": 1,
-  "chapters": ["开始/start.md", "数据结构/linked-list.md", "数学基础/number-theory.md"]
+  "order": 1
 }

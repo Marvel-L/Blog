@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildBooks, bookPath, chapterPath, findLegacyChapter, flattenChapters, getBookRoutes } from './books-core.mjs';
-import { catalog, post } from './book-fixtures';
-import { getBookPackageDefinitions } from '@/services/books';
-
-const definitions = getBookPackageDefinitions();
+import { catalog, post, packageDefinitions as definitions } from './book-fixtures';
 
 describe('Book package catalog', () => {
   it('builds author-maintained packages instead of deriving books from categories', () => {

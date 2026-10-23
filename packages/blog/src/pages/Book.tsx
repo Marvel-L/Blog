@@ -5,8 +5,10 @@ import rehypeHighlight from 'rehype-highlight';
 import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Library, ListTree, Newspaper } from 'lucide-react';
 import { Seo } from '@/components/Seo';
 import { CompactPostCard } from '@/components/CompactPostCard';
+import { CodeBlock, MarkdownCode } from '@/components/CodeBlock';
 import { ImageViewer } from '@/components/ImageViewer';
 import { ProgressiveImage } from '@/components/ProgressiveImage';
+import { useCodeHighlightTheme } from '@/hooks/useCodeHighlightTheme';
 import { getInitialPosts } from '@/services/posts';
 import { getBookPackageDefinitions } from '@/services/books';
 import { extractMarkdownHeadings, extractTextFromReactNode, stripInlineMarkdown } from '@/utils/headings';
@@ -27,7 +29,13 @@ import { BookTree } from '@/books/BookTree';
 import { NotFound } from './NotFound';
 
 const bookStyle = (book: Book): CSSProperties => ({ '--book-accent': book.accent }) as CSSProperties;
-const withoutLeadingTitle = (content: string) => content.replace(/^\s*#\s+[^\n]+(?:\n+|$)/, '');
+const withoutLeadingTitle = (content: string, title: string) => {
+  const leading = content.match(/^(?:[ \t]*\r?\n)* {0,3}#[ \t]+([^\r\n]+)(?:\r?\n+|$)/);
+  if (!leading || stripInlineMarkdown(leading[1].replace(/\s+#+\s*$/, '')) !== stripInlineMarkdown(title)) {
+    return content;
+  }
+  return content.slice(leading[0].length);
+};
 
 function BookCover({ book, number, small = false }: { book: Book; number: number; small?: boolean }) {
   return (
@@ -57,7 +65,9 @@ const createMarkdownComponents = (
 ): Components => {
   let cursor = 0;
   const headingIds = new WeakMap<object, string>();
-  const heading = (level: 2 | 3) =>
+  // The chapter name owns h1; shift body sections together to preserve their hierarchy.
+  const headingOffset = headings.some((item) => item.level === 1) ? 1 : 0;
+  const heading = (level: 1 | 2 | 3 | 4 | 5 | 6) =>
     function BookHeading({ children, node }: { children?: ReactNode } & ExtraProps) {
       let id = node && headingIds.get(node);
       if (!id) {
@@ -70,12 +80,18 @@ const createMarkdownComponents = (
           if (node) headingIds.set(node, match.id);
         }
       }
-      const Tag = `h${level}` as const;
+      const Tag = `h${Math.min(6, level + headingOffset)}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
       return <Tag id={id}>{children}</Tag>;
     };
   return {
+    h1: heading(1),
     h2: heading(2),
     h3: heading(3),
+    h4: heading(4),
+    h5: heading(5),
+    h6: heading(6),
+    pre: CodeBlock,
+    code: MarkdownCode,
     p: ({ children, node }) => {
       // 图片渲染为 figure，避免嵌入 p 导致浏览器修正 DOM 后 SSR 水合不一致。
       const hasImage = node?.children.some(
@@ -156,8 +172,10 @@ function ChapterArticle({ book, chapter, chapters }: { book: Book; chapter: Book
   const chapterIndex = chapters.indexOf(chapter);
   const previous = chapterIndex > 0 ? chapters[chapterIndex - 1] : undefined;
   const next = chapters[chapterIndex + 1];
-  const body = withoutLeadingTitle(chapter.content);
-  const headings = useMemo(() => extractMarkdownHeadings(body).filter((item) => item.level >= 2), [body]);
+  const body = withoutLeadingTitle(chapter.content, chapter.title);
+  useCodeHighlightTheme(/(?:^|\n)(?: {0,3}(?:`{3,}|~{3,})| {4}|\t)/.test(body));
+  const headings = useMemo(() => extractMarkdownHeadings(body), [body]);
+  const minimumHeadingLevel = headings.length ? Math.min(...headings.map((heading) => heading.level)) : 1;
   const markdown = useMemo(
     () => (
       <ReactMarkdown
@@ -219,7 +237,11 @@ function ChapterArticle({ book, chapter, chapters }: { book: Book; chapter: Book
         {headings.length ? (
           <ol>
             {headings.map((heading) => (
-              <li key={heading.id} data-level={heading.level}>
+              <li
+                key={heading.id}
+                data-level={heading.level}
+                style={{ '--book-toc-depth': heading.level - minimumHeadingLevel } as CSSProperties}
+              >
                 <a href={`#${heading.id}`}>{heading.text}</a>
               </li>
             ))}

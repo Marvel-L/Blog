@@ -442,10 +442,13 @@
   margin-top: 2rem;
   font-size: 1rem;
 }
-.book-markdown pre {
+.book-markdown > pre {
   overflow-x: auto;
   border: 1px solid var(--book-line);
   border-radius: 4px;
+}
+.book-markdown .code-block pre {
+  font-size: 0.95625rem;
 }
 /* Keep Book quotes visible when the optional resume typography removes prose quote borders. */
 .book-app.book-reader .book-markdown.prose blockquote {
@@ -513,9 +516,7 @@
 }
 .book-page-toc li {
   border-left: 2px solid transparent;
-}
-.book-page-toc li[data-level='3'] {
-  padding-left: 0.75rem;
+  padding-left: calc(var(--book-toc-depth, 0) * 0.75rem);
 }
 .book-page-toc a {
   display: block;
@@ -777,7 +778,7 @@
     flex-wrap: wrap;
     gap: 0.25rem 0.6rem;
   }
-  .book-page-toc li[data-level='3'] {
+  .book-page-toc li {
     padding-left: 0;
   }
 }

@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { StrictMode } from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { renderToString } from 'react-dom/server';
 import { BookPage } from './Book';
-import { catalog } from '@/books/book-fixtures';
+import { catalog, packageDefinitions } from '@/books/book-fixtures';
 import { getInitialPosts } from '@/services/posts';
 import * as bookService from '@/services/books';
 
@@ -33,9 +33,25 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.mocked(getInitialPosts).mockReturnValue(catalog);
+  vi.spyOn(bookService, 'getBookPackageDefinitions').mockReturnValue(packageDefinitions);
 });
 
 describe('Book package detail', () => {
+  it.each(['/', '/Blog/'])('uses the Post code block renderer and palette under %s', async (base) => {
+    const { container } = render(app(`${base}book/algorithms/chapter/number-theory`, base.replace(/\/$/, '') || '/'));
+    const block = container.querySelector('.book-markdown .code-block')!;
+    expect(block).toHaveAttribute('data-lang', 'go');
+    expect(block.querySelector('.hljs-keyword')).toHaveTextContent('func');
+    expect(block.querySelector('pre code')).toHaveAttribute('data-block-code', 'true');
+    expect(within(block as HTMLElement).getByRole('button', { name: '复制代码' })).toBeInTheDocument();
+    expect(within(block as HTMLElement).getByRole('button', { name: '下载代码' })).toBeInTheDocument();
+    await waitFor(() => expect(document.getElementById('post-highlight-theme')).not.toBeNull());
+    const user = userEvent.setup();
+    await user.click(within(block as HTMLElement).getByRole('button', { name: '开启自动换行' }));
+    expect(block).toHaveAttribute('data-wrapped', 'true');
+    expect(container.querySelector('.book-markdown .code-block')).toBe(block);
+  });
+
   it('opens an independently configured package from the shelf', async () => {
     const user = userEvent.setup();
     render(app('/book'));
@@ -323,12 +339,83 @@ describe('Book package detail', () => {
     );
   });
 
-  it('omits a leading Markdown title even when the file ends on that line', () => {
+  it.each(['/', '/Blog/'])('includes first-level body headings and stable nested anchors under %s', (base) => {
     const definition = bookService.getBookPackageDefinitions()[0];
     vi.spyOn(bookService, 'getBookPackageDefinitions').mockReturnValue([
       {
         ...definition,
-        chapters: [{ id: 'intro', directory: ['开始'], title: '欢迎阅读', content: '# 你好' }],
+        chapters: [
+          {
+            id: 'sections',
+            directory: ['数据结构'],
+            title: '遍历',
+            content:
+              '# **含义**\n\n定义。\n\n## 实现\n\n第一种。\n\n### 细节\n\n说明。\n\n# 题目\n\n## 实现\n\n第二种。\n\n### 细节\n\n说明。\n\n# 题目\n\n另一题。',
+          },
+        ],
+      },
+    ]);
+    const path = `${base}book/${definition.id}/chapter/sections`;
+    const basename = base.replace(/\/$/, '') || '/';
+    const page = () => <StrictMode>{app(path, basename)}</StrictMode>;
+    const { container, rerender } = render(page());
+    const expectedIds = ['含义', '实现', '细节', '题目', '实现-2', '细节-2', '题目-2'];
+    const verify = () => {
+      const toc = screen.getByRole('complementary', { name: '本页目录' });
+      expect(
+        within(toc)
+          .getAllByRole('link')
+          .map((link) => link.getAttribute('href')),
+      ).toEqual(expectedIds.map((id) => `#${id}`));
+      expect(expectedIds.map((id) => container.querySelector(`[id="${id}"]`)?.tagName)).toEqual([
+        'H2',
+        'H3',
+        'H4',
+        'H2',
+        'H3',
+        'H4',
+        'H2',
+      ]);
+      expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+      expect(screen.getByRole('heading', { level: 2, name: '含义' })).toBeInTheDocument();
+      expect(
+        within(toc)
+          .getAllByRole('link')
+          .map((link) => link.closest('li')?.style.getPropertyValue('--book-toc-depth')),
+      ).toEqual(['0', '1', '2', '0', '1', '2', '0']);
+    };
+    verify();
+    rerender(page());
+    verify();
+    const html = renderToString(app(path, basename));
+    expect(html.match(/<h1(?:\s|>)/g)).toHaveLength(1);
+    expectedIds.forEach((id) => {
+      expect(html).toContain(`id="${id}"`);
+      expect(html).toContain(`href="#${id}"`);
+    });
+  });
+
+  it('shows a directory even when the body contains only first-level sections', () => {
+    const definition = bookService.getBookPackageDefinitions()[0];
+    vi.spyOn(bookService, 'getBookPackageDefinitions').mockReturnValue([
+      {
+        ...definition,
+        chapters: [{ id: 'sections', directory: [], title: '章节名', content: '# 含义\n\n定义。\n\n# 题目\n\n例题。' }],
+      },
+    ]);
+    render(app(`/book/${definition.id}/chapter/sections`));
+    const toc = screen.getByRole('complementary', { name: '本页目录' });
+    expect(within(toc).getByRole('link', { name: '含义' })).toHaveAttribute('href', '#含义');
+    expect(within(toc).getByRole('link', { name: '题目' })).toHaveAttribute('href', '#题目');
+    expect(within(toc).queryByText('本章暂无小节')).not.toBeInTheDocument();
+  });
+
+  it('omits only a duplicated chapter title even when the file ends on that line', () => {
+    const definition = bookService.getBookPackageDefinitions()[0];
+    vi.spyOn(bookService, 'getBookPackageDefinitions').mockReturnValue([
+      {
+        ...definition,
+        chapters: [{ id: 'intro', directory: ['开始'], title: '欢迎阅读', content: '# **欢迎阅读**' }],
       },
     ]);
     render(app(`/book/${definition.id}/chapter/intro`));
