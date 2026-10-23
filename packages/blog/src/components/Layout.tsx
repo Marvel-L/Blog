@@ -65,6 +65,7 @@ import { PrivacyPasswordModal } from './PrivacyPasswordModal';
 import { grantPrivacyAccess } from '@/utils/privacyAccess';
 
 const BackToTop = lazy(() => import('./BackToTop').then((m) => ({ default: m.BackToTop })));
+const RinMascot = lazy(() => import('./mascot/RinMascot'));
 const AsciiOceanField = lazy(() => import('./effects/AsciiOceanField').then((m) => ({ default: m.AsciiOceanField })));
 
 const TEXT = {
@@ -1827,6 +1828,11 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
       {!isReadingMode && (
         <Suspense fallback={null}>
           <BackToTop />
+        </Suspense>
+      )}
+      {hasRestoredAtmosphere && !isReadingMode && !isLoveMode && (
+        <Suspense fallback={null}>
+          <RinMascot />
         </Suspense>
       )}
       {!isReadingMode && !isLoveMode && (

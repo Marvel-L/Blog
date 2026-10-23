@@ -14,6 +14,9 @@ import { PARTICLE_EFFECT_STORAGE_KEY } from '@/utils/particleEffect';
 vi.mock('@/components/BackToTop', () => ({
   BackToTop: () => <div data-testid="mock-back-to-top" />,
 }));
+vi.mock('@/components/mascot/RinMascot', () => ({
+  default: () => <aside aria-label="凛的陪伴角落" />,
+}));
 vi.mock('@/components/CookieNotice', () => ({
   CookieNotice: () => <div data-testid="mock-cookie-notice" />,
 }));
@@ -333,6 +336,20 @@ describe('Layout', () => {
   it('渲染 children 内容', () => {
     renderLayout();
     expect(screen.getByText('页面内容')).toBeInTheDocument();
+  });
+
+  it('看板娘在专注阅读与 Love 面隐藏，退出后恢复', async () => {
+    const user = userEvent.setup();
+    renderLayout();
+    expect(await screen.findByRole('complementary', { name: '凛的陪伴角落' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '进入专注阅读' }));
+    expect(screen.queryByRole('complementary', { name: '凛的陪伴角落' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '退出专注阅读' }));
+    expect(await screen.findByRole('complementary', { name: '凛的陪伴角落' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '进入 Love 面' }));
+    expect(screen.queryByRole('complementary', { name: '凛的陪伴角落' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '退出 Love 面' }));
+    expect(await screen.findByRole('complementary', { name: '凛的陪伴角落' })).toBeInTheDocument();
   });
 
   it('氛围粒子层低于正文，避免花瓣盖住文章图片', () => {

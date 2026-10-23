@@ -1,0 +1,477 @@
+.rin-mascot {
+  --rin-ink: #344758;
+  --rin-muted: #78847e;
+  --rin-paper: #fffdf6;
+  --rin-line: #e2e5da;
+  --rin-accent: #4b7777;
+  position: fixed;
+  z-index: 38;
+  left: max(12px, env(safe-area-inset-left, 0px));
+  bottom: calc(
+    var(--tab-bar-height, 0px) + var(--cookie-notice-height, 0px) + var(--service-worker-prompt-height, 0px) +
+      max(18px, env(safe-area-inset-bottom, 0px))
+  );
+  width: 148px;
+  color: var(--rin-ink);
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  text-align: left;
+  isolation: isolate;
+}
+
+.dark .rin-mascot {
+  --rin-ink: #e1e9e4;
+  --rin-muted: #a6b5ae;
+  --rin-paper: #202c30;
+  --rin-line: #3b4b4c;
+  --rin-accent: #a1c6b9;
+}
+
+.rin-mascot[data-side='right'] {
+  left: auto;
+  right: max(84px, calc(env(safe-area-inset-right, 0px) + 84px));
+}
+
+.rin-mascot button,
+.rin-mascot a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.rin-mascot button:focus-visible,
+.rin-mascot a:focus-visible {
+  outline: 2px solid var(--rin-accent);
+  outline-offset: 4px;
+}
+
+.rin-character {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 290px;
+  cursor: pointer;
+  border-radius: 40%;
+  touch-action: manipulation;
+}
+
+.rin-preview {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 3px rgb(29 43 54 / 12%));
+  animation: rin-breathe 4.8s ease-in-out infinite;
+  transform-origin: 50% 95%;
+}
+
+.rin-artwork {
+  position: relative;
+  display: block;
+  height: 100%;
+  aspect-ratio: 390 / 1179;
+  margin-inline: auto;
+}
+
+.rin-artwork img,
+.rin-head,
+.rin-eyelids {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
+}
+
+.rin-head {
+  transform-origin: 48% 28%;
+  transform: translate(var(--rin-look-x, 0px), var(--rin-look-y, 0px)) rotate(var(--rin-look-angle, 0deg));
+  transition: transform 180ms ease-out;
+}
+
+.rin-eyelids {
+  opacity: 0;
+  animation: rin-blink 5.7s infinite;
+}
+
+.rin-canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.rin-preview[hidden],
+.rin-canvas[hidden] {
+  display: none;
+}
+
+.rin-ground {
+  position: absolute;
+  bottom: 0;
+  left: 24%;
+  width: 54%;
+  height: 10px;
+  border-radius: 50%;
+  background: rgb(67 81 74 / 13%);
+  filter: blur(3px);
+}
+
+.rin-caption {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  margin-top: 8px;
+  border: 1px solid var(--rin-line);
+  border-radius: 24px;
+  background: var(--rin-paper);
+  box-shadow: 0 3px 14px rgb(34 52 49 / 5%);
+}
+
+.rin-caption button {
+  min-height: 32px;
+  padding: 4px;
+  font-size: 11px;
+}
+
+.rin-caption button:first-child {
+  padding-left: 10px;
+}
+
+.rin-caption button:last-child {
+  padding-right: 9px;
+}
+
+.rin-caption span {
+  color: var(--rin-muted);
+  font-size: 10px;
+}
+
+.rin-panel {
+  position: absolute;
+  z-index: 2;
+  left: calc(100% + 4px);
+  bottom: 70px;
+  width: 244px;
+  max-width: calc(100vw - 32px);
+  padding: 12px;
+  border: 1px solid var(--rin-line);
+  border-radius: 16px 16px 16px 4px;
+  background: var(--rin-paper);
+  box-shadow: 0 8px 32px rgb(27 45 40 / 10%);
+}
+
+.rin-mascot[data-side='right'] .rin-panel {
+  left: auto;
+  right: calc(100% + 4px);
+  border-radius: 16px 16px 4px 16px;
+}
+
+.rin-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rin-panel-heading small {
+  padding-left: 5px;
+  color: var(--rin-muted);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.rin-panel-heading button {
+  display: grid;
+  min-width: 28px;
+  min-height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--rin-muted);
+}
+
+.rin-status-dot,
+.rin-launcher-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: #76a18a;
+}
+
+.rin-message {
+  min-height: 44px;
+  margin: 10px 0 14px;
+  font-size: 12px;
+  line-height: 1.9;
+}
+
+.rin-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.rin-actions button,
+.rin-actions a {
+  display: flex;
+  flex: 1;
+  min-height: 50px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--rin-line);
+  border-radius: 8px;
+  font-size: 10px;
+  color: var(--rin-accent);
+  text-decoration: none;
+}
+
+.rin-actions button:hover,
+.rin-actions a:hover,
+.rin-settings button:hover,
+.rin-panel-heading button:hover {
+  background: color-mix(in srgb, var(--rin-accent) 9%, transparent);
+}
+
+.rin-settings {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin: 8px -3px -4px;
+}
+
+.rin-settings button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--rin-muted);
+}
+
+.rin-settings button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.rin-renderer-label {
+  flex: 1;
+  text-align: right;
+  color: var(--rin-muted);
+  font-size: 9px;
+}
+
+.rin-notice {
+  margin-top: 8px;
+  color: var(--rin-muted);
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+.rin-mascot[data-collapsed='true'] {
+  width: 44px;
+}
+
+.rin-launcher {
+  position: relative;
+  display: block;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border: 1px solid var(--rin-line);
+  border-radius: 50%;
+  background: var(--rin-paper);
+  box-shadow: 0 3px 14px rgb(34 52 49 / 8%);
+}
+
+.rin-launcher .rin-artwork {
+  width: 67px;
+  height: 202px;
+  margin-top: 0;
+  margin-left: -9px;
+}
+
+.rin-launcher-dot {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 6px;
+  height: 6px;
+}
+
+.rin-launcher .rin-head {
+  transform: none;
+}
+
+.rin-launcher .rin-eyelids {
+  animation: none;
+}
+
+.rin-tea,
+.rin-happy {
+  position: absolute;
+  top: 40%;
+  right: 6px;
+  color: var(--rin-accent);
+  pointer-events: none;
+}
+
+.rin-tea {
+  padding: 8px;
+  border: 1px solid var(--rin-line);
+  border-radius: 50%;
+  background: var(--rin-paper);
+  transform: rotate(-8deg);
+}
+
+.rin-tea span {
+  position: absolute;
+  left: 18px;
+  top: -3px;
+  width: 4px;
+  height: 13px;
+  border-left: 1.5px solid var(--rin-accent);
+  border-radius: 50%;
+  animation: rin-steam 1.4s ease-out infinite;
+}
+
+.rin-tea span:last-child {
+  left: 25px;
+  animation-delay: 0.5s;
+}
+
+.rin-happy {
+  top: 16%;
+  font-size: 25px;
+  animation: rin-note 1.4s ease-in-out infinite;
+}
+
+.rin-mascot[data-reaction='happy'] .rin-preview {
+  animation: rin-greet 700ms ease-in-out;
+}
+
+.rin-mascot[data-paused='true'] *,
+.rin-mascot[data-paused='true'] *::before,
+.rin-mascot[data-paused='true'] *::after {
+  animation-play-state: paused !important;
+  transition: none !important;
+}
+
+@keyframes rin-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1);
+  }
+  50% {
+    transform: translateY(-1.5px) scaleY(1.006);
+  }
+}
+
+@keyframes rin-blink {
+  0%,
+  93%,
+  98%,
+  100% {
+    opacity: 0;
+  }
+  94%,
+  96% {
+    opacity: 1;
+  }
+}
+
+@keyframes rin-greet {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  35% {
+    transform: rotate(-2.5deg) translateY(-3px);
+  }
+  70% {
+    transform: rotate(1.5deg);
+  }
+}
+
+@keyframes rin-steam {
+  from {
+    transform: translateY(0);
+    opacity: 0.65;
+  }
+  to {
+    transform: translateY(-12px);
+    opacity: 0;
+  }
+}
+
+@keyframes rin-note {
+  0%,
+  100% {
+    transform: rotate(-8deg) translateY(0);
+  }
+  50% {
+    transform: rotate(8deg) translateY(-5px);
+  }
+}
+
+@media (max-width: 1023px) {
+  .rin-mascot {
+    width: 120px;
+  }
+  .rin-character {
+    height: 216px;
+  }
+  .rin-caption span {
+    font-size: 9px;
+  }
+  .rin-caption button {
+    min-height: 36px;
+    padding: 2px;
+  }
+  .rin-panel,
+  .rin-mascot[data-side='right'] .rin-panel {
+    bottom: calc(100% + 10px);
+    left: 0;
+    right: auto;
+  }
+  .rin-mascot[data-side='right'] .rin-panel {
+    left: auto;
+    right: min(0px, calc(100vw - 344px));
+  }
+  .rin-settings button,
+  .rin-panel-heading button {
+    min-width: 36px;
+    min-height: 36px;
+  }
+}
+
+@media (max-height: 640px) {
+  .rin-character {
+    height: 150px;
+  }
+  .rin-panel,
+  .rin-mascot[data-side='right'] .rin-panel {
+    bottom: 0;
+    max-height: calc(
+      100dvh - var(--tab-bar-height, 0px) - var(--cookie-notice-height, 0px) -
+        var(--service-worker-prompt-height, 0px) - 40px
+    );
+    overflow-y: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rin-mascot * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media print {
+  .rin-mascot {
+    display: none !important;
+  }
+}
