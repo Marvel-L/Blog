@@ -1,0 +1,313 @@
+.wave-fish-divider {
+  color: #668792;
+  user-select: none;
+}
+
+.dark .wave-fish-divider {
+  color: #8aabb8;
+}
+
+.wave-fish-divider__scene {
+  position: relative;
+  height: 80px;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+.wave-fish-divider__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.wave-fish-divider__flow {
+  transform-box: view-box;
+  animation: water-flow 14s linear infinite;
+}
+
+.wave-fish-divider__flow--back {
+  --wave-y: 0px;
+}
+
+.wave-fish-divider__flow--front {
+  --wave-y: 5px;
+  animation-duration: 10s;
+  animation-direction: reverse;
+  animation-delay: -4s;
+}
+
+.wave-fish-divider__flow--light {
+  --wave-y: 10px;
+  animation-duration: 19s;
+  animation-delay: -8s;
+}
+
+.wave-fish-divider__breath {
+  animation: water-breathe 7s ease-in-out infinite;
+}
+
+.wave-fish-divider__gleam {
+  position: absolute;
+  inset: 48% 0 7%;
+  background: radial-gradient(ellipse 100px 16px at var(--water-focus-x, 50%) 50%, #91b9c02b, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s;
+}
+
+.wave-fish-divider__scene:hover .wave-fish-divider__gleam,
+.wave-fish-divider__scene:focus-within .wave-fish-divider__gleam {
+  opacity: 1;
+}
+
+.wave-fish-divider__interaction {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wave-fish-divider__interaction:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: -4px;
+  border-radius: 8px;
+}
+
+.wave-fish-divider__hint {
+  position: absolute;
+  right: 8px;
+  bottom: 2px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  opacity: 0;
+  transform: translateY(3px);
+  transition:
+    opacity 0.3s,
+    transform 0.3s;
+  pointer-events: none;
+}
+
+.wave-fish-divider__interaction:hover .wave-fish-divider__hint,
+.wave-fish-divider__interaction:focus-visible .wave-fish-divider__hint {
+  opacity: 0.75;
+  transform: translateY(0);
+}
+
+.wave-fish-divider__event {
+  position: absolute;
+  top: 66%;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+  animation: water-event 2.15s linear both;
+}
+
+.wave-fish-divider__direction {
+  position: absolute;
+  transform: scaleX(var(--leap-direction));
+}
+
+.wave-fish-divider__travel {
+  display: block;
+  animation: water-fish-travel 1.12s linear both;
+}
+
+.wave-fish-divider__fish {
+  display: block;
+  width: 36px;
+  height: 18px;
+  margin: -9px 0 0 -18px;
+  animation: water-fish-leap 1.12s both;
+}
+
+.wave-fish-divider__tail {
+  transform-origin: -11px 0;
+  animation: water-tail 0.18s ease-in-out infinite alternate;
+}
+
+.wave-fish-divider__eye {
+  fill: #e7f4f3;
+}
+
+.wave-fish-divider__impact {
+  position: absolute;
+  --impact-delay: 0s;
+}
+
+.wave-fish-divider__impact--landing {
+  left: calc(var(--leap-distance) * var(--leap-direction));
+  --impact-delay: 1s;
+}
+
+.wave-fish-divider__ripple {
+  position: absolute;
+  left: -24px;
+  top: -4px;
+  width: 48px;
+  height: 8px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0;
+  animation: water-ripple 0.9s ease-out var(--impact-delay) both;
+}
+
+.wave-fish-divider__ripple--echo {
+  animation-delay: calc(var(--impact-delay) + 0.14s);
+}
+
+.wave-fish-divider__drop {
+  position: absolute;
+  width: 3px;
+  height: 4px;
+  border-radius: 60% 60% 50% 50%;
+  background: currentColor;
+  opacity: 0;
+  animation: water-drop 0.7s ease-out var(--impact-delay) both;
+}
+
+[data-paused='true'] .wave-fish-divider__scene *,
+[data-paused='true'] .wave-fish-divider__scene {
+  animation-play-state: paused;
+}
+
+@keyframes water-flow {
+  from {
+    transform: translate(0, var(--wave-y));
+  }
+  to {
+    transform: translate(-100%, var(--wave-y));
+  }
+}
+
+@keyframes water-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+}
+
+@keyframes water-fish-leap {
+  0% {
+    transform: translateY(5px) rotate(-38deg);
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1);
+  }
+  50% {
+    transform: translateY(calc(var(--leap-height) * -1)) rotate(0deg);
+    opacity: 0.9;
+    animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+  }
+  100% {
+    transform: translateY(9px) rotate(58deg);
+    opacity: 0;
+  }
+}
+
+@keyframes water-fish-travel {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(var(--leap-distance));
+  }
+}
+
+@keyframes water-tail {
+  from {
+    transform: rotate(-12deg) scaleY(0.75);
+  }
+  to {
+    transform: rotate(12deg) scaleY(1.1);
+  }
+}
+
+@keyframes water-ripple {
+  0% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.65;
+  }
+  100% {
+    transform: scale(2.1, 1.5);
+    opacity: 0;
+  }
+}
+
+@keyframes water-drop {
+  0% {
+    transform: translate(0, 0) scale(0.7);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.55;
+  }
+  55% {
+    transform: translate(var(--drop-x), var(--drop-y));
+    opacity: 0.45;
+  }
+  100% {
+    transform: translate(calc(var(--drop-x) * 1.35), 3px) scale(0.4);
+    opacity: 0;
+  }
+}
+
+@keyframes water-event {
+  0%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (min-width: 768px) {
+  .wave-fish-divider__scene {
+    height: 88px;
+  }
+}
+
+[data-reduced-motion='true'] .wave-fish-divider__scene * {
+  animation: none;
+}
+
+[data-reduced-motion='true'] .wave-fish-divider__event {
+  opacity: 0.45;
+}
+
+[data-reduced-motion='true'] .wave-fish-divider__ripple {
+  opacity: 0.6;
+}
+
+[data-reduced-motion='true'] .wave-fish-divider__ripple--echo {
+  transform: scale(1.4);
+}
+
+[data-reduced-motion='true'] .wave-fish-divider__drop {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wave-fish-divider__scene * {
+    animation: none !important;
+    transition: none !important;
+  }
+  .wave-fish-divider__fish,
+  .wave-fish-divider__drop {
+    display: none;
+  }
+  .wave-fish-divider__event,
+  .wave-fish-divider__ripple {
+    opacity: 0.45;
+  }
+}
