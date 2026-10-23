@@ -2,12 +2,12 @@
  * 搜索页：全文搜索独立页（q 参数驱动，带 q 时 noindex）。
  */
 
-import { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { LoaderCircle } from 'lucide-react';
 import { SearchField } from '@/components/SearchField';
 import { usePostSearch } from '@/hooks/usePostSearch';
-import type { PostSearchScope } from '@/services/posts';
+import { getSearchKeywords, type PostSearchScope } from '@/services/posts';
 import { PostCard } from '@/components/PostCard';
 import { CompactPostCard } from '@/components/CompactPostCard';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
@@ -72,6 +72,7 @@ export const Search = () => {
       scope: searchScope,
     });
   const shouldReduceMotion = useReducedMotion();
+  const searchKeywords = useMemo(() => getSearchKeywords(), []);
 
   useEffect(() => {
     // 单向同步（URL → 输入框），仅在「URL 值不是用户最近编辑产生」时生效：
@@ -183,7 +184,7 @@ export const Search = () => {
             ? isSearching && results.length === 0
               ? '正在搜索…'
               : `找到 ${results.length} 条结果`
-            : '全站文章检索'}
+            : '全站关键词检索'}
         </p>
       </header>
 
@@ -195,7 +196,7 @@ export const Search = () => {
               value={searchQuery}
               onValueChange={handleSearchChange}
               onClear={handleClearSearch}
-              placeholder="搜索标题、摘要、分类与正文内容..."
+              placeholder="输入关键词，例如：链表 反转"
               aria-label="搜索文章"
               containerClassName="max-w-2xl"
               autoFocus
@@ -233,7 +234,26 @@ export const Search = () => {
               ))}
             </div>
             <p className="mt-2 text-xs text-zinc-700 dark:text-zinc-300">{activeScopeHint}</p>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              多个关键词用空格或逗号分隔，结果需同时包含这些词。
+            </p>
           </div>
+
+          {!hasSearchQuery && searchKeywords.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="常用关键词">
+              <span className="mr-1 text-xs text-zinc-500 dark:text-zinc-400">常用关键词</span>
+              {searchKeywords.map((keyword) => (
+                <button
+                  key={keyword}
+                  type="button"
+                  onClick={() => handleSearchChange(keyword)}
+                  className="min-h-11 rounded-control border border-zinc-200 px-3 py-2 text-sm text-zinc-700 transition-colors hover:border-zinc-400 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:bg-zinc-800"
+                >
+                  {keyword}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {isSearching && results.length === 0 ? (
@@ -281,13 +301,13 @@ export const Search = () => {
                   {/* 移动端：横置扁形卡片（与阅读页「你可能还喜欢」一致的排版） */}
                   <div className="grid gap-3 sm:hidden">
                     {results.map((post) => (
-                      <CompactPostCard key={post.id} post={post} />
+                      <CompactPostCard key={post.id} post={post} searchMatch={post.searchMatch} />
                     ))}
                   </div>
                   {/* sm 及以上：三列文章卡片网格（含分享操作） */}
                   <div className="hidden grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 sm:grid">
                     {results.map((post) => (
-                      <PostCard key={post.id} post={post} onShare={setSharePost} />
+                      <PostCard key={post.id} post={post} onShare={setSharePost} searchMatch={post.searchMatch} />
                     ))}
                   </div>
                 </div>
@@ -302,7 +322,7 @@ export const Search = () => {
             ) : (
               <ContentStatus
                 title="输入关键词开始搜索"
-                description="支持按标题、标签、分类、摘要与正文内容搜索，回车或点击结果即可打开文章。"
+                description="输入关键词或点击常用关键词，搜索标题、标签、分类、摘要与正文。点击结果阅读文章。"
               />
             )}
           </div>

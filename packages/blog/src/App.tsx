@@ -34,7 +34,6 @@ const Watermark = lazy(pageLoaders['/watermark']);
 const ImageCompress = lazy(pageLoaders['/image-compress']);
 const SearchPage = lazy(pageLoaders['/search']);
 const TbdPostsPage = lazy(pageLoaders['/tbd']);
-const RoadPage = lazy(pageLoaders['/road']);
 const AccumulatePage = lazy(pageLoaders['/accumulate']);
 const NotFound = lazy(() => import('./pages/NotFound').then((m) => ({ default: m.NotFound })));
 const CookieNotice = lazy(() => import('./components/CookieNotice').then((m) => ({ default: m.CookieNotice })));
@@ -158,7 +157,6 @@ const AppRoutes: React.FC = () => {
           <Route path="/shuoshuo/:id" element={<ShuoShuoDetailPage />} />
           <Route path="/guestbook" element={<GuestbookPage />} />
           <Route path="/about" element={<About />} />
-          <Route path="/road" element={<RoadPage />} />
           <Route path="/accumulate" element={<AccumulatePage />} />
           <Route path="/cover" element={<CoverGenerator />} />
           <Route path="/watermark" element={<Watermark />} />

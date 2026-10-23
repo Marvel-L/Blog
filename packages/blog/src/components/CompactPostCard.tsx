@@ -13,6 +13,8 @@ import { preloadPage } from '@/utils/preload';
 import { CoverSheen, RankBadge, flashSurfaceProps } from '@/components/RankFlash';
 import { isPostRank } from '@/utils/postRank';
 import { getCoverObjectFit } from '@/utils/coverImageFit';
+import type { PostSearchResult } from '@/services/posts';
+import { KeywordHighlight, SearchMatchPreview } from './SearchMatchPreview';
 
 const formatMetaDate = (dateText?: string) => {
   if (!dateText) {
@@ -28,9 +30,10 @@ const formatMetaDate = (dateText?: string) => {
 
 interface CompactPostCardProps {
   post: PostMetadata;
+  searchMatch?: PostSearchResult['searchMatch'];
 }
 
-export const CompactPostCard: React.FC<CompactPostCardProps> = ({ post }) => {
+export const CompactPostCard: React.FC<CompactPostCardProps> = ({ post, searchMatch }) => {
   const flash = flashSurfaceProps(post.rank, 'card');
   const coverObjectFit = getCoverObjectFit(post.coverWidth, post.coverHeight);
   const coverImageClass = `h-full w-full ${coverObjectFit === 'contain' ? 'object-contain' : 'object-cover'}`;
@@ -43,7 +46,7 @@ export const CompactPostCard: React.FC<CompactPostCardProps> = ({ post }) => {
       onPointerLeave={flash.onPointerLeave}
       className={`${
         post.coverImage
-          ? 'group flex h-24 overflow-hidden rounded-surface border border-zinc-200 bg-white transition-colors hover:border-zinc-500 focus-visible:border-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600 dark:focus-visible:border-zinc-500 sm:block sm:h-auto'
+          ? `group flex ${searchMatch ? 'min-h-24' : 'h-24'} overflow-hidden rounded-surface border border-zinc-200 bg-white transition-colors hover:border-zinc-500 focus-visible:border-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600 dark:focus-visible:border-zinc-500 sm:block sm:h-auto`
           : 'group block overflow-hidden rounded-surface border border-zinc-200 bg-white transition-colors hover:border-zinc-500 focus-visible:border-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600 dark:focus-visible:border-zinc-500'
       } ${flash.className}`}
     >
@@ -69,11 +72,15 @@ export const CompactPostCard: React.FC<CompactPostCardProps> = ({ post }) => {
           <span className="shrink-0 normal-case tracking-normal">{formatMetaDate(post.date)}</span>
         </div>
         <h3 className="line-clamp-2 text-sm font-semibold leading-relaxed text-zinc-800 group-hover:text-black dark:text-zinc-200 dark:group-hover:text-white">
-          {post.title}
+          {searchMatch ? <KeywordHighlight text={post.title} terms={searchMatch.terms} /> : post.title}
         </h3>
-        <p className="mt-0.5 line-clamp-1 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400 sm:mt-2 sm:line-clamp-2">
-          {post.excerpt}
-        </p>
+        {searchMatch ? (
+          <SearchMatchPreview match={searchMatch} />
+        ) : (
+          <p className="mt-0.5 line-clamp-1 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400 sm:mt-2 sm:line-clamp-2">
+            {post.excerpt}
+          </p>
+        )}
       </div>
     </Link>
   );

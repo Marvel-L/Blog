@@ -1,7 +1,28 @@
 import { describe, it, expect } from 'vitest';
 import type { PostMetadata } from '../types';
 import { getDateTimestamp } from '@/utils/date';
-import { getFieldMatchScore, getInitialPosts, getPostById, getPosts, normalizeSearchText, searchPosts } from './posts';
+import {
+  getFieldMatchScore,
+  getInitialPosts,
+  getPostById,
+  getPosts,
+  getSearchKeywords,
+  normalizeSearchText,
+  searchPosts,
+} from './posts';
+
+describe('getSearchKeywords', () => {
+  it('同篇标签与分类去重，大小写和全角归一化后按文章数推荐', () => {
+    const posts = [
+      { category: 'Golang', tags: ['Ｇｏｌａｎｇ', '链表', '', 'x'] },
+      { category: '算法', tags: ['golang', '链表'] },
+      { category: '算法', tags: ['树'] },
+    ] as PostMetadata[];
+    expect(getSearchKeywords(posts, 3)).toEqual(['Golang', '链表', '算法']);
+    expect(getSearchKeywords(posts, 0)).toEqual([]);
+    expect(getSearchKeywords([])).toEqual([]);
+  });
+});
 
 /**
  * 搜索逻辑测试。
@@ -166,6 +187,23 @@ describe('searchPosts 排序与匹配', () => {
   it('部分词缺失时返回空', async () => {
     const results = await searchPosts('zzzz-不存在的词-qqqq-另外一个');
     expect(results).toEqual([]);
+  });
+
+  it('逗号、顿号、分号和空格分隔的关键词返回相同结果，重复关键词不影响排序', async () => {
+    const post = getInitialPosts()[0];
+    const terms = [post.category, post.tags.find((tag) => tag !== post.category) ?? post.title];
+    const expected = await searchPosts(terms.join(' '));
+    expect(expected.some((result) => result.id === post.id)).toBe(true);
+    for (const separator of [',', '，', '、', ';', '；']) {
+      expect((await searchPosts(terms.join(separator))).map((result) => result.id)).toEqual(
+        expected.map((result) => result.id),
+      );
+    }
+    expect((await searchPosts([...terms, terms[0]].join(' '))).map((result) => result.id)).toEqual(
+      expected.map((result) => result.id),
+    );
+    expect(await searchPosts(`${terms[0]},zzzzMissingKeywordqqqq`)).toEqual([]);
+    expect(await searchPosts(' ， 、 ; ')).toEqual([]);
   });
 
   it('同分结果按日期倒序（dateTimestamp 本地时区口径回归）', async () => {

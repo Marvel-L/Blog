@@ -27,7 +27,6 @@ import {
   MessageSquareText,
   MessageCircle,
   LayoutGrid,
-  Map as MapIcon,
   Library,
   Sparkles,
   Smile,
@@ -82,7 +81,6 @@ const TEXT = {
   navGuestbook: '留言',
   navShuoShuo: '说说',
   navAbout: '关于',
-  navRoad: 'Road',
   navAccumulate: '积累',
   rssFeed: 'RSS 订阅',
 };
@@ -110,7 +108,6 @@ const navItems: NavPathItem[] = [
   { path: '/tags', label: TEXT.navTags, hint: '主题筛选', icon: Tag },
   { path: '/stats', label: TEXT.navStats, hint: '站点数据', icon: BarChart3 },
   { path: '/trend', label: 'Trend', hint: '数据趋势与比较', icon: TrendingUp },
-  { path: '/road', label: TEXT.navRoad, hint: '学习路线图', icon: MapIcon },
   { path: '/accumulate', label: TEXT.navAccumulate, hint: '卡片式积累', icon: Library },
   { path: '/about', label: TEXT.navAbout, hint: '站点介绍', icon: Info },
 ];
@@ -1634,7 +1631,7 @@ interface LayoutProps {
 }
 
 const routeShellVariants = routeTransition;
-const PARTICLE_FRONT_ROUTES = new Set(['/', '/shuoshuo', '/stats', '/road', '/about', '/accumulate']);
+const PARTICLE_FRONT_ROUTES = new Set(['/', '/shuoshuo', '/stats', '/about', '/accumulate']);
 
 const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => {
   const location = useLocation();

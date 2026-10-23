@@ -4,6 +4,7 @@
 
 | 文档 | 内容 |
 | --- | --- |
+| [features/search.md](features/search.md) | 关键词快捷检索、命中片段与 Road 功能清理 |
 | [features/book.md](features/book.md) | Book 3D 分类书架、预览与后续批次状态 |
 | [features/trend.md](features/trend.md) | Trend 数据比较、阈值配色、本地保存与账号同步 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 部署拓扑、package 边界、架构决策与迁移条件 |

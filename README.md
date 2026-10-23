@@ -12,6 +12,13 @@
 
 详见 `ai-rules/post.md`。
 
+## 关键词搜索
+
+导航搜索按钮、`Ctrl+K` / `⌘K` 或移动端「搜索」进入 `/search`。支持按标题、标签、分类、摘要和正文检索；
+多个关键词用空格、逗号、顿号或分号分隔，例如 `链表 反转`，结果需同时命中所有词。
+搜索页提供基于公开文章标签与分类的常用关键词，结果展示命中位置和高亮片段。
+查询与搜索范围保存在 URL 中，可刷新或分享；GitHub Pages 和云端共用同一套搜索。
+
 ## 本地图片压缩
 
 `npm run dev` / `npm run build`（经 `gen:data`）会幂等压缩 `posts/`、`shuoshuo/`、`Summary/` 旁路 jpg/png/webp；已记录在 `config/image-compress-manifest.json` 的文件不会重压。也可单独执行 `npm run compress:images`。

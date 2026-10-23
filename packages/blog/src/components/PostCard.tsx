@@ -14,6 +14,8 @@ import { isPinnedFeaturedPost } from '@/utils/postSelection';
 import { CoverSheen, RankBadge, flashSurfaceProps } from '@/components/RankFlash';
 import { isPostRank } from '@/utils/postRank';
 import { getCoverObjectFit } from '@/utils/coverImageFit';
+import type { PostSearchResult } from '@/services/posts';
+import { KeywordHighlight, SearchMatchPreview } from './SearchMatchPreview';
 
 // 组件 props 类型（全仓库仅本文件使用，不导出避免公共 API 承诺）。
 interface PostCardProps {
@@ -23,6 +25,7 @@ interface PostCardProps {
   getPostHref?: (post: PostMetadata) => string;
   getTagHref?: (tag: string) => string | null;
   onNavigatePost?: (post: PostMetadata) => void;
+  searchMatch?: PostSearchResult['searchMatch'];
 }
 
 /**
@@ -72,6 +75,7 @@ const PostCardImpl: React.FC<PostCardProps> = ({
   getPostHref,
   getTagHref,
   onNavigatePost,
+  searchMatch,
 }) => {
   const flash = flashSurfaceProps(post.rank, 'card');
   const postHref = getPostHref ? getPostHref(post) : `/post/${post.id}`;
@@ -135,12 +139,18 @@ const PostCardImpl: React.FC<PostCardProps> = ({
             </div>
             <Link to={postHref} onClick={handlePostNavigate} aria-label={`阅读文章：${post.title}`}>
               <h2 className="mb-2 text-xl md:mb-3 font-bold leading-tight text-ink hover:underline dark:text-white md:text-3xl">
-                {post.title}
+                {searchMatch ? <KeywordHighlight text={post.title} terms={searchMatch.terms} /> : post.title}
               </h2>
             </Link>
-            <p className="mb-3 line-clamp-3 text-sm leading-5 md:mb-4 md:leading-6 text-zinc-600 dark:text-zinc-300">
-              {post.excerpt}
-            </p>
+            {searchMatch ? (
+              <div className="mb-3 md:mb-4">
+                <SearchMatchPreview match={searchMatch} />
+              </div>
+            ) : (
+              <p className="mb-3 line-clamp-3 text-sm leading-5 md:mb-4 md:leading-6 text-zinc-600 dark:text-zinc-300">
+                {post.excerpt}
+              </p>
+            )}
             <PostCardTags tags={post.tags} getTagHref={getTagHref} />
             <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-zinc-200 pt-3 text-xs md:pt-4 text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 md:mt-auto">
               <span className="flex items-center gap-1.5">
@@ -218,10 +228,18 @@ const PostCardImpl: React.FC<PostCardProps> = ({
           </div>
           <Link to={postHref} onClick={handlePostNavigate} aria-label={`阅读文章：${post.title}`}>
             <h3 className="mb-1.5 line-clamp-2 min-h-11 text-base font-bold leading-snug text-ink hover:underline dark:text-zinc-100 md:mb-2 md:text-lg">
-              {post.title}
+              {searchMatch ? <KeywordHighlight text={post.title} terms={searchMatch.terms} /> : post.title}
             </h3>
           </Link>
-          <p className="mb-2 line-clamp-1 text-sm leading-5 text-zinc-600 md:mb-3 dark:text-zinc-300">{post.excerpt}</p>
+          {searchMatch ? (
+            <div className="mb-2 md:mb-3">
+              <SearchMatchPreview match={searchMatch} />
+            </div>
+          ) : (
+            <p className="mb-2 line-clamp-1 text-sm leading-5 text-zinc-600 md:mb-3 dark:text-zinc-300">
+              {post.excerpt}
+            </p>
+          )}
           <PostCardTags tags={post.tags} getTagHref={getTagHref} />
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-zinc-200 pt-2.5 text-[11px] md:mt-4 md:pt-3 text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
             <span className="flex items-center gap-1">

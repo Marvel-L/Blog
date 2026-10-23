@@ -86,13 +86,10 @@ describe('Layout', () => {
     siteConfig.loveMode = { personName: '' };
   });
 
-  it.each(['/', '/shuoshuo', '/stats', '/road', '/about', '/accumulate'])(
-    '页面 %s 把氛围粒子抬到阅读区之上',
-    (pathname) => {
-      renderLayout([pathname]);
-      expect(document.querySelector('.site-shell')).toHaveAttribute('data-particle-front', 'true');
-    },
-  );
+  it.each(['/', '/shuoshuo', '/stats', '/about', '/accumulate'])('页面 %s 把氛围粒子抬到阅读区之上', (pathname) => {
+    renderLayout([pathname]);
+    expect(document.querySelector('.site-shell')).toHaveAttribute('data-particle-front', 'true');
+  });
 
   it('未列入白名单的页面不抬高氛围粒子', () => {
     renderLayout(['/archive']);

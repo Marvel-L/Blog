@@ -20,7 +20,6 @@ const DEFAULT_STATIC_ROUTES = new Set([
   '/shuoshuo',
   '/guestbook',
   '/about',
-  '/road',
   '/accumulate',
   '/cover',
   '/watermark',

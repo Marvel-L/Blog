@@ -34,7 +34,38 @@ const loadPostsSearchData = async (): Promise<Array<PostMetadata & { searchText?
 // 导出供测试复刻同一匹配口径（posts.test.ts 的「标题不含查询词」前提判定）。
 export const normalizeSearchText = (value: string) => value.normalize('NFKC').toLowerCase().trim().replace(/\s+/g, ' ');
 
-const splitSearchTerms = (value: string) => normalizeSearchText(value).split(' ').filter(Boolean);
+const splitSearchTerms = (value: string) =>
+  Array.from(
+    new Set(
+      normalizeSearchText(value)
+        .split(/[\s,、;]+/)
+        .filter(Boolean),
+    ),
+  );
+
+/** 从公开文章的标签和分类提取常用关键词；每篇文章对同一个词只计一次。 */
+export const getSearchKeywords = (posts: PostMetadata[] = initialPosts, limit = 8): string[] => {
+  const keywords = new Map<string, { label: string; count: number }>();
+
+  posts.forEach((post) => {
+    const seen = new Set<string>();
+    [post.category, ...post.tags].forEach((label) => {
+      const trimmedLabel = label.trim();
+      const key = normalizeSearchText(trimmedLabel);
+      if (key.length < 2 || key.length > 24 || seen.has(key)) {
+        return;
+      }
+      seen.add(key);
+      const existing = keywords.get(key);
+      keywords.set(key, { label: existing?.label ?? trimmedLabel, count: (existing?.count ?? 0) + 1 });
+    });
+  });
+
+  return Array.from(keywords.values())
+    .sort((left, right) => right.count - left.count)
+    .slice(0, Math.max(0, limit))
+    .map(({ label }) => label);
+};
 
 interface SearchIndexEntry {
   post: PostMetadata;
@@ -288,6 +319,7 @@ const getBestSearchMatch = (
 
 /**
  * 全文搜索：对标题/分类/摘要/正文/标签做多维权重评分（scope 可限定搜索域），
+ * 多关键词支持空格、逗号、顿号或分号分隔，全部命中才返回。
  * 结果按分数降序、日期倒序，并带命中片段（searchMatch）；结果按
  * scope::query 键做 LRU 缓存。空查询返回空数组。
  */
@@ -297,8 +329,9 @@ export const searchPosts = async (
 ): Promise<PostSearchResult[]> => {
   const normalizedQuery = normalizeSearchText(query);
   const scope = options.scope ?? 'all';
+  const searchTerms = splitSearchTerms(normalizedQuery);
 
-  if (!normalizedQuery) {
+  if (searchTerms.length === 0) {
     return [];
   }
 
@@ -311,7 +344,6 @@ export const searchPosts = async (
   }
 
   const allPosts = await loadPostsSearchIndex();
-  const searchTerms = splitSearchTerms(normalizedQuery);
   const results: SearchResult[] = [];
 
   allPosts.forEach((entry) => {

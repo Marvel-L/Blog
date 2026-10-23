@@ -1711,16 +1711,6 @@ html.dark .mermaid-diagram > svg {
   }
 }
 
-/* Road 画布：稀疏点阵底，接近 Obsidian Graph 的干净感 */
-.road-canvas-grid {
-  background-image: radial-gradient(circle at 1px 1px, rgb(113 113 122 / 0.22) 1px, transparent 0);
-  background-size: 20px 20px;
-}
-
-html.dark .road-canvas-grid {
-  background-image: radial-gradient(circle at 1px 1px, rgb(161 161 170 / 0.16) 1px, transparent 0);
-}
-
 /* ===== 文章分级闪卡 =====
    未写 rank 的文章不挂这些类。光泽只走描边和封面，正文保持实底，避免闪面压低阅读对比度。
    --flash-x / --flash-y 由指针写入；无指针时缓慢漂移。减少动效时停在静态金属边。 */

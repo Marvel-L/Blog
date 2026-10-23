@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom';
 import { Search } from './Search';
-import { searchPosts } from '@/services/posts';
+import { searchPosts, type PostSearchResult } from '@/services/posts';
 import type { PostMetadata } from '@/types';
 
 // URL 探针：MemoryRouter 不更新 window.location，断言搜索参数必须经
@@ -27,10 +27,14 @@ const mockPost: PostMetadata = {
 };
 
 vi.mock('@/components/PostCard', () => ({
-  PostCard: () => <div data-testid="mock-post-card" />,
+  PostCard: ({ searchMatch }: { searchMatch?: PostSearchResult['searchMatch'] }) => (
+    <div data-testid="mock-post-card">{searchMatch?.snippet}</div>
+  ),
 }));
 vi.mock('@/components/CompactPostCard', () => ({
-  CompactPostCard: () => <div data-testid="mock-compact-post-card" />,
+  CompactPostCard: ({ searchMatch }: { searchMatch?: PostSearchResult['searchMatch'] }) => (
+    <div data-testid="mock-compact-post-card">{searchMatch?.snippet}</div>
+  ),
 }));
 vi.mock('@/services/busuanzi', () => ({
   pingBusuanzi: vi.fn(),
@@ -38,6 +42,7 @@ vi.mock('@/services/busuanzi', () => ({
 }));
 vi.mock('@/services/posts', () => ({
   searchPosts: vi.fn(),
+  getSearchKeywords: () => ['链表', 'Golang'],
 }));
 
 const renderSearch = (initialEntry = '/search') =>
@@ -152,5 +157,34 @@ describe('Search', () => {
     });
     expect(screen.getAllByTestId('mock-post-card')).toHaveLength(1);
     expect(searchPosts).toHaveBeenCalledWith('react', { scope: 'all' });
+  });
+
+  it('点击常用关键词开始搜索，写入 URL 并保留搜索范围', async () => {
+    const user = userEvent.setup();
+    renderSearch('/search?scope=content');
+    await user.click(screen.getByRole('button', { name: '链表' }));
+
+    expect(screen.getByRole('searchbox', { name: '搜索文章' })).toHaveValue('链表');
+    await waitFor(() => {
+      const params = new URLSearchParams(probeSearch);
+      expect(params.get('q')).toBe('链表');
+      expect(params.get('scope')).toBe('content');
+      expect(searchPosts).toHaveBeenCalledWith('链表', { scope: 'content' });
+    });
+    expect(screen.queryByRole('group', { name: '常用关键词' })).not.toBeInTheDocument();
+  });
+
+  it('正文命中片段传给桌面和移动端结果卡片', async () => {
+    vi.mocked(searchPosts).mockResolvedValue([
+      {
+        ...mockPost,
+        searchMatch: { field: 'content', label: '正文', snippet: '用 React.memo 避免重复渲染', terms: ['react'] },
+      },
+    ]);
+    renderSearch('/search?q=react&scope=content');
+    await waitFor(() => {
+      expect(screen.getByTestId('mock-post-card')).toHaveTextContent('用 React.memo 避免重复渲染');
+      expect(screen.getByTestId('mock-compact-post-card')).toHaveTextContent('用 React.memo 避免重复渲染');
+    });
   });
 });
