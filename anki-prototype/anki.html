@@ -1,0 +1,2279 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Anki · 我的记忆卡片</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%232b6660'/%3E%3Cpath d='M10 28L20 10L30 28M14 22H26' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E"
+    />
+    <style>
+      /* ===== 基础色板：沿用博客纸面底色；青绿仅用于学习动作 ===== */
+      :root {
+        --paper: #f2f0e9;
+        --surface: #fffefb;
+        --ink: #1c1917;
+        --muted: #6c706c;
+        --line: #dedfd8;
+        --accent: #2b6660;
+        --soft: #e6efeb;
+        --error: #a44b46;
+        --warning: #946b26;
+        --shadow: 0 18px 45px #1c191709;
+        color-scheme: light;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font:
+          15px/1.65 'PingFang SC',
+          'Microsoft YaHei',
+          system-ui,
+          sans-serif;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+      button,
+      a,
+      input,
+      select,
+      textarea {
+        touch-action: manipulation;
+      }
+      button,
+      a {
+        -webkit-tap-highlight-color: transparent;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+      button {
+        color: inherit;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      button:focus-visible,
+      a:focus-visible,
+      input:focus-visible,
+      textarea:focus-visible,
+      select:focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 3px;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font-size: 28px;
+        line-height: 1.3;
+        letter-spacing: -0.04em;
+      }
+      h2 {
+        font-size: 20px;
+        line-height: 1.4;
+      }
+      h3 {
+        font-size: 18px;
+        line-height: 1.4;
+      }
+      small,
+      .small {
+        font-size: 14px;
+        color: var(--muted);
+      }
+      [hidden] {
+        display: none !important;
+      }
+      svg {
+        vertical-align: middle;
+        flex-shrink: 0;
+      }
+      .icon {
+        width: 20px;
+        height: 20px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .serif {
+        font-family: 'Songti SC', 'STSong', Georgia, serif;
+      }
+      button {
+        border: 0;
+        background: none;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 44px;
+        padding: 10px 17px;
+        border-radius: 9px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        font-weight: 550;
+        white-space: normal;
+      }
+      .btn:hover {
+        border-color: var(--accent);
+      }
+      .btn.primary {
+        background: var(--accent);
+        color: white;
+        border-color: var(--accent);
+      }
+      .btn.text {
+        border-color: transparent;
+        background: transparent;
+      }
+      .icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--surface);
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .accent {
+        color: var(--accent);
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 18px;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
+        gap: 12px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 23px;
+        font-weight: 650;
+      }
+      .mark {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: var(--accent);
+        color: white;
+        display: grid;
+        place-items: center;
+        font-family: Georgia, serif;
+        font-weight: 700;
+      }
+      .brand .slash {
+        color: #bfc1b9;
+        font-weight: 400;
+      }
+      .brand .blog {
+        font:
+          22px Georgia,
+          serif;
+      }
+      .top-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .top-actions .desktop {
+        display: none;
+      }
+      .demo-label {
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .notice {
+        padding: 8px 18px;
+        background: var(--soft);
+        color: #36534c;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .shell {
+        display: block;
+      }
+      .sidebar {
+        background: var(--paper);
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--line);
+      }
+      .nav {
+        display: flex;
+        gap: 5px;
+      }
+      .nav button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 10px;
+        min-height: 44px;
+        border-radius: 8px;
+        flex: 1;
+        font-weight: 550;
+        white-space: nowrap;
+      }
+      .nav button.active {
+        background: var(--soft);
+        color: var(--accent);
+      }
+      .nav button:hover {
+        background: var(--soft);
+      }
+      .side-section {
+        display: none;
+      }
+      .workspace {
+        padding: 25px 18px 40px;
+        min-width: 0;
+        max-width: 1480px;
+        width: 100%;
+        margin: auto;
+      }
+      .heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 24px;
+      }
+      .heading p {
+        margin-top: 7px;
+        color: var(--muted);
+      }
+      .heading .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .heading {
+        flex-wrap: wrap;
+      }
+      .stats-strip {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        margin-bottom: 26px;
+      }
+      .metric {
+        padding: 18px;
+        border-right: 1px solid var(--line);
+      }
+      .metric:nth-child(2n) {
+        border-right: 0;
+      }
+      .metric:nth-child(-n + 2) {
+        border-bottom: 1px solid var(--line);
+      }
+      .metric .value {
+        font-size: 28px;
+        font-weight: 650;
+        line-height: 1.3;
+        font-variant-numeric: tabular-nums;
+      }
+      .metric .value span {
+        font-size: 14px;
+        font-weight: 400;
+        color: var(--muted);
+        margin-left: 5px;
+      }
+      .metric .label {
+        font-size: 14px;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+      .section-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .section-title p {
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .overview-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 25px;
+      }
+      .daily-card {
+        background: var(--accent);
+        color: #fff;
+        border-radius: 13px;
+        padding: 25px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+      .daily-card p,
+      .daily-card small {
+        color: #dfede7;
+      }
+      .daily-card h2 {
+        font-size: 25px;
+      }
+      .daily-card .daily-number {
+        font-size: 44px;
+        line-height: 1.15;
+        font-weight: 650;
+        font-variant-numeric: tabular-nums;
+      }
+      .daily-card .daily-number span {
+        font-size: 15px;
+        font-weight: 400;
+        color: #dfede7;
+      }
+      .daily-card .btn {
+        background: #fff;
+        color: var(--accent);
+        border: 0;
+        width: 100%;
+      }
+      .daily-card .progress-track {
+        background: #ffffff24;
+      }
+      .daily-card .progress-fill {
+        background: #e4f0de;
+      }
+      .progress-track {
+        height: 7px;
+        background: var(--line);
+        border-radius: 20px;
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        background: var(--accent);
+        border-radius: 20px;
+      }
+      .progress-caption {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--muted);
+        margin: 10px 0 7px;
+      }
+      .daily-card .progress-caption {
+        color: #dfede7;
+      }
+      .deck-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 14px;
+      }
+      .deck {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 22px;
+        min-width: 0;
+      }
+      .deck-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 12px;
+      }
+      .deck-icon {
+        background: var(--soft);
+        color: var(--accent);
+        width: 40px;
+        height: 40px;
+        display: grid;
+        place-items: center;
+        border-radius: 9px;
+      }
+      .deck-count {
+        font-variant-numeric: tabular-nums;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .deck h3 {
+        margin-top: 15px;
+      }
+      .deck .description {
+        min-height: 44px;
+        font-size: 14px;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+      .tag {
+        display: inline-block;
+        background: var(--paper);
+        padding: 2px 9px;
+        border-radius: 5px;
+        font-size: 14px;
+        color: var(--muted);
+        margin-top: 12px;
+      }
+      .deck-foot {
+        border-top: 1px solid var(--line);
+        margin-top: 17px;
+        padding-top: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .deck-foot .btn {
+        min-width: 80px;
+        padding: 9px 13px;
+      }
+      .filters {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+      }
+      .filter {
+        min-height: 44px;
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        font-size: 14px;
+        background: transparent;
+      }
+      .filter.active {
+        color: var(--accent);
+        background: var(--soft);
+        border-color: #b4cec3;
+      }
+      .search {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--surface);
+        padding: 0 12px;
+        min-height: 44px;
+        width: 100%;
+        margin: 0 0 15px;
+      }
+      .search input {
+        border: 0;
+        background: transparent;
+        width: 100%;
+        outline: 0;
+        min-width: 0;
+        font-size: 16px;
+        color: var(--ink);
+      }
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--surface);
+        padding: 22px;
+      }
+      .aside-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 17px;
+      }
+      .chart-bars {
+        height: 142px;
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+        border-bottom: 1px solid var(--line);
+        padding-top: 15px;
+      }
+      .bar-column {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: center;
+        height: 100%;
+        gap: 4px;
+      }
+      .bar-column .bar {
+        width: 100%;
+        max-width: 27px;
+        min-height: 2px;
+        background: #d8e4dd;
+        border-radius: 4px 4px 0 0;
+      }
+      .bar-column.today .bar {
+        background: var(--accent);
+      }
+      .bar-column .count {
+        font-size: 14px;
+        line-height: 1.1;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .chart-labels {
+        display: flex;
+        gap: 10px;
+        margin-top: 8px;
+      }
+      .chart-labels span {
+        flex: 1;
+        text-align: center;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .chart-caption {
+        font-size: 14px;
+        color: var(--muted);
+        margin-top: 12px;
+      }
+      .hint-list {
+        list-style: none;
+        padding: 0;
+        margin: 14px 0 0;
+        display: grid;
+        gap: 13px;
+      }
+      .hint-list li {
+        display: flex;
+        gap: 12px;
+      }
+      .step-dot {
+        border: 1px solid var(--line);
+        width: 26px;
+        height: 26px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+      .review-wrap {
+        max-width: 850px;
+        margin: auto;
+      }
+      .review-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .review-meta {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .flashcard {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        padding: 25px 22px;
+        min-height: 310px;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: center;
+        text-align: center;
+        position: relative;
+      }
+      .flashcard .q-label {
+        color: var(--accent);
+        font:
+          italic 29px Georgia,
+          serif;
+        margin-bottom: 14px;
+      }
+      .question {
+        font-size: 26px;
+        font-weight: 600;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .answer {
+        margin-top: 24px;
+        border-top: 1px dashed var(--line);
+        padding-top: 24px;
+        text-align: left;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .answer-label {
+        font-size: 14px;
+        color: var(--accent);
+        margin-bottom: 9px;
+      }
+      .answer p {
+        font-size: 17px;
+      }
+      .card-number {
+        font-size: 14px;
+        color: var(--muted);
+        margin-top: 22px;
+      }
+      .reveal {
+        margin-top: 22px;
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+      .reveal .btn {
+        width: 100%;
+        max-width: 340px;
+      }
+      .ratings {
+        margin-top: 20px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 9px;
+      }
+      .rating {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 14px 8px;
+        min-height: 76px;
+        text-align: center;
+      }
+      .rating strong {
+        display: block;
+        font-size: 17px;
+      }
+      .rating small {
+        display: block;
+        font-size: 14px;
+        margin-top: 4px;
+      }
+      .rating.wrong {
+        color: var(--error);
+        border-color: #dbbbb6;
+      }
+      .rating.blur {
+        color: var(--warning);
+        border-color: #d8c9aa;
+      }
+      .rating.good {
+        color: var(--accent);
+        border-color: #b4cec3;
+      }
+      .rating:hover {
+        background: var(--soft);
+      }
+      .rating.wrong:hover {
+        background: #f8ece9;
+      }
+      .rating.blur:hover {
+        background: #f9f1e3;
+      }
+      .rating-switch {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 19px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .custom {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-top: 14px;
+      }
+      .custom input {
+        width: 100px;
+      }
+      .empty {
+        padding: 38px 20px;
+        text-align: center;
+        border: 1px dashed var(--line);
+        border-radius: 12px;
+        background: var(--surface);
+      }
+      .empty h2 {
+        margin-bottom: 12px;
+      }
+      .empty p {
+        color: var(--muted);
+        margin-bottom: 19px;
+      }
+      .card-list {
+        display: grid;
+        gap: 12px;
+      }
+      .record {
+        padding: 20px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 11px;
+      }
+      .record-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        align-items: start;
+      }
+      .record-q {
+        font-size: 17px;
+        font-weight: 550;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .record-meta {
+        font-size: 14px;
+        color: var(--muted);
+        display: flex;
+        gap: 12px;
+        margin: 9px 0;
+        flex-wrap: wrap;
+      }
+      .record-answer {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        padding: 14px;
+        background: var(--paper);
+        border-radius: 8px;
+        margin-top: 12px;
+      }
+      .record .btn {
+        font-size: 14px;
+      }
+      .stage-track {
+        display: flex;
+        height: 10px;
+        border-radius: 10px;
+        overflow: hidden;
+        background: var(--line);
+        margin: 15px 0 11px;
+      }
+      .stage-new {
+        background: #d9d8ce;
+      }
+      .stage-learning {
+        background: #b0cabe;
+      }
+      .stage-stable {
+        background: var(--accent);
+      }
+      .legend {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .legend span {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        background: var(--accent);
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .statistics-grid {
+        display: grid;
+        gap: 20px;
+      }
+      .big-bars {
+        height: 210px;
+      }
+      .days-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 5px;
+        margin-top: 15px;
+      }
+      .day {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        min-height: 60px;
+        padding: 5px 1px;
+        background: var(--paper);
+        text-align: center;
+        font-size: 14px;
+      }
+      .day strong {
+        display: block;
+      }
+      .day.reviewed {
+        background: var(--soft);
+        border-color: #b4cec3;
+      }
+      .day.selected {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+      }
+      .date-field {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .date-field input {
+        min-width: 0;
+        max-width: 100%;
+      }
+      .summary-rating {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin: 14px 0;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+      }
+      .summary-rating div {
+        text-align: center;
+        padding: 16px 8px;
+      }
+      .summary-rating strong {
+        display: block;
+        font-size: 27px;
+      }
+      .summary-rating small {
+        display: block;
+      }
+      .center-gate {
+        max-width: 500px;
+        margin: 65px auto;
+        text-align: center;
+      }
+      .center-gate .mark {
+        margin: 0 auto 20px;
+        width: 58px;
+        height: 58px;
+        font-size: 30px;
+      }
+      .center-gate p {
+        margin: 15px 0 25px;
+        color: var(--muted);
+      }
+      .home-nav {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+      }
+      .home-nav .btn {
+        min-height: 44px;
+      }
+      .home-hero {
+        max-width: 900px;
+        margin: 30px auto;
+      }
+      .home-hero h1 {
+        font-size: 42px;
+      }
+      .home-hero .panel {
+        margin-top: 27px;
+      }
+      .home-entry {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        align-items: center;
+        background: var(--soft);
+        border: 1px solid #b4cec3;
+        border-radius: 13px;
+        padding: 24px;
+        margin-top: 28px;
+        flex-wrap: wrap;
+      }
+      .home-entry p {
+        max-width: 510px;
+      }
+      .dialog {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--ink);
+        border-radius: 15px;
+        width: calc(100% - 28px);
+        max-width: 580px;
+        max-height: 90dvh;
+        padding: 0;
+        box-shadow: 0 25px 90px #0003;
+      }
+      .dialog::backdrop {
+        background: #1c191755;
+      }
+      .dialog-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 19px 22px;
+        border-bottom: 1px solid var(--line);
+      }
+      .dialog form {
+        padding: 22px;
+      }
+      .field {
+        display: block;
+        margin-bottom: 17px;
+      }
+      .field span {
+        display: block;
+        font-weight: 550;
+        margin-bottom: 7px;
+      }
+      .field small {
+        display: block;
+        margin-top: 6px;
+      }
+      input,
+      select,
+      textarea {
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 10px 12px;
+        background: var(--surface);
+        color: var(--ink);
+        font-size: 16px;
+      }
+      textarea {
+        resize: vertical;
+        width: 100%;
+        min-height: 105px;
+      }
+      .field input,
+      .field select {
+        width: 100%;
+      }
+      .form-actions {
+        display: flex;
+        gap: 9px;
+        justify-content: flex-end;
+        margin-top: 24px;
+      }
+      .error-box {
+        color: var(--error);
+        font-size: 14px;
+        margin-bottom: 12px;
+      }
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--ink);
+        color: var(--surface);
+        border-radius: 9px;
+        max-width: calc(100% - 30px);
+        width: max-content;
+        padding: 12px 20px;
+        font-size: 14px;
+        z-index: 100;
+        box-shadow: var(--shadow);
+      }
+      .storage-warning {
+        background: #fbece7;
+        padding: 12px 18px;
+        color: var(--error);
+        font-size: 14px;
+      }
+      .completion {
+        padding: 50px 20px;
+        text-align: center;
+      }
+      .completion .mark {
+        margin: 0 auto 20px;
+        width: 54px;
+        height: 54px;
+      }
+      .completion h1 {
+        margin-bottom: 10px;
+      }
+      .completion p {
+        margin: 15px 0 22px;
+        color: var(--muted);
+      }
+      .completion-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .save-help {
+        margin-top: 20px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .nowrap {
+        white-space: nowrap;
+      }
+      .spacer {
+        margin-top: 25px;
+      }
+      .split-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      @media (min-width: 600px) {
+        .workspace {
+          padding: 30px;
+        }
+        .deck-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .stats-strip {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+        .metric {
+          border-bottom: 0 !important;
+        }
+        .metric:nth-child(2) {
+          border-right: 1px solid var(--line);
+        }
+        .metric:last-child {
+          border: 0;
+        }
+        .heading {
+          flex-wrap: nowrap;
+        }
+        h1 {
+          font-size: 33px;
+        }
+        .flashcard {
+          padding: 40px 48px;
+        }
+        .question {
+          font-size: 30px;
+        }
+      }
+      @media (min-width: 1000px) {
+        .topbar {
+          padding: 15px 32px;
+        }
+        .top-actions .desktop {
+          display: inline-flex;
+        }
+        .notice {
+          padding: 8px 32px;
+        }
+        .shell {
+          display: grid;
+          grid-template-columns: 220px minmax(0, 1fr);
+          min-height: calc(100vh - 113px);
+        }
+        .sidebar {
+          padding: 30px 20px;
+          border-bottom: 0;
+          border-right: 1px solid var(--line);
+        }
+        .nav {
+          display: flex;
+          flex-direction: column;
+          gap: 7px;
+        }
+        .nav button {
+          justify-content: flex-start;
+          padding: 12px 14px;
+          flex: none;
+        }
+        .side-section {
+          display: block;
+          margin-top: 35px;
+        }
+        .side-section .label {
+          font-size: 14px;
+          color: var(--muted);
+          margin: 0 14px 12px;
+        }
+        .side-category {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 10px 14px;
+          min-height: 44px;
+          border-radius: 8px;
+          color: var(--muted);
+        }
+        .side-category.active {
+          background: var(--surface);
+          color: var(--accent);
+        }
+        .side-footer {
+          margin-top: 55px;
+          color: var(--muted);
+          font-size: 14px;
+          padding: 0 14px;
+        }
+        .overview-grid {
+          grid-template-columns: minmax(0, 1fr) 285px;
+          gap: 26px;
+        }
+        .workspace {
+          padding: 35px;
+        }
+        .statistics-grid {
+          grid-template-columns: 1.25fr 1fr;
+        }
+        .flashcard {
+          min-height: 370px;
+        }
+      }
+      .desktop,
+      .side-footer {
+        display: none;
+      }
+      .chart-labels {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 3px;
+      }
+      .chart-labels span {
+        min-width: 0;
+        font-size: 14px;
+      }
+      .bar-column .bar {
+        flex-shrink: 0;
+      }
+      @media (min-width: 1000px) {
+        .desktop {
+          display: inline-flex;
+        }
+        .side-footer {
+          display: block;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <dialog id="editor" class="dialog" aria-labelledby="dialog-title"></dialog>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script>
+      'use strict';
+      /* ===== 原型边界：这是本机演示，不是身份认证或数据库实现 ===== */
+      const KEY = 'd-blog-anki-prototype-v1';
+      const $ = (selector) => document.querySelector(selector);
+      const escapeHTML = (value) =>
+        String(value ?? '').replace(
+          /[&<>"']/g,
+          (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char],
+        );
+      const icon = (name) => {
+        const paths = {
+          deck: '<rect x="5" y="7" width="14" height="14" rx="2"/><path d="M8 3h10a3 3 0 0 1 3 3v11M9 12h6M9 16h4"/>',
+          today: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18m-12 5 2 2 4-4"/>',
+          stats: '<path d="M4 20h17M7 16V9m5 7V4m5 12v-6"/>',
+          plus: '<path d="M12 5v14M5 12h14"/>',
+          arrow: '<path d="m14 5-7 7 7 7M7 12h14"/>',
+          search: '<circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/>',
+          close: '<path d="m6 6 12 12M6 18 18 6"/>',
+          check: '<path d="m5 12 4 4L19 6"/>',
+          exit: '<path d="M10 4H5v16h5m5-13 5 5-5 5M9 12h11"/>',
+          eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
+        };
+        return '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">' + (paths[name] || paths.deck) + '</svg>';
+      };
+      const dateKey = (date) =>
+        [
+          date.getFullYear(),
+          String(date.getMonth() + 1).padStart(2, '0'),
+          String(date.getDate()).padStart(2, '0'),
+        ].join('-');
+      const today = () => dateKey(new Date());
+      const previousDay = (offset) => {
+        const d = new Date();
+        d.setDate(d.getDate() - offset);
+        return dateKey(d);
+      };
+      const id = (prefix) => prefix + '-' + crypto.randomUUID();
+      function seed() {
+        const now = Date.now();
+        const decks = [
+          { id: 'go', name: 'Go 语言', category: '编程', description: '从语法到并发，建立自己的知识索引。' },
+          { id: 'system', name: '系统设计', category: '编程', description: '用一问一答梳理缓存、队列与分布式系统。' },
+          { id: 'english', name: '英语表达', category: '语言', description: '不只是认得单词，也能主动回忆并使用。' },
+          { id: 'reading', name: '阅读摘录', category: '阅读', description: '把读过的内容，变成能再次想起的知识。' },
+        ];
+        const raw = [
+          [
+            'go',
+            'goroutine 和线程有什么区别？',
+            'goroutine 是由 Go 运行时调度的轻量级并发执行单元；线程由操作系统调度。多个 goroutine 可以复用线程执行。',
+            0,
+          ],
+          [
+            'go',
+            'defer 在什么时候执行？',
+            '在所在函数返回前执行。多个 defer 按后进先出顺序执行；调用参数在注册 defer 时求值。',
+            3,
+          ],
+          [
+            'go',
+            'channel 的生产者和消费者分别做什么？',
+            '生产者把消息发送进 channel；消费者从 channel 接收消息，并执行对应处理。关闭 channel 通常由发送方负责。',
+            21,
+          ],
+          [
+            'go',
+            'slice 和 array 的区别是什么？',
+            'array 的长度是类型的一部分；slice 是描述底层数组片段的结构，包含指针、长度和容量。',
+            0,
+          ],
+          [
+            'system',
+            '为什么缓存穿透会影响数据库？',
+            '请求访问不存在的数据，缓存无法命中。如果没有额外防护，每次请求都会继续查询数据库。',
+            2,
+          ],
+          [
+            'system',
+            '消息队列在订单流程中如何使用？',
+            '订单服务发送订单事件；消息队列传递事件；库存或通知服务接收消息，执行扣减库存或发送通知等任务。',
+            0,
+          ],
+          ['system', '什么是幂等操作？', '同一个操作执行一次或多次，在约定范围内产生相同的最终效果。', 28],
+          ['system', '什么是缓存雪崩？', '大量缓存同时失效，或缓存服务不可用，导致大量请求集中进入后端。', 4],
+          [
+            'english',
+            'recall 和 recognize 在学习语境中有什么区别？',
+            'recall 指主动回忆；recognize 指看到提示后识别。闪卡练习更强调主动回忆。',
+            0,
+          ],
+          ['english', '如何表达“我需要再想一想”？', 'I need to think about it a little more.', 5],
+          [
+            'english',
+            'revisit 在学习语境中是什么意思？',
+            '重新回顾、再次讨论，例如：Let’s revisit this idea next week.',
+            22,
+          ],
+          [
+            'english',
+            'consistent 的常见含义是什么？',
+            '一致的、持续稳定的，例如：consistent practice（持续稳定的练习）。',
+            0,
+          ],
+          [
+            'reading',
+            '读完一章后，如何把内容转成卡片？',
+            '先确定一个具体问题，再用自己的话写出答案。一张卡片尽量只考察一个知识点。',
+            2,
+          ],
+          [
+            'reading',
+            '为什么卡片的 Q 不应过于宽泛？',
+            '宽泛的问题难以判断是否回答正确；具体问题有助于明确回忆目标和自评标准。',
+            24,
+          ],
+          [
+            'reading',
+            '如何区分理解和熟悉感？',
+            '不看原文，用自己的话解释或举例。能解释出来比“看着眼熟”更能反映理解。',
+            0,
+          ],
+          ['reading', '卡片答案太长时可以怎么处理？', '按独立知识点拆卡，保留清晰的提问和可核对的答案。', 3],
+        ];
+        const cards = raw.map((row, i) => ({
+          id: 'card-' + i,
+          deckId: row[0],
+          q: row[1],
+          a: row[2],
+          interval: row[3],
+          due: row[3] >= 21 ? now + row[3] * 86400000 : now - 86400000,
+          last: row[3] ? now - 2 * 86400000 : null,
+          created: now - 7 * 86400000,
+        }));
+        const logs = [];
+        [5, 8, 0, 6, 10, 7].forEach((count, i) => {
+          for (let j = 0; j < count; j++) {
+            const card = cards[j % cards.length];
+            logs.push({
+              id: 'example-' + i + '-' + j,
+              cardId: card.id,
+              deckId: card.deckId,
+              day: previousDay(6 - i),
+              rating: ['good', 'good', 'blur', 'wrong'][j % 4],
+              at: now - (6 - i) * 86400000,
+              sample: true,
+            });
+          }
+        });
+        return { version: 1, decks, cards, logs, goal: 12, demoSession: true };
+      }
+      let storageError = '';
+      function validate(data) {
+        if (
+          !data ||
+          data.version !== 1 ||
+          !Array.isArray(data.decks) ||
+          !Array.isArray(data.cards) ||
+          !Array.isArray(data.logs) ||
+          !Number.isInteger(data.goal) ||
+          data.goal < 1 ||
+          data.goal > 500 ||
+          typeof data.demoSession !== 'boolean'
+        )
+          throw new Error('数据结构不匹配');
+        const ids = new Set();
+        for (const d of data.decks) {
+          if (
+            typeof d.id !== 'string' ||
+            ids.has(d.id) ||
+            !d.name ||
+            typeof d.name !== 'string' ||
+            typeof d.category !== 'string' ||
+            typeof d.description !== 'string'
+          )
+            throw new Error('卡片库格式错误');
+          ids.add(d.id);
+        }
+        const cardIds = new Set();
+        for (const c of data.cards) {
+          if (
+            typeof c.id !== 'string' ||
+            cardIds.has(c.id) ||
+            !ids.has(c.deckId) ||
+            typeof c.q !== 'string' ||
+            !c.q.trim() ||
+            typeof c.a !== 'string' ||
+            !c.a.trim() ||
+            !Number.isFinite(c.interval) ||
+            c.interval < 0 ||
+            !Number.isFinite(c.due) ||
+            (c.last !== null && !Number.isFinite(c.last))
+          )
+            throw new Error('卡片格式错误');
+          cardIds.add(c.id);
+        }
+        for (const l of data.logs) {
+          if (
+            !cardIds.has(l.cardId) ||
+            !ids.has(l.deckId) ||
+            !['good', 'blur', 'wrong', 'custom'].includes(l.rating) ||
+            !/^\d{4}-\d{2}-\d{2}$/.test(l.day) ||
+            !Number.isFinite(l.at)
+          )
+            throw new Error('练习记录格式错误');
+        }
+        return data;
+      }
+      function load() {
+        try {
+          const raw = localStorage.getItem(KEY);
+          return raw ? validate(JSON.parse(raw)) : seed();
+        } catch (error) {
+          storageError = '本地记录读取失败，现显示临时示例。原记录不会被覆盖；请勿在此输入重要数据。';
+          return seed();
+        }
+      }
+      let data = load();
+      let filter = '全部',
+        search = '',
+        selectedDay = today(),
+        session = null,
+        shown = false,
+        showIntervals = false,
+        toastTimer,
+        dialogReturn;
+      const app = $('#app'),
+        dialog = $('#editor');
+      function persist(next) {
+        if (storageError) {
+          toast('存储不可用，操作未保存。请修复本地存储后再试。');
+          return false;
+        }
+        try {
+          validate(next);
+          localStorage.setItem(KEY, JSON.stringify(next));
+          data = next;
+          return true;
+        } catch (error) {
+          toast('保存失败，本次操作未生效。浏览器可能禁用了本地存储。');
+          return false;
+        }
+      }
+      function change(fn) {
+        const next = structuredClone(data);
+        fn(next);
+        return persist(next);
+      }
+      function toast(message) {
+        clearTimeout(toastTimer);
+        $('#toast').textContent = message;
+        $('#toast').hidden = false;
+        toastTimer = setTimeout(() => {
+          $('#toast').hidden = true;
+        }, 4200);
+      }
+      const categories = () => ['全部', ...new Set(data.decks.map((d) => d.category))];
+      const deckById = (value) => data.decks.find((d) => d.id === value);
+      const cardById = (value) => data.cards.find((c) => c.id === value);
+      const stage = (c) => (c.last === null ? 'new' : c.interval >= 21 ? 'stable' : 'learning');
+      const stageName = (c) => ({ new: '未学习', learning: '学习中', stable: '熟练' })[stage(c)];
+      const dueCards = (deckId) => data.cards.filter((c) => (!deckId || c.deckId === deckId) && c.due <= Date.now());
+      const dayLogs = (day) => data.logs.filter((l) => l.day === day);
+      const uniqueCount = (logs) => new Set(logs.map((l) => l.cardId)).size;
+      const doneToday = () => uniqueCount(dayLogs(today()));
+      function streak() {
+        let n = 0;
+        let offset = dayLogs(today()).length ? 0 : 1;
+        while (n < 366 && dayLogs(previousDay(offset + n)).length) n++;
+        return n;
+      }
+      function route() {
+        return location.hash.slice(1) || 'overview';
+      }
+      function go(value) {
+        if (route() === value) {
+          render();
+          return;
+        }
+        location.hash = value;
+      }
+      function header(home = false) {
+        return (
+          '<header class="topbar"><a class="brand" href="#home" aria-label="返回博客入口演示"><span class="blog">Blog</span><span class="slash">/</span><span class="mark">A</span><span>Anki</span></a><div class="top-actions">' +
+          (home
+            ? '<a class="btn primary" href="#overview">进入 Anki</a>'
+            : '<a class="btn text desktop" href="#home">' + icon('arrow') + '返回博客</a>') +
+          (data.demoSession
+            ? '<span class="demo-label desktop">演示账号</span><button class="icon-btn" data-action="logout" title="退出演示账号" aria-label="退出演示账号">' +
+              icon('exit') +
+              '</button>'
+            : '<button class="btn" data-action="login">演示登录</button>') +
+          '</div></header><div class="notice"><span>交互原型 · 示例数据 / 本机存储 · 未接入真实登录和数据库</span><span class="desktop">方向确认版 v1</span></div>' +
+          (storageError ? '<div class="storage-warning" role="alert">' + escapeHTML(storageError) + '</div>' : '')
+        );
+      }
+      function side() {
+        const r = route();
+        return (
+          '<aside class="sidebar"><nav class="nav" aria-label="Anki 导航">' +
+          [
+            ['overview', 'deck', '我的卡片库'],
+            ['review', 'today', '今日练习'],
+            ['stats', 'stats', '每日统计'],
+          ]
+            .map(
+              ([key, ico, label]) =>
+                '<button data-action="nav" data-route="' +
+                key +
+                '" class="' +
+                (r.startsWith(key) || (key === 'overview' && r.startsWith('deck/')) ? 'active' : '') +
+                '"' +
+                (r.startsWith(key) || (key === 'overview' && r.startsWith('deck/')) ? ' aria-current="page"' : '') +
+                '>' +
+                icon(ico) +
+                label +
+                '</button>',
+            )
+            .join('') +
+          '</nav><section class="side-section"><p class="label">按分类查看</p>' +
+          categories()
+            .map(
+              (cat) =>
+                '<button class="side-category ' +
+                (filter === cat ? 'active' : '') +
+                '" data-action="category" data-category="' +
+                escapeHTML(cat) +
+                '"><span>' +
+                escapeHTML(cat) +
+                '</span><span>' +
+                data.decks.filter((d) => cat === '全部' || d.category === cat).length +
+                '</span></button>',
+            )
+            .join('') +
+          '</section><div class="side-footer"><p>记录，回忆，再相遇。</p><p style="margin-top:12px">先回忆 Q，再揭示 A。<br>让每一次练习都有反馈。</p></div></aside>'
+        );
+      }
+      function metrics() {
+        const due = dueCards(),
+          newCount = due.filter((c) => c.last === null).length;
+        return (
+          '<div class="stats-strip"><div class="metric"><div class="label">待复习</div><div class="value">' +
+          (due.length - newCount) +
+          '<span>张</span></div></div><div class="metric"><div class="label">可学新卡</div><div class="value">' +
+          newCount +
+          '<span>张</span></div></div><div class="metric"><div class="label">今日已练</div><div class="value">' +
+          doneToday() +
+          '<span>张 · 去重</span></div></div><div class="metric"><div class="label">连续练习</div><div class="value">' +
+          streak() +
+          '<span>天</span></div></div></div>'
+        );
+      }
+      function deckTile(d) {
+        const cards = data.cards.filter((c) => c.deckId === d.id);
+        const trained = cards.filter((c) => c.last !== null).length,
+          stable = cards.filter((c) => stage(c) === 'stable').length;
+        const p = cards.length ? Math.round((100 * trained) / cards.length) : 0,
+          due = dueCards(d.id).length;
+        return (
+          '<article class="deck"><div class="deck-head"><span class="deck-icon">' +
+          icon('deck') +
+          '</span><span class="deck-count">' +
+          cards.length +
+          ' 张卡片</span></div><h3>' +
+          escapeHTML(d.name) +
+          '</h3><p class="description">' +
+          escapeHTML(d.description || '还没有简介，先录入你的第一个知识点。') +
+          '</p><span class="tag">' +
+          escapeHTML(d.category) +
+          '</span><div class="progress-caption"><span>已学 ' +
+          trained +
+          ' / ' +
+          cards.length +
+          '</span><span>' +
+          p +
+          '%</span></div><div class="progress-track" role="progressbar" aria-label="' +
+          escapeHTML(d.name) +
+          '已学覆盖率" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' +
+          p +
+          '"><div class="progress-fill" style="width:' +
+          p +
+          '%"></div></div><div class="progress-caption"><span>熟练 ' +
+          stable +
+          ' 张</span><span>待练 ' +
+          due +
+          ' 张</span></div><div class="deck-foot"><a class="btn text" href="#deck/' +
+          encodeURIComponent(d.id) +
+          '">查看卡片</a><button class="btn" data-action="start" data-deck="' +
+          escapeHTML(d.id) +
+          '" ' +
+          (!due ? 'disabled' : '') +
+          '>' +
+          (due ? '练习' : '暂无到期') +
+          '</button></div></article>'
+        );
+      }
+      function libraryResults() {
+        const results = data.decks.filter(
+          (d) =>
+            (filter === '全部' || d.category === filter) &&
+            [d.name, d.description, d.category].join(' ').toLowerCase().includes(search.toLowerCase()),
+        );
+        return results.length
+          ? results.map(deckTile).join('')
+          : '<div class="empty"><h3>没有找到卡片库</h3><p>换个关键词，或创建一个新的卡片库。</p><button class="btn" data-action="new-deck">创建卡片库</button></div>';
+      }
+      function bars() {
+        const dates = Array.from({ length: 7 }, (_, i) => previousDay(6 - i));
+        const counts = dates.map((d) => uniqueCount(dayLogs(d))),
+          max = Math.max(1, ...counts);
+        return (
+          '<div class="chart-bars" role="img" aria-label="最近7日练习卡片数，按卡片去重：' +
+          dates.map((d, i) => d + ' ' + counts[i] + '张').join('，') +
+          '">' +
+          dates
+            .map(
+              (d, i) =>
+                '<div class="bar-column ' +
+                (i === 6 ? 'today' : '') +
+                '"><span class="count">' +
+                counts[i] +
+                '</span><div class="bar" style="height:' +
+                Math.round((counts[i] / max) * 92) +
+                'px"></div></div>',
+            )
+            .join('') +
+          '</div><div class="chart-labels">' +
+          dates.map((d, i) => '<span>' + (i === 6 ? '今天' : d.slice(5).replace('-', '/')) + '</span>').join('') +
+          '</div>'
+        );
+      }
+      function overview() {
+        const due = dueCards().length,
+          done = doneToday(),
+          percent = Math.min(100, Math.round((done / data.goal) * 100));
+        return (
+          '<div class="heading"><div><h1>我的卡片库</h1><p>把想记住的知识，留给下一次回忆。</p></div><div class="actions"><button class="btn" data-action="new-card">' +
+          icon('plus') +
+          '录入卡片</button><button class="btn primary" data-action="new-deck">' +
+          icon('plus') +
+          '新建卡片库</button></div></div>' +
+          metrics() +
+          '<div class="overview-grid"><section><div class="section-title"><h2>知识卡片库</h2><p>' +
+          data.decks.length +
+          ' 个库 / ' +
+          data.cards.length +
+          ' 张卡片</p></div><label class="search">' +
+          icon('search') +
+          '<input id="deck-search" type="search" aria-label="搜索卡片库" placeholder="搜索卡片库、分类…" value="' +
+          escapeHTML(search) +
+          '"></label><div class="filters">' +
+          categories()
+            .map(
+              (c) =>
+                '<button class="filter ' +
+                (c === filter ? 'active' : '') +
+                '" data-action="category" data-category="' +
+                escapeHTML(c) +
+                '">' +
+                escapeHTML(c) +
+                '</button>',
+            )
+            .join('') +
+          '</div><div id="deck-results" class="deck-grid">' +
+          libraryResults() +
+          '</div></section><aside class="aside-stack"><section class="daily-card"><div><h2>今天，记住一点</h2><p>' +
+          today().replaceAll('-', ' / ') +
+          '</p></div><div class="daily-number">' +
+          done +
+          ' <span>/ ' +
+          data.goal +
+          ' 张目标</span></div><div><div class="progress-track" role="progressbar" aria-label="今日目标进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' +
+          percent +
+          '"><div class="progress-fill" style="width:' +
+          percent +
+          '%"></div></div><div class="progress-caption"><span>已完成 ' +
+          percent +
+          '%</span><button data-action="goal" style="color:inherit;min-height:44px">修改目标</button></div></div><button class="btn" data-action="start" ' +
+          (!due ? 'disabled' : '') +
+          '>' +
+          (due ? '开始今日练习 · ' + due + ' 张' : '当前没有到期卡片') +
+          '</button><small>待练包含到期复习与未学新卡；每日目标只用于展示，不限制练习。</small></section><section class="panel"><div class="section-title"><h3>最近 7 天</h3><a class="btn text" href="#stats" style="padding:7px">统计</a></div>' +
+          bars() +
+          '<p class="chart-caption">每天练过的不同卡片数。历史浅色柱为演示数据，今天随操作更新。</p></section><section class="panel"><h3>一次练习，三个动作</h3><ol class="hint-list"><li><span class="step-dot">1</span><span>看到问题，先尝试回忆</span></li><li><span class="step-dot">2</span><span>主动揭示答案，核对内容</span></li><li><span class="step-dot">3</span><span>自评后安排下一次复习</span></li></ol></section></aside></div>'
+        );
+      }
+      function start(deckId) {
+        if (!data.demoSession) {
+          go('overview');
+          return;
+        }
+        session = {
+          deckId: deckId || null,
+          queue: dueCards(deckId)
+            .sort((a, b) => (a.last === null) - (b.last === null) || a.due - b.due)
+            .map((c) => c.id),
+          index: 0,
+          completed: 0,
+        };
+        shown = false;
+        showIntervals = false;
+        go('review');
+      }
+      function intervalFor(c, rating) {
+        if (rating === 'wrong') return 10 / 1440;
+        if (rating === 'blur') return Math.max(1, Math.round((c.interval || 1) * 1.2));
+        return Math.max(3, Math.round((c.interval || 1) * 2.5));
+      }
+      function when(c) {
+        if (c.last === null) return '新卡';
+        if (c.due <= Date.now()) return '已到期';
+        return new Date(c.due).toLocaleString('zh-CN', {
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      }
+      function review() {
+        if (!session)
+          return (
+            '<div class="review-wrap"><div class="heading"><div><h1>今日练习</h1><p>优先复习到期卡片，然后学习新卡片。</p></div></div>' +
+            metrics() +
+            '<section class="empty"><h2>' +
+            dueCards().length +
+            ' 张卡片可以开始练习</h2><p>练习时只展示问题，答案由你主动揭示。</p><button class="btn primary" data-action="start" ' +
+            (!dueCards().length ? 'disabled' : '') +
+            '>开始今日练习</button></section></div>'
+          );
+        if (session.index >= session.queue.length)
+          return (
+            '<div class="review-wrap panel completion"><div class="mark">' +
+            icon('check') +
+            '</div><h1>' +
+            (session.completed ? '本轮练习完成' : '当前没有到期卡片') +
+            '</h1><p>本轮已练 ' +
+            session.completed +
+            ' 张；今天共练过 ' +
+            doneToday() +
+            ' 张不同卡片。<br>错误卡会在 10 分钟后到期，届时重新开始练习即可。</p><div class="completion-actions"><a class="btn primary" href="#overview">返回卡片库</a><a class="btn" href="#stats">查看每日统计</a><button class="btn" data-action="start">重新检查到期卡片</button></div><p class="save-help">当前为原型演示：排期规则简化，数据只保存在本浏览器。</p></div>'
+          );
+        const c = cardById(session.queue[session.index]);
+        if (!c) {
+          session = null;
+          return review();
+        }
+        const d = deckById(c.deckId),
+          total = session.queue.length,
+          percent = Math.round((session.index / total) * 100);
+        return (
+          '<div class="review-wrap"><div class="review-head"><button class="btn text" data-action="end">' +
+          icon('arrow') +
+          '退出练习</button><span class="muted">' +
+          (session.index + 1) +
+          ' / ' +
+          total +
+          ' 张</span></div><div class="progress-track" role="progressbar" aria-label="本轮练习进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' +
+          percent +
+          '"><div class="progress-fill" style="width:' +
+          percent +
+          '%"></div></div><div class="section-title spacer"><div class="review-meta"><span>' +
+          escapeHTML(d.category) +
+          '</span><span>' +
+          escapeHTML(d.name) +
+          '</span><span>' +
+          stageName(c) +
+          '</span></div><span class="small">先回忆，再核对</span></div><article class="flashcard"><span class="q-label">Q</span><h1 class="question">' +
+          escapeHTML(c.q) +
+          '</h1>' +
+          (shown
+            ? '<section class="answer" aria-label="卡片答案"><div class="answer-label">A · 参考答案</div><p>' +
+              escapeHTML(c.a) +
+              '</p></section>'
+            : '') +
+          '<div class="card-number">' +
+          (shown ? '已揭示答案，请根据自己的回忆情况评价' : '答案已隐藏') +
+          '</div></article>' +
+          (shown
+            ? '<div class="rating-switch"><span>这次，你想起来了吗？</span><label><input id="interval-toggle" type="checkbox" ' +
+              (showIntervals ? 'checked' : '') +
+              '> 显示下次间隔</label></div><div class="ratings">' +
+              [
+                ['wrong', '错误', '没有想起来', '10 分钟后'],
+                ['blur', '模糊', '记得不完整', intervalFor(c, 'blur') + ' 天后'],
+                ['good', '正确', '能够完整回忆', intervalFor(c, 'good') + ' 天后'],
+              ]
+                .map(
+                  ([rating, label, hint, time]) =>
+                    '<button class="rating ' +
+                    rating +
+                    '" data-action="rate" data-rating="' +
+                    rating +
+                    '"><strong>' +
+                    label +
+                    '</strong><small>' +
+                    (showIntervals ? time : hint) +
+                    '</small></button>',
+                )
+                .join('') +
+              '</div><div class="custom"><label for="custom-days">或自行指定</label><input id="custom-days" type="number" min="1" max="365" step="1" value="7" aria-label="自定义复习天数"><span>天后</span><button class="btn" data-action="custom-rate">按此间隔继续</button></div><p class="save-help">简化调度示意：错误缩短、模糊小幅延长、正确明显延长；不是 Anki / FSRS 的完整算法。</p>'
+            : '<div class="reveal"><button id="reveal-answer" class="btn primary" data-action="reveal">' +
+              icon('eye') +
+              '显示答案</button><small>先在心里回答，再点击按钮或按空格键。</small></div>') +
+          '</div>'
+        );
+      }
+      function rate(rating, days) {
+        if (!shown || !session || session.index >= session.queue.length) return;
+        const c = cardById(session.queue[session.index]),
+          interval = rating === 'custom' ? days : intervalFor(c, rating);
+        if (!Number.isFinite(interval) || interval <= 0) return;
+        const now = Date.now();
+        if (
+          change((next) => {
+            const target = next.cards.find((x) => x.id === c.id);
+            target.interval = interval;
+            target.last = now;
+            target.due = now + interval * 86400000;
+            next.logs.push({
+              id: id('review'),
+              cardId: c.id,
+              deckId: c.deckId,
+              day: dateKey(new Date(now)),
+              rating,
+              at: now,
+              sample: false,
+            });
+          })
+        ) {
+          session.index++;
+          session.completed++;
+          shown = false;
+          render();
+          toast('已记录。下次复习：' + (rating === 'wrong' ? '10 分钟后' : interval + ' 天后') + '。');
+        }
+      }
+      function deckDetail(deckId) {
+        const d = deckById(deckId);
+        if (!d) return '<div class="empty"><h2>卡片库不存在</h2><a class="btn" href="#overview">返回卡片库</a></div>';
+        const cards = data.cards.filter((c) => c.deckId === deckId),
+          counts = { new: 0, learning: 0, stable: 0 };
+        cards.forEach((c) => counts[stage(c)]++);
+        const due = dueCards(deckId).length;
+        return (
+          '<div class="heading"><div><a class="btn text" href="#overview" style="padding-left:0">' +
+          icon('arrow') +
+          '我的卡片库</a><h1>' +
+          escapeHTML(d.name) +
+          '</h1><p>' +
+          escapeHTML(d.description) +
+          '</p></div><div class="actions"><button class="btn" data-action="new-card" data-deck="' +
+          escapeHTML(deckId) +
+          '">' +
+          icon('plus') +
+          '录入卡片</button><button class="btn primary" data-action="start" data-deck="' +
+          escapeHTML(deckId) +
+          '" ' +
+          (!due ? 'disabled' : '') +
+          '>练习 ' +
+          due +
+          ' 张</button></div></div><section class="panel"><div class="section-title"><h2>学习进度</h2><span class="tag">' +
+          escapeHTML(d.category) +
+          '</span></div><div class="stage-track" role="img" aria-label="未学习' +
+          counts.new +
+          '张，学习中' +
+          counts.learning +
+          '张，熟练' +
+          counts.stable +
+          '张">' +
+          Object.entries(counts)
+            .map(
+              ([s, n]) =>
+                '<span class="stage-' +
+                s +
+                '" style="width:' +
+                (cards.length ? (n / cards.length) * 100 : 0) +
+                '%"></span>',
+            )
+            .join('') +
+          '</div><div class="legend"><span><i class="dot stage-new"></i>未学习 ' +
+          counts.new +
+          '</span><span><i class="dot stage-learning"></i>学习中 ' +
+          counts.learning +
+          '</span><span><i class="dot stage-stable"></i>熟练 ' +
+          counts.stable +
+          '</span></div><p class="chart-caption">原型口径：未学习 = 从未自评；熟练 = 当前间隔 ≥ 21 天；其余为学习中。熟练不代表永不遗忘。</p></section><div class="section-title spacer"><h2>全部卡片</h2><span class="small">' +
+          cards.length +
+          ' 张 / 默认仅显示 Q</span></div><div class="card-list">' +
+          (cards.length
+            ? cards
+                .map(
+                  (c) =>
+                    '<article class="record"><div class="record-top"><h3 class="record-q">' +
+                    escapeHTML(c.q) +
+                    '</h3><button class="btn text" data-action="edit-card" data-card="' +
+                    escapeHTML(c.id) +
+                    '">编辑</button></div><div class="record-meta"><span>' +
+                    stageName(c) +
+                    '</span><span>下次：' +
+                    when(c) +
+                    '</span></div><button class="btn" data-action="toggle-card" data-card="' +
+                    escapeHTML(c.id) +
+                    '" aria-expanded="false" aria-controls="answer-' +
+                    escapeHTML(c.id) +
+                    '">查看答案</button><div class="record-answer" id="answer-' +
+                    escapeHTML(c.id) +
+                    '" hidden>' +
+                    escapeHTML(c.a) +
+                    '</div></article>',
+                )
+                .join('')
+            : '<div class="empty"><h3>这个卡片库还没有卡片</h3><p>从一个明确的问题开始记录。</p><button class="btn primary" data-action="new-card" data-deck="' +
+              escapeHTML(deckId) +
+              '">录入第一张卡片</button></div>') +
+          '</div>'
+        );
+      }
+      function stats() {
+        const logs = dayLogs(selectedDay),
+          distinct = uniqueCount(logs),
+          correct = logs.filter((l) => l.rating === 'good').length,
+          blur = logs.filter((l) => l.rating === 'blur').length,
+          wrong = logs.filter((l) => l.rating === 'wrong').length,
+          custom = logs.filter((l) => l.rating === 'custom').length;
+        const percent = Math.min(100, Math.round((distinct / data.goal) * 100));
+        const days = Array.from({ length: 28 }, (_, i) => previousDay(27 - i));
+        return (
+          '<div class="heading"><div><h1>每日统计</h1><p>看见每天的投入，不把重复练习误算成新进度。</p></div><button class="btn" data-action="goal">每日目标 ' +
+          data.goal +
+          ' 张</button></div>' +
+          metrics() +
+          '<div class="statistics-grid"><section class="panel"><div class="section-title"><h2>近 7 日练习量</h2><span class="small">单位：张 / 日内去重</span></div>' +
+          bars() +
+          '<p class="chart-caption">历史记录为示例；当前日期与今天的练习结果会随本机时间和操作更新。</p><div class="section-title spacer"><h2>近 28 日记录</h2><span class="small">点击日期查看</span></div><div class="days-grid">' +
+          days
+            .map((day) => {
+              const n = uniqueCount(dayLogs(day));
+              return (
+                '<button class="day ' +
+                (n ? 'reviewed' : '') +
+                ' ' +
+                (day === selectedDay ? 'selected' : '') +
+                '" data-action="select-day" data-day="' +
+                day +
+                '" aria-label="' +
+                day +
+                '，' +
+                n +
+                '张卡片"><span>' +
+                day.slice(5).replace('-', '/') +
+                '</span><strong>' +
+                n +
+                '</strong></button>'
+              );
+            })
+            .join('') +
+          '</div></section><section class="panel"><div class="section-title"><h2>当天明细</h2></div><label class="date-field">选择日期 <input id="stat-date" type="date" value="' +
+          selectedDay +
+          '" max="' +
+          today() +
+          '"></label><div class="split-title"><h2>' +
+          distinct +
+          ' 张不同卡片</h2><span class="small">' +
+          logs.length +
+          ' 次评价</span></div><div class="progress-caption"><span>以当前每日目标 ' +
+          data.goal +
+          ' 张计算</span><span>' +
+          percent +
+          '%</span></div><div class="progress-track" role="progressbar" aria-label="选定日期目标进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' +
+          percent +
+          '"><div class="progress-fill" style="width:' +
+          percent +
+          '%"></div></div><div class="summary-rating"><div style="color:var(--accent)"><strong>' +
+          correct +
+          '</strong><small>正确 / 次</small></div><div style="color:var(--warning)"><strong>' +
+          blur +
+          '</strong><small>模糊 / 次</small></div><div style="color:var(--error)"><strong>' +
+          wrong +
+          '</strong><small>错误 / 次</small></div></div><p class="small">自定义间隔 ' +
+          custom +
+          ' 次。自定义不推断答对或答错；三种评价按次数计，不是掌握率。</p><div class="spacer">' +
+          (logs.length
+            ? '<h3>练习过的卡片库</h3>' +
+              data.decks
+                .map((d) => {
+                  const items = logs.filter((l) => l.deckId === d.id);
+                  return items.length
+                    ? '<div class="record-meta" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:12px 0"><span>' +
+                        escapeHTML(d.name) +
+                        '</span><span>' +
+                        uniqueCount(items) +
+                        ' 张 / ' +
+                        items.length +
+                        ' 次</span></div>'
+                    : '';
+                })
+                .join('')
+            : '<div class="empty"><h3>这一天还没有练习记录</h3><p>完成一次自评后，进度会自动记录。</p><button class="btn primary" data-action="start">去练习</button></div>') +
+          '</div><p class="chart-caption">统计按本机日期分组；正式版时区与历史目标口径待确认。' +
+          (logs.some((l) => l.sample) ? '此日包含演示记录。' : '') +
+          '</p></section></div>'
+        );
+      }
+      function home() {
+        return (
+          '<main class="workspace"><div class="home-hero"><p class="muted">博客主页入口示意 · 不替代现有主页</p><h1 class="serif" style="margin-top:15px">记录思考，也练习记忆。</h1><p class="muted" style="margin-top:15px">Anki 作为独立模块进入，不把卡片管理堆进文章列表。</p><section class="home-entry"><div><h2>Anki 记忆卡片</h2><p class="muted">按分类整理 Q &amp; A，练习后自评，让知识在合适的时间再次出现。</p></div><a class="btn primary" href="#overview">' +
+          icon('deck') +
+          '进入 Anki</a></section><section class="panel"><h2>进入后的展示方式</h2><p class="muted" style="margin-top:12px">使用自己的导航与学习布局，收起博客文章区，保留返回博客入口。这里只演示跳转，原博客与 Love 面均未修改。</p></section></div></main>'
+        );
+      }
+      function gate() {
+        return '<main class="workspace"><section class="center-gate panel"><div class="mark">A</div><h1>登录后，查看自己的卡片库</h1><p>卡片库与练习进度属于你。正式版将复用博客账号，并由服务端隔离数据。</p><button class="btn primary" data-action="login">使用演示账号进入</button><p class="small">本原型不收集密码，不验证身份。演示数据只保存在当前浏览器，不能用于保存私密信息。</p></section></main>';
+      }
+      function render() {
+        const r = route();
+        if (r === 'home') {
+          app.innerHTML = header(true) + home();
+          return;
+        }
+        if (!data.demoSession) {
+          app.innerHTML = header() + gate();
+          return;
+        }
+        const view =
+          r === 'stats'
+            ? stats()
+            : r === 'review'
+              ? review()
+              : r.startsWith('deck/')
+                ? deckDetail(decodeURIComponent(r.slice(5)))
+                : overview();
+        app.innerHTML =
+          header() +
+          '<div class="shell">' +
+          side() +
+          '<main class="workspace" id="main-content">' +
+          view +
+          '</main></div>';
+        const searchEl = $('#deck-search');
+        if (searchEl)
+          searchEl.addEventListener('input', () => {
+            search = searchEl.value;
+            $('#deck-results').innerHTML = libraryResults();
+          });
+        const toggle = $('#interval-toggle');
+        if (toggle)
+          toggle.addEventListener('change', () => {
+            showIntervals = toggle.checked;
+            render();
+            $('#interval-toggle').focus();
+          });
+        const statDate = $('#stat-date');
+        if (statDate)
+          statDate.addEventListener('change', () => {
+            if (statDate.value && statDate.value <= today()) {
+              selectedDay = statDate.value;
+              render();
+            }
+          });
+      }
+      /* ===== 表单：原生 dialog 焦点陷阱 + 输入转义 ===== */
+      function closeDialog() {
+        dialog.close();
+        if (dialogReturn?.isConnected) dialogReturn.focus();
+      }
+      function openEditor(type, deckId, cardId) {
+        if (!data.demoSession) return;
+        dialogReturn = document.activeElement;
+        const c = cardId ? cardById(cardId) : null;
+        if (type === 'card' && !data.decks.length) {
+          toast('请先创建一个卡片库。');
+          openEditor('deck');
+          return;
+        }
+        const titles = { deck: '新建卡片库', card: c ? '编辑 Q & A 卡片' : '录入 Q & A 卡片', goal: '每日练习目标' };
+        let fields = '';
+        if (type === 'deck')
+          fields =
+            '<label class="field"><span>卡片库名称</span><input name="name" maxlength="50" placeholder="例如：Go 并发编程" required autofocus></label><label class="field"><span>所属分类</span><input name="category" list="category-options" maxlength="30" placeholder="选择已有分类，或输入新分类" required><datalist id="category-options">' +
+            categories()
+              .slice(1)
+              .map((cat) => '<option value="' + escapeHTML(cat) + '"></option>')
+              .join('') +
+            '</datalist></label><label class="field"><span>简介（选填）</span><textarea name="description" maxlength="200" placeholder="这个卡片库想记录什么？"></textarea></label>';
+        if (type === 'card')
+          fields =
+            '<label class="field"><span>所属卡片库</span><select name="deckId" required>' +
+            data.decks
+              .map(
+                (d) =>
+                  '<option value="' +
+                  escapeHTML(d.id) +
+                  '" ' +
+                  ((c ? c.deckId : deckId) === d.id ? 'selected' : '') +
+                  '>' +
+                  escapeHTML(d.category + ' / ' + d.name) +
+                  '</option>',
+              )
+              .join('') +
+            '</select></label><label class="field"><span>Q · 问题</span><textarea name="q" maxlength="3000" placeholder="写下一个具体、可回忆的问题" required autofocus>' +
+            escapeHTML(c?.q || '') +
+            '</textarea></label><label class="field"><span>A · 答案</span><textarea name="a" maxlength="10000" placeholder="写下便于核对的答案" required>' +
+            escapeHTML(c?.a || '') +
+            '</textarea><small>以纯文本保存。练习和浏览列表时，答案默认隐藏。</small></label>' +
+            (c ? '<p class="small">编辑保留原复习排期；是否重置学习状态留待正式版确认。</p>' : '');
+        if (type === 'goal')
+          fields =
+            '<label class="field"><span>每天想练习多少张不同卡片？</span><input name="goal" type="number" min="1" max="500" step="1" value="' +
+            data.goal +
+            '" required autofocus><small>目标影响展示，不限制练习。重复评价同一卡片，只计一张完成量。</small></label>';
+        dialog.innerHTML =
+          '<div class="dialog-head"><h2 id="dialog-title">' +
+          titles[type] +
+          '</h2><button class="icon-btn" data-action="close" aria-label="关闭表单">' +
+          icon('close') +
+          '</button></div><form><div class="error-box" id="form-error" role="alert" hidden></div>' +
+          fields +
+          '<div class="form-actions"><button type="button" class="btn" data-action="close">取消</button><button type="submit" class="btn primary">' +
+          (type === 'deck' ? '创建卡片库' : type === 'card' ? '保存卡片' : '保存目标') +
+          '</button></div></form>';
+        dialog.showModal();
+        const form = dialog.querySelector('form');
+        form.addEventListener('submit', (event) => {
+          event.preventDefault();
+          const fd = new FormData(form),
+            text = (key) => String(fd.get(key) || '').trim();
+          const error = (message) => {
+            const box = $('#form-error');
+            box.hidden = false;
+            box.textContent = message;
+          };
+          let ok = false;
+          if (type === 'deck') {
+            const name = text('name'),
+              category = text('category');
+            if (!name || !category) return error('名称和分类不能仅为空格。');
+            if (data.decks.some((d) => d.name === name && d.category === category))
+              return error('此分类下已存在同名卡片库。');
+            ok = change((next) =>
+              next.decks.push({ id: id('deck'), name, category, description: text('description') }),
+            );
+          } else if (type === 'card') {
+            const q = text('q'),
+              a = text('a'),
+              target = text('deckId');
+            if (!q || !a) return error('问题和答案不能为空或仅为空格。');
+            if (!deckById(target)) return error('所选卡片库不存在。');
+            if (c && session && session.index < session.queue.length) return error('请先退出当前练习，再编辑卡片。');
+            ok = change((next) => {
+              if (c) {
+                Object.assign(
+                  next.cards.find((x) => x.id === c.id),
+                  { q, a, deckId: target },
+                );
+              } else {
+                next.cards.push({
+                  id: id('card'),
+                  deckId: target,
+                  q,
+                  a,
+                  due: Date.now(),
+                  interval: 0,
+                  last: null,
+                  created: Date.now(),
+                });
+              }
+            });
+          } else {
+            const goal = Number(text('goal'));
+            if (!Number.isInteger(goal) || goal < 1 || goal > 500) return error('目标应为 1–500 之间的整数。');
+            ok = change((next) => {
+              next.goal = goal;
+            });
+          }
+          if (!ok) return error('操作未保存，请检查浏览器本地存储。');
+          closeDialog();
+          render();
+          toast(type === 'deck' ? '卡片库已创建。' : type === 'card' ? '卡片已保存到本机。' : '每日目标已更新。');
+        });
+      }
+      function action(event) {
+        const button = event.target.closest('[data-action]');
+        if (!button || button.disabled) return;
+        const a = button.dataset.action;
+        if (a === 'close') {
+          closeDialog();
+          return;
+        }
+        if (a === 'login') {
+          if (
+            change((next) => {
+              next.demoSession = true;
+            })
+          ) {
+            go('overview');
+            toast('已进入演示账号；这不是真实身份验证。');
+          }
+          return;
+        }
+        if (a === 'logout') {
+          if (
+            change((next) => {
+              next.demoSession = false;
+            })
+          ) {
+            session = null;
+            shown = false;
+            render();
+            toast('已退出演示账号；本机演示记录保留。');
+          }
+          return;
+        }
+        if (!data.demoSession) return;
+        if (a === 'nav') go(button.dataset.route);
+        if (a === 'category') {
+          filter = button.dataset.category;
+          if (route() !== 'overview') go('overview');
+          else render();
+        }
+        if (a === 'new-deck') openEditor('deck');
+        if (a === 'new-card') openEditor('card', button.dataset.deck);
+        if (a === 'edit-card') openEditor('card', null, button.dataset.card);
+        if (a === 'goal') openEditor('goal');
+        if (a === 'start') start(button.dataset.deck);
+        if (a === 'end') {
+          session = null;
+          shown = false;
+          go('overview');
+        }
+        if (a === 'reveal') {
+          shown = true;
+          render();
+          document.querySelector('.rating')?.focus();
+        }
+        if (a === 'rate') rate(button.dataset.rating);
+        if (a === 'custom-rate') {
+          const days = Number($('#custom-days').value);
+          if (!Number.isInteger(days) || days < 1 || days > 365) {
+            toast('请输入 1–365 之间的整数天数。');
+            $('#custom-days').focus();
+            return;
+          }
+          rate('custom', days);
+        }
+        if (a === 'select-day') {
+          selectedDay = button.dataset.day;
+          render();
+        }
+        if (a === 'toggle-card') {
+          const answer = document.getElementById('answer-' + button.dataset.card);
+          answer.hidden = !answer.hidden;
+          button.setAttribute('aria-expanded', String(!answer.hidden));
+          button.textContent = answer.hidden ? '查看答案' : '收起答案';
+        }
+      }
+      app.addEventListener('click', action);
+      dialog.addEventListener('click', action);
+      dialog.addEventListener('cancel', (event) => {
+        event.preventDefault();
+        closeDialog();
+      });
+      window.addEventListener('hashchange', () => {
+        render();
+        window.scrollTo(0, 0);
+      });
+      window.addEventListener('keydown', (event) => {
+        if (
+          event.code === 'Space' &&
+          route() === 'review' &&
+          session &&
+          !shown &&
+          !dialog.open &&
+          !event.target.closest('button,input,select,textarea,a')
+        ) {
+          event.preventDefault();
+          shown = true;
+          render();
+          document.querySelector('.rating')?.focus();
+        }
+      });
+      render();
+    </script>
+  </body>
+</html>
