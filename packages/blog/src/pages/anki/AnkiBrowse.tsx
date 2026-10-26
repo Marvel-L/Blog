@@ -67,7 +67,11 @@ export function AnkiBrowse({ deckId, deckName, onExit }: AnkiBrowseProps) {
         <p role="alert" className="text-sm text-red-600 dark:text-red-400">
           {error}
         </p>
-        <button type="button" className="editorial-button-primary mt-5" onClick={onExit}>
+        <button
+          type="button"
+          className="rounded-full border border-[#087ae9] bg-[#087ae9] px-[17px] py-[9px] text-sm font-medium text-white inline-flex items-center justify-center gap-2 whitespace-nowrap mt-5"
+          onClick={onExit}
+        >
           返回卡片库
         </button>
       </div>
@@ -86,7 +90,11 @@ export function AnkiBrowse({ deckId, deckName, onExit }: AnkiBrowseProps) {
     return (
       <div className="rounded-surface border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-900">
         <h2 className="text-lg font-semibold text-ink dark:text-white">这个卡片库还没有卡片</h2>
-        <button type="button" className="editorial-button-primary mt-5" onClick={onExit}>
+        <button
+          type="button"
+          className="rounded-full border border-[#087ae9] bg-[#087ae9] px-[17px] py-[9px] text-sm font-medium text-white inline-flex items-center justify-center gap-2 whitespace-nowrap mt-5"
+          onClick={onExit}
+        >
           返回卡片库
         </button>
       </div>
@@ -98,7 +106,11 @@ export function AnkiBrowse({ deckId, deckName, onExit }: AnkiBrowseProps) {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between text-sm text-zinc-500 dark:text-zinc-400">
-        <button type="button" className="editorial-button" onClick={onExit}>
+        <button
+          type="button"
+          className="rounded-full border border-[#e9edf1] bg-white px-[17px] py-[9px] text-sm font-medium text-[#202124] inline-flex items-center justify-center gap-2 whitespace-nowrap"
+          onClick={onExit}
+        >
           返回卡片库
         </button>
         <span aria-live="polite">
@@ -127,21 +139,34 @@ export function AnkiBrowse({ deckId, deckName, onExit }: AnkiBrowseProps) {
       </article>
 
       <div className="flex flex-wrap items-center justify-center gap-2">
-        <button type="button" className="editorial-button" disabled={index === 0} onClick={() => goTo(index - 1)}>
+        <button
+          type="button"
+          className="rounded-full border border-[#e9edf1] bg-white px-[17px] py-[9px] text-sm font-medium text-[#202124] inline-flex items-center justify-center gap-2 whitespace-nowrap"
+          disabled={index === 0}
+          onClick={() => goTo(index - 1)}
+        >
           上一张
         </button>
-        <button type="button" className="editorial-button-primary" onClick={() => setRevealed((value) => !value)}>
+        <button
+          type="button"
+          className="rounded-full border border-[#087ae9] bg-[#087ae9] px-[17px] py-[9px] text-sm font-medium text-white inline-flex items-center justify-center gap-2 whitespace-nowrap"
+          onClick={() => setRevealed((value) => !value)}
+        >
           {revealed ? '收起答案' : '显示答案'}
         </button>
         <button
           type="button"
-          className="editorial-button"
+          className="rounded-full border border-[#e9edf1] bg-white px-[17px] py-[9px] text-sm font-medium text-[#202124] inline-flex items-center justify-center gap-2 whitespace-nowrap"
           disabled={index >= cards.length - 1}
           onClick={() => goTo(index + 1)}
         >
           下一张
         </button>
-        <button type="button" className="editorial-button" onClick={reshuffle}>
+        <button
+          type="button"
+          className="rounded-full border border-[#e9edf1] bg-white px-[17px] py-[9px] text-sm font-medium text-[#202124] inline-flex items-center justify-center gap-2 whitespace-nowrap"
+          onClick={reshuffle}
+        >
           重新洗牌
         </button>
       </div>

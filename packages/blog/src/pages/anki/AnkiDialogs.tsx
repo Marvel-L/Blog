@@ -134,10 +134,18 @@ function DeckForm({ dashboard, onClose, onDone }: FormProps) {
       </label>
       <FieldError message={error} />
       <div className="flex justify-end gap-2 pt-1">
-        <button type="button" className="editorial-button" onClick={onClose}>
+        <button
+          type="button"
+          className="rounded-full border border-[#e9edf1] bg-white px-[17px] py-[9px] text-sm font-medium text-[#202124] inline-flex items-center justify-center gap-2 whitespace-nowrap"
+          onClick={onClose}
+        >
           取消
         </button>
-        <button type="submit" className="editorial-button-primary" disabled={busy}>
+        <button
+          type="submit"
+          className="rounded-full border border-[#087ae9] bg-[#087ae9] px-[17px] py-[9px] text-sm font-medium text-white inline-flex items-center justify-center gap-2 whitespace-nowrap"
+          disabled={busy}
+        >
           创建卡片库
         </button>
       </div>
@@ -247,10 +255,18 @@ function CardForm({ state, dashboard, onClose, onDone }: CardFormProps) {
       <p className="text-xs text-zinc-400">以纯文本保存；练习和浏览列表中答案默认隐藏。</p>
       <FieldError message={error} />
       <div className="flex justify-end gap-2 pt-1">
-        <button type="button" className="editorial-button" onClick={onClose}>
+        <button
+          type="button"
+          className="rounded-full border border-[#e9edf1] bg-white px-[17px] py-[9px] text-sm font-medium text-[#202124] inline-flex items-center justify-center gap-2 whitespace-nowrap"
+          onClick={onClose}
+        >
           取消
         </button>
-        <button type="submit" className="editorial-button-primary" disabled={busy}>
+        <button
+          type="submit"
+          className="rounded-full border border-[#087ae9] bg-[#087ae9] px-[17px] py-[9px] text-sm font-medium text-white inline-flex items-center justify-center gap-2 whitespace-nowrap"
+          disabled={busy}
+        >
           保存卡片
         </button>
       </div>
@@ -300,10 +316,18 @@ function GoalForm({ dashboard, onClose, onDone }: FormProps) {
       <p className="text-xs text-zinc-400">目标只影响展示，不限制练习；重复评价同一卡片只计一张完成量。</p>
       <FieldError message={error} />
       <div className="flex justify-end gap-2 pt-1">
-        <button type="button" className="editorial-button" onClick={onClose}>
+        <button
+          type="button"
+          className="rounded-full border border-[#e9edf1] bg-white px-[17px] py-[9px] text-sm font-medium text-[#202124] inline-flex items-center justify-center gap-2 whitespace-nowrap"
+          onClick={onClose}
+        >
           取消
         </button>
-        <button type="submit" className="editorial-button-primary" disabled={busy}>
+        <button
+          type="submit"
+          className="rounded-full border border-[#087ae9] bg-[#087ae9] px-[17px] py-[9px] text-sm font-medium text-white inline-flex items-center justify-center gap-2 whitespace-nowrap"
+          disabled={busy}
+        >
           保存目标
         </button>
       </div>

@@ -657,27 +657,6 @@ export const Home = () => {
       )}
 
       <div className="space-y-6 px-4 md:space-y-8 md:px-0">
-        {import.meta.env.VITE_DEPLOY_TARGET === 'cloud' && (
-          <section
-            aria-label="Anki 记忆卡片入口"
-            className="flex flex-wrap items-center justify-between gap-3 rounded-surface border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
-          >
-            <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-ink dark:text-white">Anki 记忆卡片</h2>
-              <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-                按分类整理 Q &amp; A，练习后自评，让知识在合适的时间再次出现。
-              </p>
-            </div>
-            <Link
-              to="/anki"
-              className="editorial-button-primary inline-flex min-h-11 shrink-0 items-center justify-center gap-2 px-4 text-sm"
-              aria-label="进入 Anki 记忆卡片"
-            >
-              进入 Anki <ChevronRight size={15} />
-            </Link>
-          </section>
-        )}
-
         <FilterBar
           categories={categories}
           selected={selectedCategory}

@@ -67,21 +67,26 @@ export function AnkiDeckDetail({
   return (
     <div className="space-y-6">
       <div>
-        <button type="button" className="editorial-button text-sm" onClick={onBack}>
+        <button type="button" className="text-sm font-medium text-[#087ae9] hover:opacity-80" onClick={onBack}>
           返回卡片库
         </button>
         <h1 className="mt-3 text-2xl font-bold text-ink dark:text-white">{deck.name}</h1>
         <p className="mt-1 text-sm text-zinc-400">{categoryName || '未分类'}</p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <button type="button" className="editorial-button text-sm" onClick={onNewCard}>
+          <button type="button" className="text-sm font-medium text-[#087ae9] hover:opacity-80" onClick={onNewCard}>
             录入卡片
           </button>
-          <button type="button" className="editorial-button text-sm" disabled={deck.total === 0} onClick={onBrowse}>
+          <button
+            type="button"
+            className="text-sm font-medium text-[#087ae9] hover:opacity-80"
+            disabled={deck.total === 0}
+            onClick={onBrowse}
+          >
             随机浏览
           </button>
           <button
             type="button"
-            className="editorial-button-primary text-sm"
+            className="rounded-full border border-[#087ae9] bg-[#087ae9] px-[17px] py-[9px] text-sm font-medium text-white inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm"
             disabled={deck.due === 0}
             onClick={onPractice}
           >
@@ -130,7 +135,11 @@ export function AnkiDeckDetail({
         <div className="rounded-surface border border-dashed border-zinc-300 p-8 text-center dark:border-zinc-700">
           <h2 className="text-base font-semibold text-ink dark:text-white">这个卡片库还没有卡片</h2>
           <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">从一个明确的问题开始记录。</p>
-          <button type="button" className="editorial-button-primary mt-4" onClick={onNewCard}>
+          <button
+            type="button"
+            className="rounded-full border border-[#087ae9] bg-[#087ae9] px-[17px] py-[9px] text-sm font-medium text-white inline-flex items-center justify-center gap-2 whitespace-nowrap mt-4"
+            onClick={onNewCard}
+          >
             录入第一张卡片
           </button>
         </div>
@@ -145,7 +154,11 @@ export function AnkiDeckDetail({
               >
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="whitespace-pre-wrap text-sm font-medium text-ink dark:text-white">{card.question}</h3>
-                  <button type="button" className="editorial-button shrink-0 text-xs" onClick={() => onEditCard(card)}>
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-full border border-[#e9edf1] bg-white px-3 py-1.5 text-xs font-medium text-[#202124]"
+                    onClick={() => onEditCard(card)}
+                  >
                     编辑
                   </button>
                 </div>
@@ -154,7 +167,7 @@ export function AnkiDeckDetail({
                 </p>
                 <button
                   type="button"
-                  className="editorial-button mt-2 text-xs"
+                  className="mt-2 rounded-full border border-[#e9edf1] bg-white px-3 py-1.5 text-xs font-medium text-[#202124]"
                   aria-expanded={isOpen}
                   onClick={() => toggleAnswer(card.id)}
                 >

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { StrictMode } from 'react';
 import { useReadingMode } from './ReadingModeContext';
@@ -87,7 +87,29 @@ describe('Layout', () => {
     delete document.documentElement.dataset.loveMode;
     delete document.documentElement.dataset.loveModeBoot;
     siteConfig.loveMode = { personName: '' };
+    vi.unstubAllEnvs();
+    // 恢复 stubReducedMotionForDrawer 的 matchMedia spy 等所有 spyOn 桩。
+    vi.restoreAllMocks();
   });
+
+  // 局部让 prefers-reduced-motion 命中：移动抽屉状态机动画时长 340ms→1ms
+  // （Layout.tsx: mobileNavDuration = shouldReduceMotion ? 1 : MOBILE_NAV_ANIMATION_DURATION_MS）。
+  // 仅用于只断言面板内容/导航、不断画动画时长与过渡守卫的用例，消除对真实定时器的竞争依赖；
+  // 动画时长/状态机守卫专项用例不调用本 helper，保持真实 340ms 路径。
+  // 用 vi.spyOn 包裹 beforeEach 已定义的 matchMedia，afterEach 的 vi.restoreAllMocks 统一恢复，
+  // 其他媒体查询仍返回 matches:false，与全局桩一致。
+  const stubReducedMotionForDrawer = () => {
+    vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({
+      matches: query.includes('prefers-reduced-motion'),
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+  };
 
   it.each(['/', '/shuoshuo', '/stats', '/about', '/accumulate'])('页面 %s 把氛围粒子抬到阅读区之上', (pathname) => {
     renderLayout([pathname]);
@@ -299,14 +321,18 @@ describe('Layout', () => {
 
   it('桌面更多菜单可访问友链与留言，移动端更多包含同样入口', async () => {
     const user = userEvent.setup();
+    stubReducedMotionForDrawer();
     renderLayout();
-    await user.hover(screen.getByRole('button', { name: '展开更多菜单' }));
+    // 桌面菜单仅靠容器 onMouseEnter 展开：mouseOver 经 React 委托合成同一 mouseEnter 语义，
+    // 省去 userEvent 完整指针序列；导航点击仍保留 userEvent 真实交互。
+    fireEvent.mouseOver(screen.getByRole('button', { name: '展开更多菜单' }));
     const menu = screen.getByRole('menu');
     expect(within(menu).getByRole('menuitem', { name: /友链/ })).toHaveAttribute('href', '/friends');
     expect(within(menu).getByRole('menuitem', { name: /留言/ })).toHaveAttribute('href', '/guestbook');
     await user.click(within(menu).getByRole('menuitem', { name: /留言/ }));
     expect(probePathname).toBe('/guestbook');
-    await user.click(screen.getByRole('button', { name: '打开更多菜单' }));
+    // 抽屉开关只是触发点（断言的是面板内容），用 fireEvent 触发 onClick 语义。
+    fireEvent.click(screen.getByRole('button', { name: '打开更多菜单' }));
     await screen.findByRole('dialog', { name: '移动端导航菜单' });
     await waitForNavOpen();
     expect(screen.getByRole('button', { name: /友链/ })).toBeInTheDocument();
@@ -324,9 +350,9 @@ describe('Layout', () => {
   });
 
   it('归档等栏目收纳进「更多」面板', async () => {
-    const user = userEvent.setup();
+    stubReducedMotionForDrawer();
     renderLayout();
-    await user.click(screen.getByRole('button', { name: '打开更多菜单' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开更多菜单' }));
     await screen.findByRole('dialog', { name: '移动端导航菜单' });
     await waitForNavOpen();
     expect(screen.getByRole('button', { name: /归档/ })).toBeInTheDocument();
@@ -366,9 +392,9 @@ describe('Layout', () => {
   });
 
   it('导航「更多」面板中不包含反馈入口', async () => {
-    const user = userEvent.setup();
+    stubReducedMotionForDrawer();
     renderLayout();
-    await user.click(screen.getByRole('button', { name: '打开更多菜单' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开更多菜单' }));
     await screen.findByRole('dialog', { name: '移动端导航菜单' });
     await waitForNavOpen();
     expect(screen.queryByRole('button', { name: /反馈/ })).not.toBeInTheDocument();
@@ -427,6 +453,52 @@ describe('Layout', () => {
     expect(screen.queryByRole('button', { name: '打开更多菜单' })).not.toBeInTheDocument();
     expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument();
     expect(document.querySelector('canvas')).not.toBeInTheDocument();
+  });
+
+  it('cloud 构建：头部 Anki 入口是 /anki 同源路由链接，DOM 顺序在品牌与 Love 按钮之间', () => {
+    vi.stubEnv('VITE_DEPLOY_TARGET', 'cloud');
+    renderLayout();
+
+    const navbar = document.querySelector('nav.site-navbar') as HTMLElement;
+    const brandLink = within(navbar).getByRole('link', { name: /Blog/ });
+    const ankiLink = screen.getByRole('link', { name: 'Anki 记忆卡片' });
+    const loveButton = screen.getByRole('button', { name: '进入 Love 面' });
+
+    expect(ankiLink).toHaveAttribute('href', '/anki');
+    // DOM 相邻顺序：品牌 → Anki → Love 按钮。
+    expect(brandLink.compareDocumentPosition(ankiLink) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(ankiLink.compareDocumentPosition(loveButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it.each(['/', '/Blog/'])(
+    'pages 构建（BASE_URL=%s）：头部 Anki 入口外链恒定指向云端受保护页面，不随当前 build basename 漂移',
+    (baseUrl) => {
+      vi.stubEnv('VITE_DEPLOY_TARGET', 'pages');
+      vi.stubEnv('BASE_URL', baseUrl);
+      renderLayout();
+
+      const ankiLink = screen.getByRole('link', { name: /Anki 记忆卡片/ });
+      expect(ankiLink).toHaveAttribute('href', 'https://43.138.216.53/Blog/anki');
+      // 同 tab 跳转受保护服务器页，非新窗口探针。
+      expect(ankiLink).not.toHaveAttribute('target');
+    },
+  );
+
+  it('进入 Love 面时头部 Anki 入口移出可访问树，退出后恢复，心形开关行为不变', async () => {
+    const user = userEvent.setup();
+    renderLayout();
+
+    expect(screen.getByRole('link', { name: /Anki 记忆卡片/ })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '进入 Love 面' }));
+    expect(await screen.findByRole('region', { name: 'Love 首页' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Anki 记忆卡片/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '退出 Love 面' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '退出 Love 面' }));
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: /Anki 记忆卡片/ })).toBeInTheDocument();
+    });
   });
 
   it('启动阶段已标记 Love 模式时，首帧直接进入 Love 面', async () => {
@@ -507,8 +579,9 @@ describe('Layout', () => {
 
   it('移动端可从更多菜单进入 Book', async () => {
     const user = userEvent.setup();
+    stubReducedMotionForDrawer();
     renderLayout();
-    await user.click(screen.getByRole('button', { name: '打开更多菜单' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开更多菜单' }));
     await screen.findByRole('dialog', { name: '移动端导航菜单' });
     await waitForNavOpen();
     await user.click(screen.getByRole('button', { name: /Book/ }));

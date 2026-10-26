@@ -51,7 +51,7 @@ export const AnkiTrendLine: React.FC<AnkiTrendLineProps> = ({ days }) => {
   }, []);
 
   const widthClamped = Math.max(260, width || 320);
-  const height = widthClamped >= 600 ? 270 : 240;
+  const height = 240;
   const left = 34;
   const right = 20;
   const top = 26;
@@ -88,14 +88,21 @@ export const AnkiTrendLine: React.FC<AnkiTrendLineProps> = ({ days }) => {
           const y = baseY - (i * plotHeight) / 4;
           return (
             <g key={i}>
-              <line x1={left} y1={y} x2={widthClamped - right} y2={y} stroke="#e5e7eb" strokeWidth={1} />
-              <text x={left - 10} y={y + 4} textAnchor="end" fontSize={11} fill="#9ca3af">
+              <line x1={left} y1={y} x2={widthClamped - right} y2={y} stroke="#ecf0f4" strokeWidth={1} />
+              <text x={left - 10} y={y + 4} textAnchor="end" fontSize={14} fill="#8b929a">
                 {i * step}
               </text>
             </g>
           );
         })}
-        <polyline points={polyline} fill="none" stroke="#087ae9" strokeWidth={2} strokeLinejoin="round" />
+        <polyline
+          points={polyline}
+          fill="none"
+          stroke="#428dd2"
+          strokeWidth={1.8}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
         {points.map((point, index) => {
           const day = days[index];
           const label = index === days.length - 1 ? '今天' : day.date.slice(5).replace('-', '/');
@@ -103,7 +110,7 @@ export const AnkiTrendLine: React.FC<AnkiTrendLineProps> = ({ days }) => {
           const tipText = `${day.date} · ${day.count} 张卡片`;
           return (
             <g key={day.date}>
-              <circle cx={point.x} cy={point.y} r={3.5} fill="#087ae9" />
+              <circle cx={point.x} cy={point.y} r={3} fill="#fff" stroke="#428dd2" strokeWidth={1.6} />
               <circle
                 cx={point.x}
                 cy={point.y}
@@ -124,8 +131,8 @@ export const AnkiTrendLine: React.FC<AnkiTrendLineProps> = ({ days }) => {
                   x={point.x}
                   y={height - 14}
                   textAnchor={index === 0 ? 'start' : index === days.length - 1 ? 'end' : 'middle'}
-                  fontSize={11}
-                  fill="#9ca3af"
+                  fontSize={14}
+                  fill="#8b929a"
                 >
                   {label}
                 </text>
@@ -162,35 +169,32 @@ export const AnkiHeatmap: React.FC<AnkiHeatmapProps> = ({ endKey, counts, select
   useEffect(() => () => setTip(null), []);
 
   return (
-    <div className="overflow-x-auto pb-1">
+    <div data-testid="anki-heat" className="overflow-x-auto pb-1">
       <div className="flex gap-[5px]">
-        <div
-          className="flex w-4 shrink-0 flex-col gap-[3px] text-[10px] leading-none text-zinc-400 dark:text-zinc-500"
-          aria-hidden="true"
-        >
+        <div className="flex w-[22px] shrink-0 flex-col gap-1 text-sm leading-none text-[#8b929a]" aria-hidden="true">
           {WEEKDAYS.map((label, index) => (
-            <div key={index} className="flex h-3 items-center justify-center">
+            <div key={index} className="flex h-[14px] items-center justify-center">
               {label}
             </div>
           ))}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="mb-1 flex gap-[3px]">
+          <div className="mb-1 flex gap-[4px]">
             {columns.map((column) => (
               <div
                 key={column.weekStart}
-                className="w-3 shrink-0 text-center text-[10px] leading-none text-zinc-400 dark:text-zinc-500"
+                className="h-6 w-[14px] shrink-0 whitespace-nowrap text-center text-sm leading-6 text-[#8b929a]"
               >
                 {column.monthLabel}
               </div>
             ))}
           </div>
-          <div className="flex gap-[3px]">
+          <div className="flex gap-[4px]">
             {columns.map((column) => (
-              <div key={column.weekStart} className="flex shrink-0 flex-col gap-[3px]">
+              <div key={column.weekStart} className="flex shrink-0 flex-col gap-1">
                 {column.cells.map((cell) => {
                   if (cell.future) {
-                    return <div key={cell.date} className="h-3 w-3" aria-hidden="true" />;
+                    return <div key={cell.date} className="h-[14px] w-[14px]" aria-hidden="true" />;
                   }
                   const tipText = `${cell.date} · ${cell.count} 张卡片`;
                   const isSelected = cell.date === selected;
@@ -200,12 +204,15 @@ export const AnkiHeatmap: React.FC<AnkiHeatmapProps> = ({ endKey, counts, select
                       type="button"
                       aria-label={tipText}
                       title={tipText}
-                      onClick={() => onSelect(cell.date)}
+                      onClick={() => {
+                        onSelect(cell.date);
+                        setTip(tipText);
+                      }}
                       onMouseEnter={() => setTip(tipText)}
                       onMouseLeave={() => setTip(null)}
                       onFocus={() => setTip(tipText)}
                       onBlur={() => setTip(null)}
-                      className={`h-3 w-3 rounded-[2px] transition-transform hover:scale-125 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-500 ${
+                      className={`h-[14px] w-[14px] rounded-[3px] transition-transform hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-500 ${
                         isSelected ? 'ring-2 ring-sky-500 ring-offset-1' : ''
                       }`}
                       style={{ backgroundColor: HEAT_COLORS[heatLevel(cell.count)] }}
@@ -217,7 +224,7 @@ export const AnkiHeatmap: React.FC<AnkiHeatmapProps> = ({ endKey, counts, select
           </div>
         </div>
       </div>
-      <div className="mt-2 flex items-center justify-between text-xs text-zinc-400 dark:text-zinc-500">
+      <div className="mt-[18px] flex items-center justify-between text-sm" style={{ color: '#777d86' }}>
         <span role="status" aria-live="polite">
           {tip ?? '悬停或聚焦查看当日数量，点击选定日期'}
         </span>

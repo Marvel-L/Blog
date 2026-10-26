@@ -53,6 +53,7 @@ import { pingBusuanzi } from '@/services/busuanzi';
 import { ProgressiveImage } from './ProgressiveImage';
 import { ISSUE_SUBSCRIPTION_URL } from './IssueSubscriptionCard';
 import { TbdPostsButton } from './TbdPostsButton';
+import { AnkiEntryLink } from './AnkiEntryLink';
 import { useReducedMotion as useSiteReducedMotion } from '@/hooks/useReducedMotion';
 import { hasOpenOverlay, lockBodyScroll, unlockBodyScroll } from '@/hooks/useModalOverlay';
 import { useReadingMode, ReadingModeProvider } from './ReadingModeContext';
@@ -1127,6 +1128,9 @@ const Navbar = ({
                 {siteConfig.title}
               </span>
             </Link>
+
+            {/* Anki 入口：紧贴 Love 心形按钮左侧；Love 面接管时与原导航一同移出可访问树 */}
+            {!isLoveMode && <AnkiEntryLink />}
 
             <button
               type="button"

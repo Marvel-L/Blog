@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom';
 import { Home } from './Home';
 import * as privacyPostsService from '@/services/privacyPosts';
+import { getReadingHistory } from '@/services/readingHistory';
+import { getInitialPosts } from '@/services/posts';
 
 // URL 探针：MemoryRouter 不更新 window.location，断言搜索参数必须经
 // useSearchParams 读取（否则「清除搜索后参数移除」的断言恒真、无回归保护）。
@@ -171,5 +173,19 @@ describe('Home', () => {
 
     readUnlockedPrivacyPostsSpy.mockRestore();
     getCachedPrivacyPostMetadataSpy.mockRestore();
+  });
+
+  it('存在未读完的阅读进度时仍渲染继续阅读卡片（首页阅读功能回归，Anki 大入口已移除）', async () => {
+    const [firstPost] = getInitialPosts();
+    expect(firstPost).toBeTruthy();
+    vi.mocked(getReadingHistory).mockReturnValue([{ postId: firstPost.id, progress: 0.4, updatedAt: Date.now() }]);
+    renderHome();
+
+    expect(await screen.findByRole('link', { name: `继续阅读：${firstPost.title}` })).toBeInTheDocument();
+    expect(screen.getByText(/已阅读 40%/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: `放弃阅读：${firstPost.title}` })).toBeInTheDocument();
+    // 前轮加在首页的 Anki 大入口已随入口迁移到 Layout 头部一并移除。
+    expect(screen.queryByRole('link', { name: /进入 Anki/ })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Anki 记忆卡片入口')).not.toBeInTheDocument();
   });
 });

@@ -185,7 +185,11 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
           评价失败的卡片会在稍后重新到期；自定义间隔不会推断对错。
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button type="button" className="editorial-button-primary" onClick={onExit}>
+          <button
+            type="button"
+            className="rounded-full border border-[#087ae9] bg-[#087ae9] px-[17px] py-[9px] text-sm font-medium text-white inline-flex items-center justify-center gap-2 whitespace-nowrap"
+            onClick={onExit}
+          >
             返回卡片库
           </button>
         </div>
@@ -200,7 +204,11 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
         <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400" role="alert">
           {error || '请稍后重试。'}
         </p>
-        <button type="button" className="editorial-button-primary mt-5" onClick={onExit}>
+        <button
+          type="button"
+          className="rounded-full border border-[#087ae9] bg-[#087ae9] px-[17px] py-[9px] text-sm font-medium text-white inline-flex items-center justify-center gap-2 whitespace-nowrap mt-5"
+          onClick={onExit}
+        >
           返回卡片库
         </button>
       </div>
@@ -213,7 +221,11 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between text-sm text-zinc-500 dark:text-zinc-400">
-        <button type="button" className="editorial-button" onClick={onExit}>
+        <button
+          type="button"
+          className="rounded-full border border-[#e9edf1] bg-white px-[17px] py-[9px] text-sm font-medium text-[#202124] inline-flex items-center justify-center gap-2 whitespace-nowrap"
+          onClick={onExit}
+        >
           退出练习
         </button>
         <span aria-live="polite">
@@ -280,7 +292,11 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
 
       {!revealed ? (
         <div className="text-center">
-          <button type="button" className="editorial-button-primary min-h-11 px-8" onClick={() => setRevealed(true)}>
+          <button
+            type="button"
+            className="rounded-full border border-[#087ae9] bg-[#087ae9] px-[17px] py-[9px] text-sm font-medium text-white inline-flex items-center justify-center gap-2 whitespace-nowrap min-h-11 px-8"
+            onClick={() => setRevealed(true)}
+          >
             显示答案
           </button>
           <p className="mt-2 text-xs text-zinc-400">先在心里回答，再点击按钮或按空格键。</p>
@@ -335,7 +351,12 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
               aria-label="自定义复习天数"
             />
             <span>天后</span>
-            <button type="button" className="editorial-button text-sm" disabled={submitting} onClick={rateCustom}>
+            <button
+              type="button"
+              className="text-sm font-medium text-[#087ae9] hover:opacity-80"
+              disabled={submitting}
+              onClick={rateCustom}
+            >
               按此间隔继续
             </button>
           </div>

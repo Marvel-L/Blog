@@ -113,8 +113,24 @@ describe('Anki 登录门与加载', () => {
     mount();
     expect(await screen.findByText('我的卡片库')).toBeInTheDocument();
     expect(screen.getByText('Go 语言')).toBeInTheDocument();
-    expect(screen.getByText(/今日已练/)).toHaveTextContent('1 / 12');
+    expect(screen.getByText('今日已练')).toBeInTheDocument();
+    expect(screen.getByText(/今日目标/)).toHaveTextContent('1 / 12');
     expect(screen.getByRole('button', { name: /开始今日练习 · 2 张/ })).toBeEnabled();
+  });
+
+  it('返回博客与 logo 经 router basename 解析，dev=/ prod=/Blog', async () => {
+    render(
+      <StrictMode>
+        <HelmetProvider>
+          <MemoryRouter basename="/Blog" initialEntries={['/Blog/anki']}>
+            <AnkiPage />
+          </MemoryRouter>
+        </HelmetProvider>
+      </StrictMode>,
+    );
+    await screen.findByText('我的卡片库');
+    expect(screen.getByRole('link', { name: /返回博客/ })).toHaveAttribute('href', '/Blog');
+    expect(screen.getByRole('link', { name: /Anki/ })).toHaveAttribute('href', '/Blog');
   });
 });
 
@@ -207,9 +223,27 @@ describe('账号切换与统计', () => {
     expect(screen.getByRole('img', { name: /近7日去重练习量/ })).toBeInTheDocument();
     const heatButtons = screen.getAllByRole('button', { name: /·/ });
     expect(heatButtons.length).toBeGreaterThan(0);
-    // 点击某天 → 明细更新
-    fireEvent.click(heatButtons[heatButtons.length - 1]);
+    // 点击某天 → 明细更新，live region 同步显示当日提示（mobile tap 可靠）
+    const target = heatButtons[heatButtons.length - 1];
+    fireEvent.click(target);
     await waitFor(() => expect(screen.getByText('2026-10-26')).toBeInTheDocument());
+    expect(screen.getByText('2026-10-26 · 1 张卡片')).toBeInTheDocument();
+  });
+
+  it('随机浏览切完所有卡片不重复，切卡隐藏答案且全程无 POST', async () => {
+    mount();
+    const browseButtons = await screen.findAllByRole('button', { name: '随机浏览' });
+    fireEvent.click(browseButtons[0]);
+    const seen = new Set<string>();
+    seen.add((await screen.findByRole('heading', { name: /^Q[12]\?$/ })).textContent!);
+    fireEvent.click(screen.getByRole('button', { name: '显示答案' }));
+    expect(await screen.findByText(/Q[12]\? 的答案/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '下一张' }));
+    seen.add((await screen.findByRole('heading', { name: /^Q[12]\?$/ })).textContent!);
+    expect(seen.size).toBe(2);
+    expect(screen.queryByText(/Q[12]\? 的答案/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '下一张' })).toBeDisabled();
+    expect(request.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(0);
   });
 
   it('编辑卡片默认保留排期（resetProgress=false），携带版本号并发控制', async () => {

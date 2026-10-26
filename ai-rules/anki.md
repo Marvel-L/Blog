@@ -51,6 +51,49 @@
 - **低影响参数沿用原型**：每日目标默认 12 张、可调 1–500；「熟练」= 间隔 ≥21 天的状态标记（仅状态展示，不等于掌握率）；统计图沿用近 7 日折线 + 近 13 周 GitHub 式热力。这些是原型阶段沿用值，正式实现不另起炉灶。
 - **范围保护**：暂不新增批量导入、共享卡片库、AI 生成、媒体卡片、排行榜、提醒、部署等用户未要求的能力。
 
+## 本轮新增导航与部署边界（2026-10-27）
+
+以下为本轮新增授权，与上文「用户授权边界」叠加，不替代旧规则。
+
+- **入口位置**：共享头部品牌导航区在 **Love 心形按钮左邻**插入 Anki 入口。Pages 与 cloud 两个部署壳都要在共享头部出现；移动头部跟随 Love 当前位置；**不新增移动抽屉入口**——除非 Love 本身就在抽屉里，否则不重复放置。Love 按钮本身的位置、样式、动效、切换行为**不得改动**——本授权只允许左邻插入，不重排心形、不改心形颜色/尺寸/点击反馈。
+- **链接形态**：cloud 壳同源 `<Link to="/anki">`（basename 由路由统一注入，禁止硬编码）；Pages 壳外链 `https://43.138.216.53/Blog/anki` 跳转到受保护服务器上的真实学习页，跳转后账号与 API 均在服务器同源内完成，**Pages 侧不发起跨域 API 调用**，不引入新鉴权链路。「只读调查」仅指本轮我方对该 URL 的核验动作边界，不是该链接对用户的功能定位。
+- **Home 大入口移除**：原 Home 首屏 Anki 大入口按授权移除；Home「继续阅读」及其余空间/功能原样保留，不塌陷、不重排、不改字号。
+- **几何视觉真值**：正式 v3 原型 `anki-prototype/anki.html` 作为几何视觉真值参考；同 viewport 下比对容器、边距、typography、buttons、指标、列间距、topbar、review 卡片、折线图、热力图；**不得反向重写原型**。
+- **线上调查边界**：本轮我方对 `https://43.138.216.53/Blog/anki` 只做只读调查与代码/预览验证，**不 push、不部署**；未发布前不得在文档或 UI 宣称生产已生效。
+- **端口陷阱**：3000 是 cloud Vite；3001 是用户 Pages Vite，曾被 cloud proxy 误当后端。保护用户既有进程与环境，不擅改端口/代理配置。
+- **本轮待验**：严格 390px 手机复验由 writer 完成证据后再补；当前不勾。
+
+## 本轮最终事实（2026-10-27）
+
+- **Nav 落地**：Pages 外链 `https://43.138.216.53/Blog/anki`、cloud 同源 `/anki`；品牌顺序 Anki→Love，Love 原 style/behavior 保留；Home 仅移除 Anki 大 section，继续阅读 40% 回归通过。
+- **几何实测（desktop 1440×900 / mobile 390×844，fullpage 高度不同）**：main 容器 1100px，边距 35×205；topbar 高 69；h1 44/620；圆角 24；metrics label/value/unit line-height 1.65；goal 行；deck 列宽 45/528/170/215；glyph 42×47；collection delta +3/-2。**仅记录实测项，不对全视图 review/chart/heat 几何做「全部完美」声明**。
+- **测试与构建**：11 个 Anki 测试 + 相关 67；typecheck 通过；产品 ESLint 0 errors（4 条既有 warnings）；Go 隔离全包通过；Pages/cloud 构建通过；单 worker 跑根测试 140 文件 1104 全过。
+- **门禁未绿（blocked，不记通过）**：默认根 `npm test` 在停掉本轮 fixture 后仍有 29 失败 / 1104 通过，原因未定；本轮源码未 commit、未 push、未部署。
+- **作者行为 N=3 seen/3 covers**：随机浏览 `apiSet` 含 future 卡、`writes: []`、cuts 隐藏时 `scheduleUnchanged: true`；热力图 focus/tap 通过。独立验收 hover 未精确复现，保留为限制项。
+- **第二指标**：以「已学」替换原型口径；不拆 new/streak；真实 history / description 留空，不伪造数据。
+- **原型与线上**：`anki-prototype/anki.html` 未改；线上只读 HTTP 200（自签证书）+ 匿名 401（未登录），未做线上登录测试；production 未生效。
+- **环境**：已清自建 seed、停 5179/5180；不 drop DB、不动用户 3000/3001/环境。3000 cloud 当前为入口故障态，不是完整登录预览。
+- **本文档不 commit**：因根门禁 blocked，等根门禁绿后再统一中文 commit。
+
+## 本轮恢复阶段（2026-10-27 补）
+
+- **真实默认基线**：隔离 commit `c14f5af`，默认 `gen` 1097 total，14 fail（无空格公平 path）；当前 +7 tests = 1104，15–42 不稳。早期 `%20` 装置误差已剔除；首失败真实为 `timeout 5000`，与 Search 既有「call outside waitFor」机制分离。
+- **已修（局部、授权范围）**：仅 `Layout.test.tsx` 内 4 个面板内容测试（非动画验证）改用 `reducedMotion` `matchMedia` 参数 340→1，并 `fireEvent.mouseOver/open`；保留 2 个真实 340ms 状态/close guard、菜单导航 user click 与全部 assert；**未调 workers、default timeout、未 skip**。
+- **修后默认 root blog**：Layout 46 / Home 10 / Anki 11 全绿。根总仍 15 failed（Rin / Mascot / Search / Trend / scripts），根因未全部解；未授权扩无关功能。
+- **不夸大**：不写「所有非回归失败 CPU 饥饿根因已定位」。源码本轮未 commit、未 push、未部署。
+- **最终报告位置**：主项目 `packages/project-notes/verification/anki-nav-v3-verification.html` 与 `evidence/` 目录，**已由验收 writer 创建并经用户 Read 确认**（含 `baseline-c14f5af-default-npmtest.log`、`current-default-vitest.log`、`root-after-fix.log`、`_render.png`）；旧 agent workspace 仅历史引用，非主交付。
+- **待补（不提前宣称）**：nav writer 正在跑最终完整默认根 `npm test`（含 Go `&&` 串联）；此前证据仅 `npx vitest` / `test:blog` 层。最终 default root + Go 是否 run、是否全绿，等该轮结果到再精确补。
+
+## 最终完整 root `npm test` 结果（2026-10-27 收）
+
+- **Full `npm test`（含 gen + blog）**：18 files，**46 fail / 1104 total，exit 1**；其中 **43 timeouts**；Go 段因 `&&` short-circuit **未 run**。
+- **代码与上一 run 相同**，但时序范围变化；**不能据此判定外部 CPU 或无回归原因**——不写「本轮外部负载饥饿」。
+- **历史 green 不可外推**：此前「Layout 46 / Home 10 / Anki 11 全绿」是 `test:blog` 层的历史 run；最终完整 root 下 scope 内 timeout 为 **Layout 6 / Home 5 / Anki 1**，**不得宣称 latest all green**。
+- **各自 config 通过项**：单 related 67、单 worker 1104、Go 独立跑——这些是各自配置下的结果，不等同于默认根 `npm test` 全绿。
+- 本轮关联 test fix（Layout.test 4 面板 reducedMotion）保留未 commit；用户范围外既有 faults 与基线 14 证据分离。
+- **标准 root 未 pass，仍 blocked**；是否修 scope 需 Main 判断，不再凭重复 quiet window 赌博。
+- 源码本轮未 commit、未 push、未部署；持久报告仍以 `packages/project-notes/verification/anki-nav-v3-verification.html` 与 evidence 目录为准。
+
 ## 修改规则（必须遵守）
 
 1. **正式实现范围**：原型保留在 `anki-prototype/anki.html` 作为历史参考，不删除；正式实现按现有 Go + PostgreSQL + React SSG 边界接入，遵守下文规则。不替换 Home、Love 或既有账号能力。
