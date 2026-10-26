@@ -6,21 +6,21 @@
     <title>Anki · 我的记忆卡片</title>
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%232b6660'/%3E%3Cpath d='M10 28L20 10L30 28M14 22H26' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%230071e3'/%3E%3Cpath d='M10 28L20 10L30 28M14 22H26' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E"
     />
     <style>
-      /* ===== 基础色板：沿用博客纸面底色；青绿仅用于学习动作 ===== */
+      /* ===== 清透浅色：白色玻璃表面、冷灰基底、苹果蓝操作色 ===== */
       :root {
-        --paper: #f2f0e9;
-        --surface: #fffefb;
-        --ink: #1c1917;
-        --muted: #6c706c;
-        --line: #dedfd8;
-        --accent: #2b6660;
-        --soft: #e6efeb;
-        --error: #a44b46;
-        --warning: #946b26;
-        --shadow: 0 18px 45px #1c191709;
+        --paper: #f5f7fa;
+        --surface: rgba(255, 255, 255, 0.76);
+        --ink: #1d1d1f;
+        --muted: #626872;
+        --line: rgba(40, 55, 80, 0.1);
+        --accent: #0071e3;
+        --soft: #eaf3ff;
+        --error: #b33f4b;
+        --warning: #94631c;
+        --shadow: 0 12px 38px rgba(43, 76, 120, 0.06);
         color-scheme: light;
       }
       * {
@@ -1181,6 +1181,345 @@
           display: block;
         }
       }
+      /* ===== 玻璃质感：明确浅色底层，减少重色块与厚边框 ===== */
+      body {
+        background:
+          radial-gradient(ellipse at 92% 8%, #e6f2ff 0, transparent 40%),
+          radial-gradient(ellipse at 5% 55%, #e8f7f1 0, transparent 40%), #f7f9fc;
+        background-attachment: fixed;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      }
+      .topbar,
+      .sidebar {
+        background: rgba(255, 255, 255, 0.58);
+        -webkit-backdrop-filter: blur(24px) saturate(130%);
+        backdrop-filter: blur(24px) saturate(130%);
+      }
+      .notice {
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.4);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.85);
+      }
+      .brand .blog,
+      .serif {
+        font-family: inherit;
+        font-weight: 600;
+      }
+      .brand .slash {
+        color: #c2c8d0;
+      }
+      .mark {
+        border-radius: 10px;
+        background: var(--accent);
+      }
+      .deck,
+      .panel,
+      .stats-strip,
+      .flashcard,
+      .record,
+      .dialog {
+        background: var(--surface);
+        border: 1px solid rgba(255, 255, 255, 0.95);
+        box-shadow: var(--shadow);
+        -webkit-backdrop-filter: blur(22px) saturate(120%);
+        backdrop-filter: blur(22px) saturate(120%);
+      }
+      .deck,
+      .panel {
+        border-radius: 21px;
+      }
+      .stats-strip {
+        border-radius: 18px;
+      }
+      .flashcard {
+        border-radius: 27px;
+        background: rgba(255, 255, 255, 0.86);
+      }
+      .heading h1 {
+        font-weight: 650;
+        letter-spacing: -0.045em;
+      }
+      .btn {
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.84);
+        border-color: var(--line);
+      }
+      .btn.primary:hover {
+        background: #0077ed;
+      }
+      .btn.text {
+        background: transparent;
+      }
+      .nav button,
+      .filter {
+        border-radius: 12px;
+      }
+      .filter {
+        background: rgba(255, 255, 255, 0.62);
+      }
+      .filter.active,
+      .rating.good {
+        border-color: #b8d8f9;
+      }
+      .deck-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 13px;
+        background: #e8f2ff;
+      }
+      .tag {
+        background: #edf2f8;
+        border-radius: 7px;
+      }
+      .deck .description {
+        line-height: 1.8;
+      }
+      .deck-foot {
+        flex-wrap: wrap;
+      }
+      .deck-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .deck-controls .btn {
+        font-size: 14px;
+        padding: 8px 12px;
+      }
+      .daily-card {
+        border: 1px solid rgba(255, 255, 255, 0.96);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(222, 239, 255, 0.58));
+        color: var(--ink);
+        border-radius: 23px;
+        box-shadow: var(--shadow);
+        -webkit-backdrop-filter: blur(24px);
+        backdrop-filter: blur(24px);
+      }
+      .daily-card p,
+      .daily-card small,
+      .daily-card .daily-number span,
+      .daily-card .progress-caption {
+        color: var(--muted);
+      }
+      .daily-card .daily-number {
+        color: var(--accent);
+      }
+      .daily-card .progress-track {
+        background: #dbe8f6;
+      }
+      .daily-card .progress-fill {
+        background: var(--accent);
+      }
+      .daily-card .btn {
+        background: var(--accent);
+        color: white;
+        border-radius: 13px;
+      }
+      .daily-card h2 {
+        font-size: 24px;
+      }
+      .search {
+        border-radius: 13px;
+        border-color: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 2px 12px #426b9e04;
+      }
+      .search input {
+        box-shadow: none;
+      }
+      .stage-new {
+        background: #dfe5ed;
+      }
+      .stage-learning {
+        background: #a5ccfa;
+      }
+      .home-entry {
+        background: rgba(231, 244, 255, 0.8);
+        border-color: rgba(255, 255, 255, 0.9);
+      }
+      .dialog {
+        background: rgba(255, 255, 255, 0.96);
+      }
+      .dialog::backdrop {
+        background: rgba(60, 80, 110, 0.22);
+        -webkit-backdrop-filter: blur(5px);
+        backdrop-filter: blur(5px);
+      }
+      .toast {
+        color: white;
+        background: rgba(30, 40, 60, 0.9);
+      }
+      .random-controls {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 24px;
+      }
+      .random-controls .btn {
+        min-width: 110px;
+      }
+      .browse-note {
+        text-align: center;
+        margin-top: 16px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .line-chart {
+        width: 100%;
+        min-width: 0;
+      }
+      .line-chart svg {
+        display: block;
+        width: 100%;
+        height: 145px;
+        overflow: visible;
+      }
+      .trend-labels {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        margin: 2px 8% 0;
+        font-size: 14px;
+        color: var(--muted);
+        text-align: center;
+        white-space: nowrap;
+      }
+      .line-chart .axis-text {
+        fill: var(--muted);
+        font:
+          14px -apple-system,
+          'PingFang SC',
+          sans-serif;
+      }
+      .line-chart .line-stroke {
+        fill: none;
+        stroke: var(--accent);
+        stroke-width: 2.5;
+        stroke-linejoin: round;
+        stroke-linecap: round;
+      }
+      .line-chart .chart-grid {
+        stroke: var(--line);
+        stroke-width: 1;
+      }
+      .heatmap-panel {
+        margin-top: 22px;
+      }
+      .heatmap-scroll {
+        overflow-x: auto;
+        padding: 4px 1px 8px;
+      }
+      .heatmap-layout {
+        --cell: 14px;
+        --cell-gap: 4px;
+        display: grid;
+        grid-template-columns: 20px max-content;
+        gap: 8px;
+        min-width: 258px;
+      }
+      .weekday-labels {
+        display: grid;
+        grid-template-rows: 24px repeat(7, var(--cell));
+        row-gap: var(--cell-gap);
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .weekday-labels span {
+        line-height: var(--cell);
+      }
+      .heat-months {
+        display: grid;
+        grid-template-columns: repeat(13, var(--cell));
+        gap: var(--cell-gap);
+        height: 24px;
+        font-size: 14px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .heat-cells {
+        display: grid;
+        grid-template-rows: repeat(7, var(--cell));
+        grid-template-columns: repeat(13, var(--cell));
+        grid-auto-flow: column;
+        gap: var(--cell-gap);
+      }
+      .heat-cell {
+        min-width: 0;
+        min-height: 0;
+        height: var(--cell);
+        width: var(--cell);
+        padding: 0;
+        border: 1px solid #d5dde860;
+        border-radius: 3px;
+        background: var(--heat);
+      }
+      .heat-cell:hover,
+      .heat-cell:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+      }
+      .heat-cell.selected {
+        box-shadow: inset 0 0 0 1.5px var(--accent);
+      }
+      .heat-cell.placeholder {
+        visibility: hidden;
+      }
+      .heat-legend {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 14px;
+        font-size: 14px;
+        color: var(--muted);
+        flex-wrap: wrap;
+      }
+      .heat-scale {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .heat-scale i {
+        display: inline-block;
+        width: 13px;
+        height: 13px;
+        border-radius: 3px;
+        background: var(--heat);
+      }
+      .data-tip {
+        position: fixed;
+        z-index: 110;
+        max-width: calc(100vw - 24px);
+        padding: 9px 12px;
+        background: #263344;
+        color: #fff;
+        box-shadow: 0 5px 18px #142d4520;
+        border-radius: 8px;
+        font-size: 14px;
+        pointer-events: none;
+      }
+      @media (min-width: 600px) {
+        .heatmap-layout {
+          --cell: 18px;
+          --cell-gap: 5px;
+        }
+      }
+      @media (min-width: 1000px) {
+        .statistics-grid {
+          grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+        }
+        .line-chart svg {
+          height: 165px;
+        }
+      }
+      @supports not (backdrop-filter: blur(1px)) {
+        .deck,
+        .panel,
+        .stats-strip,
+        .flashcard,
+        .record {
+          background: #fff;
+        }
+      }
       @media (prefers-reduced-motion: reduce) {
         * {
           animation: none !important;
@@ -1193,6 +1532,7 @@
     <div id="app"></div>
     <dialog id="editor" class="dialog" aria-labelledby="dialog-title"></dialog>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <div id="data-tip" class="data-tip" role="tooltip" hidden></div>
     <script>
       'use strict';
       /* ===== 原型边界：这是本机演示，不是身份认证或数据库实现 ===== */
@@ -1415,6 +1755,8 @@
         search = '',
         selectedDay = today(),
         session = null,
+        browsing = null,
+        browseShown = false,
         shown = false,
         showIntervals = false,
         toastTimer,
@@ -1485,7 +1827,7 @@
               icon('exit') +
               '</button>'
             : '<button class="btn" data-action="login">演示登录</button>') +
-          '</div></header><div class="notice"><span>交互原型 · 示例数据 / 本机存储 · 未接入真实登录和数据库</span><span class="desktop">方向确认版 v1</span></div>' +
+          '</div></header><div class="notice"><span>交互原型 · 示例数据 / 本机存储 · 未接入真实登录和数据库</span><span class="desktop">方向确认版 v2</span></div>' +
           (storageError ? '<div class="storage-warning" role="alert">' + escapeHTML(storageError) + '</div>' : '')
         );
       }
@@ -1503,9 +1845,13 @@
                 '<button data-action="nav" data-route="' +
                 key +
                 '" class="' +
-                (r.startsWith(key) || (key === 'overview' && r.startsWith('deck/')) ? 'active' : '') +
+                (r.startsWith(key) || (key === 'overview' && (r.startsWith('deck/') || r === 'browse'))
+                  ? 'active'
+                  : '') +
                 '"' +
-                (r.startsWith(key) || (key === 'overview' && r.startsWith('deck/')) ? ' aria-current="page"' : '') +
+                (r.startsWith(key) || (key === 'overview' && (r.startsWith('deck/') || r === 'browse'))
+                  ? ' aria-current="page"'
+                  : '') +
                 '>' +
                 icon(ico) +
                 label +
@@ -1580,13 +1926,17 @@
           due +
           ' 张</span></div><div class="deck-foot"><a class="btn text" href="#deck/' +
           encodeURIComponent(d.id) +
-          '">查看卡片</a><button class="btn" data-action="start" data-deck="' +
+          '">查看卡片</a><div class="deck-controls"><button class="btn" data-action="browse" data-deck="' +
+          escapeHTML(d.id) +
+          '" ' +
+          (!cards.length ? 'disabled' : '') +
+          '>随机浏览</button><button class="btn" data-action="start" data-deck="' +
           escapeHTML(d.id) +
           '" ' +
           (!due ? 'disabled' : '') +
           '>' +
-          (due ? '练习' : '暂无到期') +
-          '</button></div></article>'
+          (due ? '到期练习' : '暂无到期') +
+          '</button></div></div></article>'
         );
       }
       function libraryResults() {
@@ -1599,30 +1949,67 @@
           ? results.map(deckTile).join('')
           : '<div class="empty"><h3>没有找到卡片库</h3><p>换个关键词，或创建一个新的卡片库。</p><button class="btn" data-action="new-deck">创建卡片库</button></div>';
       }
-      function bars() {
+      /* 折线采用原生 SVG，保证单文件离线打开，不依赖 CDN。 */
+      function trendLine() {
         const dates = Array.from({ length: 7 }, (_, i) => previousDay(6 - i));
-        const counts = dates.map((d) => uniqueCount(dayLogs(d))),
-          max = Math.max(1, ...counts);
-        return (
-          '<div class="chart-bars" role="img" aria-label="最近7日练习卡片数，按卡片去重：' +
-          dates.map((d, i) => d + ' ' + counts[i] + '张').join('，') +
-          '">' +
-          dates
-            .map(
-              (d, i) =>
-                '<div class="bar-column ' +
-                (i === 6 ? 'today' : '') +
-                '"><span class="count">' +
-                counts[i] +
-                '</span><div class="bar" style="height:' +
-                Math.round((counts[i] / max) * 92) +
-                'px"></div></div>',
-            )
-            .join('') +
-          '</div><div class="chart-labels">' +
-          dates.map((d, i) => '<span>' + (i === 6 ? '今天' : d.slice(5).replace('-', '/')) + '</span>').join('') +
-          '</div>'
-        );
+        const counts = dates.map((day) => uniqueCount(dayLogs(day)));
+        const max = Math.max(1, ...counts);
+        const points = counts.map((n, i) => [24 + i * 42, 116 - (n / max) * 92]);
+        const labels = dates
+          .map((day, i) => `<span>${i % 2 === 0 ? (i === 6 ? '今天' : day.slice(5).replace('-', '/')) : ''}</span>`)
+          .join('');
+        return `<div class="line-chart"><svg viewBox="0 0 300 132" preserveAspectRatio="none" role="img" aria-label="最近7日练习量，按卡片去重：${dates.map((d, i) => d + ' ' + counts[i] + '张').join('，')}"><path d="M24 24H276M24 70H276M24 116H276" class="chart-grid"/><polyline class="line-stroke" points="${points.map((p) => p.join(',')).join(' ')}"/>${points.map((p, i) => `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="white" stroke="var(--accent)" stroke-width="2"/><circle cx="${p[0]}" cy="${p[1]}" r="12" fill="transparent" tabindex="0" data-tip="${dates[i]} · ${counts[i]} 张卡片" aria-label="${dates[i]} · ${counts[i]} 张卡片"/>`).join('')}</svg><div class="trend-labels">${labels}</div></div>`;
+      }
+      const heatColors = ['#edf1f5', '#c4e9d5', '#8bd1ae', '#42aa79', '#16814f'];
+      const heatLevel = (count) => (count === 0 ? 0 : count <= 3 ? 1 : count <= 6 ? 2 : count <= 9 ? 3 : 4);
+      function heatmap() {
+        // 按周分列、周日到周六分行。13 周覆盖 85–91 个截至今天的自然日。
+        const end = new Date(),
+          startDate = new Date(end);
+        startDate.setDate(end.getDate() - end.getDay() - 12 * 7);
+        const months = [],
+          cells = [];
+        let lastMonth = '';
+        for (let week = 0; week < 13; week++) {
+          const d = new Date(startDate);
+          d.setDate(startDate.getDate() + week * 7);
+          const month = d.getFullYear() + '-' + d.getMonth();
+          months.push(`<span>${month !== lastMonth ? d.getMonth() + 1 + '月' : ''}</span>`);
+          lastMonth = month;
+          for (let row = 0; row < 7; row++) {
+            const current = new Date(d);
+            current.setDate(d.getDate() + row);
+            const day = dateKey(current);
+            if (day > today()) {
+              cells.push('<span class="heat-cell placeholder" aria-hidden="true"></span>');
+              continue;
+            }
+            const count = uniqueCount(dayLogs(day)),
+              tip = day + ' · ' + count + ' 张卡片';
+            cells.push(
+              `<button class="heat-cell ${day === selectedDay ? 'selected' : ''}" style="--heat:${heatColors[heatLevel(count)]}" data-action="select-day" data-day="${day}" data-count="${count}" data-tip="${tip}" aria-label="${tip}"></button>`,
+            );
+          }
+        }
+        return `<div class="heatmap-panel"><div class="section-title"><h2>练习热力图</h2><span class="small">近 13 周</span></div><div class="heatmap-scroll"><div class="heatmap-layout"><div class="weekday-labels" aria-hidden="true"><span></span><span></span><span>一</span><span></span><span>三</span><span></span><span>五</span><span></span></div><div><div class="heat-months">${months.join('')}</div><div class="heat-cells" aria-label="近13周练习热力图">${cells.join('')}</div></div></div></div><div class="heat-legend"><span>悬停查看，点击选定日期</span><span class="heat-scale">少 ${heatColors.map((color) => `<i style="--heat:${color}" aria-hidden="true"></i>`).join('')} 多</span></div><p class="chart-caption">色阶：0、1–3、4–6、7–9、10+ 张。历史包含示例记录；手机点击或键盘聚焦可查看数量。</p></div>`;
+      }
+      function showTip(element) {
+        const tip = $('#data-tip');
+        if (!element?.dataset.tip || !tip) return;
+        tip.textContent = element.dataset.tip;
+        tip.hidden = false;
+        const r = element.getBoundingClientRect(),
+          box = tip.getBoundingClientRect();
+        tip.style.left =
+          Math.max(12, Math.min(window.innerWidth - box.width - 12, r.left + r.width / 2 - box.width / 2)) + 'px';
+        tip.style.top =
+          (r.top - box.height - 9 >= 8
+            ? r.top - box.height - 9
+            : Math.min(window.innerHeight - box.height - 8, r.bottom + 9)) + 'px';
+      }
+      function hideTip() {
+        const tip = $('#data-tip');
+        if (tip) tip.hidden = true;
       }
       function overview() {
         const due = dueCards().length,
@@ -1675,9 +2062,40 @@
           '>' +
           (due ? '开始今日练习 · ' + due + ' 张' : '当前没有到期卡片') +
           '</button><small>待练包含到期复习与未学新卡；每日目标只用于展示，不限制练习。</small></section><section class="panel"><div class="section-title"><h3>最近 7 天</h3><a class="btn text" href="#stats" style="padding:7px">统计</a></div>' +
-          bars() +
-          '<p class="chart-caption">每天练过的不同卡片数。历史浅色柱为演示数据，今天随操作更新。</p></section><section class="panel"><h3>一次练习，三个动作</h3><ol class="hint-list"><li><span class="step-dot">1</span><span>看到问题，先尝试回忆</span></li><li><span class="step-dot">2</span><span>主动揭示答案，核对内容</span></li><li><span class="step-dot">3</span><span>自评后安排下一次复习</span></li></ol></section></aside></div>'
+          trendLine() +
+          '<p class="chart-caption">每天练过的不同卡片数。历史为演示数据，今天随操作更新。</p></section><section class="panel"><h3>一次练习，三个动作</h3><ol class="hint-list"><li><span class="step-dot">1</span><span>看到问题，先尝试回忆</span></li><li><span class="step-dot">2</span><span>主动揭示答案，核对内容</span></li><li><span class="step-dot">3</span><span>自评后安排下一次复习</span></li></ol></section></aside></div>'
         );
+      }
+      function shuffle(ids) {
+        const result = ids.slice();
+        for (let i = result.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [result[i], result[j]] = [result[j], result[i]];
+        }
+        // 二次洗牌避免停在完全相同的顺序；只在用户操作时使用随机数。
+        if (result.length > 1 && result.every((v, i) => v === ids[i])) result.push(result.shift());
+        return result;
+      }
+      function browse(deckId) {
+        const cards = data.cards.filter((c) => c.deckId === deckId);
+        if (!cards.length) {
+          toast('这个卡片库还没有卡片，请先录入。');
+          return;
+        }
+        session = null;
+        shown = false;
+        browsing = { deckId, queue: shuffle(cards.map((c) => c.id)), index: 0 };
+        browseShown = false;
+        go('browse');
+      }
+      function browseView() {
+        if (!browsing)
+          return '<div class="empty"><h2>选择一个卡片库开始随机浏览</h2><a class="btn primary" href="#overview">返回卡片库</a></div>';
+        const d = deckById(browsing.deckId),
+          c = cardById(browsing.queue[browsing.index]);
+        if (!d || !c)
+          return '<div class="empty"><h2>当前卡片已不可用</h2><a class="btn" href="#overview">返回卡片库</a></div>';
+        return `<div class="review-wrap"><div class="review-head"><a class="btn text" href="#deck/${encodeURIComponent(d.id)}">${icon('arrow')}返回卡片库</a><span class="small">随机浏览 · ${browsing.index + 1} / ${browsing.queue.length}</span></div><div class="section-title spacer"><div class="review-meta"><span>${escapeHTML(d.category)}</span><span>${escapeHTML(d.name)}</span></div><span class="small">不受到期限制</span></div><article class="flashcard"><span class="q-label">Q</span><h1 class="question">${escapeHTML(c.q)}</h1>${browseShown ? `<section class="answer" aria-label="卡片答案"><div class="answer-label">A · 参考答案</div><p>${escapeHTML(c.a)}</p></section>` : ''}<div class="card-number">${browseShown ? '答案已展开' : '答案已隐藏，先试着回忆'}</div></article><div class="random-controls"><button class="btn" data-action="browse-prev" ${browsing.index === 0 ? 'disabled' : ''}>上一张</button><button class="btn primary" data-action="browse-reveal">${browseShown ? '收起答案' : '显示答案'}</button><button class="btn" data-action="browse-next" ${browsing.index === browsing.queue.length - 1 ? 'disabled' : ''}>下一张</button><button class="btn text" data-action="browse-shuffle">重新洗牌</button></div><p class="browse-note">自由查看全部卡片，不改变复习排期，也不计入每日练习进度。</p></div>`;
       }
       function start(deckId) {
         if (!data.demoSession) {
@@ -1847,7 +2265,11 @@
           escapeHTML(deckId) +
           '">' +
           icon('plus') +
-          '录入卡片</button><button class="btn primary" data-action="start" data-deck="' +
+          '录入卡片</button><button class="btn" data-action="browse" data-deck="' +
+          escapeHTML(deckId) +
+          '" ' +
+          (!cards.length ? 'disabled' : '') +
+          '>随机浏览</button><button class="btn primary" data-action="start" data-deck="' +
           escapeHTML(deckId) +
           '" ' +
           (!due ? 'disabled' : '') +
@@ -1918,38 +2340,16 @@
           wrong = logs.filter((l) => l.rating === 'wrong').length,
           custom = logs.filter((l) => l.rating === 'custom').length;
         const percent = Math.min(100, Math.round((distinct / data.goal) * 100));
-        const days = Array.from({ length: 28 }, (_, i) => previousDay(27 - i));
         return (
           '<div class="heading"><div><h1>每日统计</h1><p>看见每天的投入，不把重复练习误算成新进度。</p></div><button class="btn" data-action="goal">每日目标 ' +
           data.goal +
           ' 张</button></div>' +
           metrics() +
           '<div class="statistics-grid"><section class="panel"><div class="section-title"><h2>近 7 日练习量</h2><span class="small">单位：张 / 日内去重</span></div>' +
-          bars() +
-          '<p class="chart-caption">历史记录为示例；当前日期与今天的练习结果会随本机时间和操作更新。</p><div class="section-title spacer"><h2>近 28 日记录</h2><span class="small">点击日期查看</span></div><div class="days-grid">' +
-          days
-            .map((day) => {
-              const n = uniqueCount(dayLogs(day));
-              return (
-                '<button class="day ' +
-                (n ? 'reviewed' : '') +
-                ' ' +
-                (day === selectedDay ? 'selected' : '') +
-                '" data-action="select-day" data-day="' +
-                day +
-                '" aria-label="' +
-                day +
-                '，' +
-                n +
-                '张卡片"><span>' +
-                day.slice(5).replace('-', '/') +
-                '</span><strong>' +
-                n +
-                '</strong></button>'
-              );
-            })
-            .join('') +
-          '</div></section><section class="panel"><div class="section-title"><h2>当天明细</h2></div><label class="date-field">选择日期 <input id="stat-date" type="date" value="' +
+          trendLine() +
+          '<p class="chart-caption">历史记录为示例；当前日期与今天的练习结果会随本机时间和操作更新。</p>' +
+          heatmap() +
+          '</section><section class="panel"><div class="section-title"><h2>当天明细</h2></div><label class="date-field">选择日期 <input id="stat-date" type="date" value="' +
           selectedDay +
           '" max="' +
           today() +
@@ -2007,6 +2407,7 @@
         return '<main class="workspace"><section class="center-gate panel"><div class="mark">A</div><h1>登录后，查看自己的卡片库</h1><p>卡片库与练习进度属于你。正式版将复用博客账号，并由服务端隔离数据。</p><button class="btn primary" data-action="login">使用演示账号进入</button><p class="small">本原型不收集密码，不验证身份。演示数据只保存在当前浏览器，不能用于保存私密信息。</p></section></main>';
       }
       function render() {
+        hideTip();
         const r = route();
         if (r === 'home') {
           app.innerHTML = header(true) + home();
@@ -2021,9 +2422,11 @@
             ? stats()
             : r === 'review'
               ? review()
-              : r.startsWith('deck/')
-                ? deckDetail(decodeURIComponent(r.slice(5)))
-                : overview();
+              : r === 'browse'
+                ? browseView()
+                : r.startsWith('deck/')
+                  ? deckDetail(decodeURIComponent(r.slice(5)))
+                  : overview();
         app.innerHTML =
           header() +
           '<div class="shell">' +
@@ -2199,6 +2602,8 @@
             })
           ) {
             session = null;
+            browsing = null;
+            browseShown = false;
             shown = false;
             render();
             toast('已退出演示账号；本机演示记录保留。');
@@ -2217,6 +2622,24 @@
         if (a === 'edit-card') openEditor('card', null, button.dataset.card);
         if (a === 'goal') openEditor('goal');
         if (a === 'start') start(button.dataset.deck);
+        if (a === 'browse') browse(button.dataset.deck);
+        if (a.startsWith('browse-') && browsing) {
+          if (a === 'browse-reveal') browseShown = !browseShown;
+          if (a === 'browse-prev') {
+            browsing.index = Math.max(0, browsing.index - 1);
+            browseShown = false;
+          }
+          if (a === 'browse-next') {
+            browsing.index = Math.min(browsing.queue.length - 1, browsing.index + 1);
+            browseShown = false;
+          }
+          if (a === 'browse-shuffle') {
+            browsing.queue = shuffle(browsing.queue);
+            browsing.index = 0;
+            browseShown = false;
+          }
+          render();
+        }
         if (a === 'end') {
           session = null;
           shown = false;
@@ -2240,6 +2663,8 @@
         if (a === 'select-day') {
           selectedDay = button.dataset.day;
           render();
+          const cell = app.querySelector('.heat-cell[data-day="' + selectedDay + '"]');
+          showTip(cell);
         }
         if (a === 'toggle-card') {
           const answer = document.getElementById('answer-' + button.dataset.card);
@@ -2249,6 +2674,22 @@
         }
       }
       app.addEventListener('click', action);
+      app.addEventListener('pointerover', (event) => {
+        const el = event.target.closest('[data-tip]');
+        if (el) showTip(el);
+      });
+      app.addEventListener('pointerout', (event) => {
+        if (event.target.closest('[data-tip]')) hideTip();
+      });
+      app.addEventListener('focusin', (event) => {
+        const el = event.target.closest('[data-tip]');
+        if (el) showTip(el);
+      });
+      app.addEventListener('focusout', (event) => {
+        if (event.target.closest('[data-tip]')) hideTip();
+      });
+      window.addEventListener('scroll', hideTip, { passive: true });
+      window.addEventListener('resize', hideTip);
       dialog.addEventListener('click', action);
       dialog.addEventListener('cancel', (event) => {
         event.preventDefault();
@@ -2259,6 +2700,18 @@
         window.scrollTo(0, 0);
       });
       window.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') hideTip();
+        if (
+          event.code === 'Space' &&
+          route() === 'browse' &&
+          browsing &&
+          !dialog.open &&
+          !event.target.closest('button,input,select,textarea,a')
+        ) {
+          event.preventDefault();
+          browseShown = !browseShown;
+          render();
+        }
         if (
           event.code === 'Space' &&
           route() === 'review' &&

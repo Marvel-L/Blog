@@ -7,7 +7,9 @@
 - 新建分类与卡片库，录入/编辑 Q & A，查看自己的演示卡片库。
 - 练习只展示 Q，主动揭示 A 后选择错误、模糊、正确，或指定天数。
 - 卡片库覆盖进度、熟练状态与到期量；每日去重卡片数和评价次数。
-- 近 7 日柱图、近 28 日日期记录、每日目标。
+- 无到期内容也能“随机浏览”全部卡片，支持上一张/下一张/重新洗牌；不改变排期或每日进度。
+- 近 7 日折线、近 13 周 GitHub 式热力图、每日目标。热力色块不标数字，悬停/聚焦/手机点击显示日期数量。
+- 原型 v2 使用冷白浅色与半透明玻璃表面，替换旧纸色/深绿色块。
 - 顶部 Blog 返回博客入口示意，再点击进入 Anki。
 - 右上角退出演示账号，查看未登录态，再通过演示入口返回。
 
@@ -21,4 +23,4 @@
 
 使用 html Skill 的 `scripts/shot.py` 做截图及交互检查；`verify-flow.js` 是可重复的浏览器 fixture（依赖验证器的 `--eval-file`，不是独立 Node 程序）。只在检查器隔离浏览器中写入测试库，结束恢复原 localStorage，不改用户浏览器记录。
 
-验证依赖在 `_check_deps/`，输出在 `_shots/` / `_checks/`；均是本地工具工作文件，被本目录 `.gitignore` 排除。代码检查使用 `npx eslint . --ignore-pattern 'anki-prototype/_check_deps/**'`，只排除安装的 Python 第三方验证工具，不排除产品源码。实际执行结果和未覆盖部分以 project-notes 中的记录为准。
+验证依赖在 `_check_deps/`，输出在 `_shots/` / `_checks/`；上一版备份在 `_backup/`；均是本地工具工作文件，被本目录 `.gitignore` 排除。代码检查使用 `npx eslint . --ignore-pattern 'anki-prototype/_check_deps/**'`，只排除安装的 Python 第三方验证工具，不排除产品源码。实际执行结果和未覆盖部分以 project-notes 中的记录为准。

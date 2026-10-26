@@ -1,4 +1,4 @@
-/* global document, requestAnimationFrame */
+/* global document, requestAnimationFrame, PointerEvent */
 /* 使用 html/scripts/shot.py --eval-file 调用；只在隔离检查浏览器内创建 fixture。 */
 const check = (condition, name) => {
   if (!condition) throw new Error(name);
@@ -55,8 +55,65 @@ try {
   await waitFor('.split-title');
   check(document.querySelector('.split-title h2').textContent === '1 张不同卡片', '每日去重完成量不符');
   check(document.querySelector('.split-title .small').textContent === '1 次评价', '每日评价次数不符');
+  check(document.querySelector('.line-chart polyline'), '统计未使用折线');
+  check(!document.querySelector('.chart-bars'), '旧柱图仍被渲染');
+  const heatCell = document.querySelector('.heat-cell[data-count="1"]');
+  check(heatCell && !heatCell.textContent.trim(), '热力单元格未隐藏数量');
+  check(document.querySelector('#data-tip').hidden, '提示默认不应显示');
+  heatCell.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
+  check(
+    !document.querySelector('#data-tip').hidden &&
+      document.querySelector('#data-tip').textContent === heatCell.dataset.tip,
+    '悬停提示未匹配真实数量',
+  );
+  heatCell.dispatchEvent(new PointerEvent('pointerout', { bubbles: true }));
+  check(document.querySelector('#data-tip').hidden, '离开后提示未收起');
+  click('a[href="#home"]');
+  await waitFor('.home-entry');
+  click('a[href="#overview"]');
+  await waitFor('#deck-results');
+  const noDue = document.querySelector('[data-action="start"][data-deck="' + deck.id + '"]');
+  check(noDue.disabled, '测试库不应有到期卡');
+  const beforeBrowsing = localStorage.getItem('d-blog-anki-prototype-v1');
+  click('[data-action="browse"][data-deck="' + deck.id + '"]');
+  await waitFor('.random-controls');
+  check(document.querySelector('.question').textContent === card.q, '未来卡不能随机浏览');
+  check(
+    !document.querySelector('.answer') && !document.querySelector('[data-action="rate"]'),
+    '浏览泄露答案或开放评价',
+  );
+  click('[data-action="browse-reveal"]');
+  check(document.querySelector('.answer p').textContent === card.a, '随机浏览未揭示答案');
+  click('[data-action="browse-shuffle"]');
+  check(!document.querySelector('.answer'), '重新洗牌后答案未隐藏');
+  check(document.querySelector('[data-action="browse-next"]').disabled, '单张卡片边界不符');
+  check(localStorage.getItem('d-blog-anki-prototype-v1') === beforeBrowsing, '随机浏览改变排期或统计');
+  click('[data-action="nav"][data-route="overview"]');
+  await waitFor('#deck-results');
+  click('[data-action="browse"][data-deck="go"]');
+  await waitFor('.random-controls');
+  const questions = [];
+  for (let i = 0; i < 4; i++) {
+    questions.push(document.querySelector('.question').textContent);
+    click('[data-action="browse-reveal"]');
+    if (i < 3) {
+      click('[data-action="browse-next"]');
+      check(!document.querySelector('.answer'), '切卡没有隐藏答案');
+    }
+  }
+  check(
+    new Set(questions).size === 4 && saved.cards.filter((c) => c.deckId === 'go').every((c) => questions.includes(c.q)),
+    '洗牌未覆盖整个库或重复卡片',
+  );
+  click('[data-action="browse-shuffle"]');
+  check(document.querySelector('[data-action="browse-prev"]').disabled, '重洗后未回到首张');
+  check(localStorage.getItem('d-blog-anki-prototype-v1') === beforeBrowsing, '多卡浏览改动数据');
+  click('[data-action="nav"][data-route="stats"]');
+  await waitFor('.heat-cells');
   result = {
-    coreFlow: '分类建库 → 录入 Q/A → Q 隐藏 A → 揭示 → 正确自评 → 排期 → 每日统计',
+    coreFlow: '建库录入 → Q/A 自评排期 → 折线热力统计 → 未到期随机浏览 → 统计不变',
+    randomBrowseKeepsSchedule: true,
+    heatmapHover: true,
     passed: true,
     createdCardCount: saved.cards.filter((item) => item.deckId === deck.id).length,
     savedIntervalDays: updated.interval,
