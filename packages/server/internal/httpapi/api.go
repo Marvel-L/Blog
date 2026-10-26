@@ -43,6 +43,16 @@ type Persistence interface {
 	ExchangeTrend(context.Context, string, string, string) (string, *store.User, error)
 	FindTrendUser(context.Context, string, string) (*store.User, error)
 	RevokeTrend(context.Context, string, string) error
+	AnkiDashboard(context.Context, string, int) (store.AnkiDashboard, error)
+	CreateAnkiCategory(context.Context, string, string) (store.AnkiCategory, error)
+	CreateAnkiDeck(context.Context, string, string, string) (store.AnkiDeck, error)
+	ListAnkiCards(context.Context, string, string) ([]store.AnkiCard, error)
+	CreateAnkiCard(context.Context, string, string, string, string) (store.AnkiCard, error)
+	UpdateAnkiCard(context.Context, string, string, string, string, bool, int) (store.AnkiCard, error)
+	AnkiQueue(context.Context, string, string) ([]store.AnkiCard, time.Time, error)
+	ReviewAnkiCard(context.Context, string, string, int, string, string, *int) (store.AnkiCard, error)
+	AnkiGoal(context.Context, string) (int, error)
+	SetAnkiGoal(context.Context, string, int) (int, error)
 }
 type API struct {
 	config                     config.Config
@@ -76,6 +86,15 @@ func New(c config.Config, db Persistence, exchange github.Exchange) http.Handler
 	mux.HandleFunc("GET /api/v1/trend/connect", a.connectTrend)
 	mux.HandleFunc("POST /api/v1/trend/exchange", a.exchangeTrend)
 	mux.HandleFunc("DELETE /api/v1/trend/session", a.revokeTrend)
+	mux.HandleFunc("GET /api/v1/anki/dashboard", a.ankiDashboard)
+	mux.HandleFunc("POST /api/v1/anki/categories", a.ankiCreateCategory)
+	mux.HandleFunc("POST /api/v1/anki/decks", a.ankiCreateDeck)
+	mux.HandleFunc("GET /api/v1/anki/decks/{deckId}/cards", a.ankiDeckCards)
+	mux.HandleFunc("POST /api/v1/anki/decks/{deckId}/cards", a.ankiCreateCard)
+	mux.HandleFunc("PATCH /api/v1/anki/cards/{cardId}", a.ankiPatchCard)
+	mux.HandleFunc("GET /api/v1/anki/decks/{deckId}/queue", a.ankiQueue)
+	mux.HandleFunc("POST /api/v1/anki/reviews", a.ankiReview)
+	mux.HandleFunc("PUT /api/v1/anki/goal", a.ankiSetGoal)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")

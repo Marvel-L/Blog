@@ -107,6 +107,16 @@ func requireStatus(t *testing.T, w *httptest.ResponseRecorder, status int) {
 		t.Fatalf("status %d, expected %d; %s", w.Code, status, w.Body.String())
 	}
 }
+
+// duePast 仅测试用：把指定卡的到期时间拨到过去，使其可再次被合法评价。
+// 生产守卫（未到期 409）不放松，测试用隔离 DB 直接改排期来模拟“明天再练”。
+func (f *fixture) duePast(t *testing.T, cardID string) {
+	t.Helper()
+	if _, err := f.db.Pool.Exec(context.Background(),
+		"UPDATE anki_cards SET due_at = clock_timestamp() - interval '1 hour' WHERE id=$1", cardID); err != nil {
+		t.Fatal(err)
+	}
+}
 func (f *fixture) authorize(t *testing.T) (string, string, *url.URL) {
 	t.Helper()
 	w := f.request("GET", "/api/v1/auth/github/start", "", "", "")
@@ -371,7 +381,7 @@ func TestMigrationSerializationAndRollback(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if count(t, db, "schema_migrations") != 3 || count(t, db, "users") != 1 {
+	if count(t, db, "schema_migrations") != 4 || count(t, db, "users") != 1 {
 		t.Fatal("migration rewrote existing data")
 	}
 	bad := fstest.MapFS{"999_failure.sql": &fstest.MapFile{Data: []byte("CREATE TABLE rollback_probe(id integer); SELECT * FROM nonexistent_table;")}}
@@ -379,7 +389,7 @@ func TestMigrationSerializationAndRollback(t *testing.T) {
 		t.Fatal("invalid migration succeeded")
 	}
 	var exists bool
-	if err := db.Pool.QueryRow(ctx, "SELECT to_regclass('rollback_probe') IS NOT NULL").Scan(&exists); err != nil || exists || count(t, db, "schema_migrations") != 3 {
+	if err := db.Pool.QueryRow(ctx, "SELECT to_regclass('rollback_probe') IS NOT NULL").Scan(&exists); err != nil || exists || count(t, db, "schema_migrations") != 4 {
 		t.Fatal("migration failed to roll back")
 	}
 }
