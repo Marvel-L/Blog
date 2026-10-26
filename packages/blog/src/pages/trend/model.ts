@@ -133,16 +133,16 @@ export const createCategory = (id: string, name: string, kind: TrendCategory['ki
   name,
   kind,
   xMetric: kind === 'nutrition' ? 'price100g' : 'x',
-  yMetric: kind === 'nutrition' ? 'kcalPerYuan' : 'y',
+  yMetric: kind === 'nutrition' ? 'kcal100g' : 'y',
   xLabel: '',
   yLabel: '',
   onDashboard: true,
-  threshold: { enabled: true, axis: 'y', direction: 'above', value: kind === 'nutrition' ? 50 : 100 },
+  threshold: { enabled: true, axis: 'y', direction: 'above', value: kind === 'nutrition' ? 350 : 100 },
   items: [],
 });
 
 export const defaultState = (): TrendState => {
-  const category = createCategory('snacks', '零食 · 单位热量性价比', 'nutrition');
+  const category = createCategory('snacks', '零食 · 价格与热量', 'nutrition');
   category.items = [
     { ...emptyItem('duck-neck'), name: '鸭脖', price: 30, weight: 500, energy: 1300 },
     { ...emptyItem('duck-leg'), name: '鸭腿', price: 5, weight: 130, energy: 600 },
@@ -152,6 +152,33 @@ export const defaultState = (): TrendState => {
     { ...emptyItem('chips'), name: '薯片', price: 8, weight: 100, energy: 2200 },
   ];
   return { version: 1, categories: [category], selectedId: category.id };
+};
+
+/** 仅升级旧默认类别；保留主动配置的指标，不改变解析和云端版本比较。 */
+export const migrateLegacyNutritionState = (state: TrendState): TrendState => {
+  let changed = false;
+  const categories = state.categories.map((category) => {
+    if (
+      category.id !== 'snacks' ||
+      category.name !== '零食 · 单位热量性价比' ||
+      category.kind !== 'nutrition' ||
+      category.xMetric !== 'price100g' ||
+      category.yMetric !== 'kcalPerYuan' ||
+      category.xLabel.trim() ||
+      category.yLabel.trim()
+    ) {
+      return category;
+    }
+    changed = true;
+    return {
+      ...category,
+      name: '零食 · 价格与热量',
+      yMetric: 'kcal100g' as const,
+      // 每元热量的阈值无法统一换算为每 100g 热量，保留数值但暂停旧 Y 阈值。
+      threshold: category.threshold.axis === 'y' ? { ...category.threshold, enabled: false } : category.threshold,
+    };
+  });
+  return changed ? { ...state, categories } : state;
 };
 
 const isObject = (value: unknown): value is Record<string, unknown> =>

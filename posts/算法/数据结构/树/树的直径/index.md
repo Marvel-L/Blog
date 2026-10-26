@@ -4,7 +4,6 @@ title: 树的直径
 excerpt: 树的直径
 category: 算法
 tags:
-  - 日常
   - 树
   - 树形 DP
 author: Marvel-L

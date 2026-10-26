@@ -1810,7 +1810,11 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
             initial="initial"
             animate="animate"
             style={hasViewTransition ? { viewTransitionName: 'route-content' } : undefined}
-            className="mx-auto min-w-0 w-full max-w-7xl"
+            className={`mx-auto min-w-0 w-full ${
+              location.pathname.replace(/\/$/, '') === '/trend' && !isLoveMode
+                ? 'relative z-[31] max-w-[1600px]'
+                : 'max-w-7xl'
+            }`}
           >
             <AnimatePresence mode="wait" initial={false}>
               <motion.div

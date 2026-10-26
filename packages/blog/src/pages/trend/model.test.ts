@@ -6,6 +6,7 @@ import {
   emptyItem,
   getPoints,
   metricValue,
+  migrateLegacyNutritionState,
   parseState,
   thresholdStyle,
 } from './model';
@@ -87,5 +88,27 @@ describe('Trend 数据与坐标', () => {
       const category = { ...state.categories[0], items: [{ ...state.categories[0].items[0], ...patch }] };
       expect(() => parseState(JSON.stringify({ ...state, categories: [category] }))).toThrow();
     }
+  });
+
+  it('只迁移旧默认类别，不改用户选择或解析结果，迁移可重复且保留 X 阈值', () => {
+    const legacy = defaultState();
+    legacy.categories[0].name = '零食 · 单位热量性价比';
+    legacy.categories[0].yMetric = 'kcalPerYuan';
+    legacy.categories[0].threshold.value = 50;
+    expect(parseState(JSON.stringify(legacy))).toEqual(legacy);
+    const migrated = migrateLegacyNutritionState(legacy);
+    expect(migrated.categories[0]).toMatchObject({
+      name: '零食 · 价格与热量',
+      yMetric: 'kcal100g',
+      threshold: { enabled: false, value: 50 },
+      items: legacy.categories[0].items,
+    });
+    expect(migrateLegacyNutritionState(migrated)).toBe(migrated);
+    migrated.categories[0].yMetric = 'kcalPerYuan';
+    expect(migrateLegacyNutritionState(migrated)).toBe(migrated);
+    legacy.categories[0].threshold.axis = 'x';
+    expect(migrateLegacyNutritionState(legacy).categories[0].threshold).toEqual(legacy.categories[0].threshold);
+    legacy.categories[0].name = '我的零食';
+    expect(migrateLegacyNutritionState(legacy)).toBe(legacy);
   });
 });
