@@ -56,6 +56,12 @@ try {
   check(document.querySelector('.split-title h2').textContent === '1 张不同卡片', '每日去重完成量不符');
   check(document.querySelector('.split-title .small').textContent === '1 次评价', '每日评价次数不符');
   check(document.querySelector('.line-chart polyline'), '统计未使用折线');
+  const chart = document.querySelector('.line-chart');
+  const chartSvg = chart.querySelector('svg');
+  check(Math.abs(chartSvg.viewBox.baseVal.width - chart.clientWidth) <= 1, '图表与实际容器宽度不一致');
+  check(!chartSvg.hasAttribute('preserveAspectRatio'), '不能拉伸SVG制造变形');
+  check(chartSvg.querySelectorAll('.chart-axis-text').length >= 9, '图表坐标数值或日期缺失');
+  check(!document.querySelector('.sidebar') && !document.querySelector('.deck-grid'), '旧分块壳未移除');
   check(!document.querySelector('.chart-bars'), '旧柱图仍被渲染');
   const heatCell = document.querySelector('.heat-cell[data-count="1"]');
   check(heatCell && !heatCell.textContent.trim(), '热力单元格未隐藏数量');
