@@ -25,6 +25,7 @@ import {
   formatNumber,
   getPoints,
   metricValue,
+  migrateLegacyNutritionState,
   parseState,
   type Metric,
   type TrendCategory,
@@ -107,7 +108,9 @@ export const Trend = () => {
   const applySyncedState = useCallback((next: TrendState, user: SyncUser | null) => {
     syncScope.current = user?.id ?? null;
     importGeneration.current += 1;
-    setState(next);
+    const migrated = migrateLegacyNutritionState(next);
+    setState(migrated);
+    if (migrated !== next) setMessage('旧默认类别已改为每 100g 热量；原纵轴阈值需按新单位重新设置。');
     setDeletingCategory(false);
   }, []);
   useEffect(() => {
@@ -116,7 +119,15 @@ export const Trend = () => {
       initialized.current = true;
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) setState(parseState(stored));
+        if (stored) {
+          const parsed = parseState(stored);
+          const migrated = migrateLegacyNutritionState(parsed);
+          setState(migrated);
+          if (migrated !== parsed) {
+            skipInitialSave.current = false;
+            setMessage('旧默认类别已改为每 100g 热量；原纵轴阈值需按新单位重新设置。');
+          }
+        }
       } catch {
         setMessage('无法读取已保存的配置，当前显示示例。你可以导入备份或重新编辑。');
       }
@@ -154,6 +165,16 @@ export const Trend = () => {
   };
   const updateItem = (id: string, patch: Partial<TrendItem>) =>
     updateCategory({ items: category.items.map((item) => (item.id === id ? { ...item, ...patch } : item)) });
+  const updateMetric = (axis: 'x' | 'y', metric: Metric) => {
+    if (category[`${axis}Metric`] === metric) return;
+    const resetThreshold = category.threshold.axis === axis && category.threshold.enabled;
+    updateCategory({
+      [`${axis}Metric`]: metric,
+      [`${axis}Label`]: '',
+      ...(resetThreshold ? { threshold: { ...category.threshold, enabled: false } } : {}),
+    });
+    if (resetThreshold) setMessage('坐标单位已改变，原阈值已暂停。请按新单位设置数值后重新启用。');
+  };
   const selectCategory = (id: string) => {
     importGeneration.current += 1;
     setState((current) => ({ ...current, selectedId: id }));
@@ -209,9 +230,14 @@ export const Trend = () => {
       if (file.size > 2 * 1024 * 1024) throw new Error('文件不能超过 2MB。');
       const imported = parseState(await file.text());
       if (!mounted.current || generation !== importGeneration.current) return;
-      setState(imported);
+      const migrated = migrateLegacyNutritionState(imported);
+      setState(migrated);
       setDeletingCategory(false);
-      setMessage('已导入配置，并替换当前 dashboard。');
+      setMessage(
+        migrated !== imported
+          ? '已导入配置。旧默认类别已改为每 100g 热量；原纵轴阈值需按新单位重新设置。'
+          : '已导入配置，并替换当前 dashboard。',
+      );
     } catch (error) {
       if (mounted.current && generation === importGeneration.current) {
         setMessage(error instanceof Error ? `导入失败：${error.message}` : '导入失败，请检查文件。');
@@ -223,7 +249,7 @@ export const Trend = () => {
     <div className="trend-page">
       <Seo
         title="Trend · 数据趋势"
-        description="配置类别与条目，用折线图比较零食价格、单位热量性价比与自定义数据。支持阈值颜色渐变、垂直蚂蚁线、本地保存、云端自动同步与 JSON 导入导出。"
+        description="用等距对比图与价格分布散点图比较每 100g 价格、每 100g 热量及自定义数据。支持线性与对数刻度、放大画布、阈值颜色渐变、本地保存、云端同步与 JSON 导入导出。"
         url="/trend"
       />
       <header className="trend-page-header">
@@ -267,7 +293,6 @@ export const Trend = () => {
             <span>Dashboard</span>
             <span className="trend-count">{state.categories.length}</span>
           </div>
-          <p className="trend-section-label">我的类别</p>
           <div className="trend-category-list">
             {state.categories.map((entry) => (
               <button
@@ -328,17 +353,6 @@ export const Trend = () => {
               </div>
             </form>
           )}
-          <div className="trend-sidebar-note">
-            <span className="trend-note-icon">
-              <SlidersHorizontal size={17} />
-            </span>
-            <p>由你定义比较方式</p>
-            <small>
-              选择坐标、调整阈值，
-              <br />
-              让每一项数据都有参照。
-            </small>
-          </div>
         </aside>
         <div className="trend-main">
           <div className="trend-dashboard-heading">
@@ -395,7 +409,7 @@ export const Trend = () => {
                 <span className="trend-chart-icon">
                   <TrendingUp size={18} />
                 </span>
-                <h3>条目趋势</h3>
+                <h3>条目比较与分布</h3>
               </div>
               <span className="trend-live">
                 <span />
@@ -438,7 +452,7 @@ export const Trend = () => {
                 {category.kind === 'nutrition' ? (
                   <select
                     value={category.xMetric}
-                    onChange={(event) => updateCategory({ xMetric: event.target.value as Metric })}
+                    onChange={(event) => updateMetric('x', event.target.value as Metric)}
                   >
                     {NUTRITION_METRICS.map((metric) => (
                       <option key={metric} value={metric}>
@@ -460,7 +474,7 @@ export const Trend = () => {
                 {category.kind === 'nutrition' ? (
                   <select
                     value={category.yMetric}
-                    onChange={(event) => updateCategory({ yMetric: event.target.value as Metric })}
+                    onChange={(event) => updateMetric('y', event.target.value as Metric)}
                   >
                     {NUTRITION_METRICS.map((metric) => (
                       <option key={metric} value={metric}>
@@ -555,7 +569,7 @@ export const Trend = () => {
             <p className="trend-data-note">
               {category.kind === 'nutrition'
                 ? '价格与重量填写同一次购买的总价、总克数；热量填写每 100g 的数值，支持千焦与 kcal。1 斤 = 500g，1 kcal = 4.184 kJ。'
-                : '为每个条目输入名称与 X / Y 数值。坐标支持小数和负数，折线按 X 值排序。'}
+                : '为每个条目输入名称与 X / Y 数值。坐标支持小数和负数；等距对比按 X 值排序，数值分布保留真实距离。'}
             </p>
             <div className="trend-table-scroll">
               <table className="trend-table">
@@ -568,7 +582,8 @@ export const Trend = () => {
                         <th>购买重量 / g</th>
                         <th>每 100g 热量</th>
                         <th>热量单位</th>
-                        <th>每元热量</th>
+                        <th>每 100g 价格 / 元</th>
+                        <th>每 100g 热量 / kcal</th>
                       </>
                     ) : (
                       <>
@@ -630,10 +645,14 @@ export const Trend = () => {
                             </select>
                           </td>
                           <td className="trend-computed">
-                            {metricValue(item, 'kcalPerYuan') === null
+                            {metricValue(item, 'price100g') === null
                               ? '—'
-                              : formatNumber(metricValue(item, 'kcalPerYuan')!)}
-                            <small> kcal / 元</small>
+                              : formatNumber(metricValue(item, 'price100g')!)}
+                          </td>
+                          <td className="trend-computed">
+                            {metricValue(item, 'kcal100g') === null
+                              ? '—'
+                              : formatNumber(metricValue(item, 'kcal100g')!)}
                           </td>
                         </>
                       ) : (

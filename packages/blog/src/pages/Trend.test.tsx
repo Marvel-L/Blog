@@ -24,7 +24,7 @@ describe('Trend 页面', () => {
     expect(screen.getByLabelText('鸭脖价格')).toHaveValue(30);
     expect(screen.getByLabelText('鸭脖重量')).toHaveValue(500);
     expect(screen.getByLabelText('鸭腿重量')).toHaveValue(130);
-    const chart = screen.getByRole('figure', { name: /零食.*折线图/ });
+    const chart = screen.getByRole('figure', { name: /零食.*等距对比图/ });
     expect(chart.querySelectorAll('[data-trend-item]')).toHaveLength(6);
     expect(chart.querySelectorAll('.trend-ant-line')).toHaveLength(6);
     for (const point of container.querySelectorAll('[data-trend-item]')) {
@@ -32,17 +32,20 @@ describe('Trend 页面', () => {
         point.querySelectorAll('circle')[1].getAttribute('fill'),
       );
     }
-    expect(chart.querySelector('[data-trend-item="duck-neck"]')).toHaveAttribute('data-exceeded', 'true');
+    expect(chart.querySelector('[data-trend-item="duck-neck"]')).toHaveAttribute('data-exceeded', 'false');
+    expect(chart.querySelector('[data-trend-item="chips"]')).toHaveAttribute('data-exceeded', 'true');
+    expect(screen.getByLabelText('纵坐标 Y')).toHaveValue('kcal100g');
+    expect(screen.getByRole('columnheader', { name: '每 100g 价格 / 元' })).toBeInTheDocument();
   });
 
   it('悬停数据点显示数值，键盘可选中并用 Escape 清除选择', async () => {
     const user = userEvent.setup();
     render(<Trend />);
-    const chart = screen.getByRole('figure', { name: /零食.*折线图/ });
+    const chart = screen.getByRole('figure', { name: /零食.*等距对比图/ });
     const neck = within(chart).getByRole('button', { name: /鸭脖：/ });
     await user.hover(neck);
     expect(chart.querySelector('figcaption')).toHaveTextContent('鸭脖');
-    expect(chart.querySelector('figcaption')).toHaveTextContent('超出阈值');
+    expect(chart.querySelector('figcaption')).toHaveTextContent('阈值内');
     await user.click(neck);
     await user.keyboard('{Enter}');
     expect(neck).toHaveAttribute('aria-pressed', 'true');
@@ -58,11 +61,15 @@ describe('Trend 页面', () => {
         <Trend />
       </StrictMode>,
     );
+    await user.selectOptions(screen.getByLabelText('纵坐标 Y'), 'kcalPerYuan');
+    expect(screen.getByLabelText('启用阈值')).not.toBeChecked();
+    expect(screen.getByText(/坐标单位已改变/)).toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText('纵坐标 Y'), 'kcal100g');
     const threshold = screen.getByLabelText('阈值数值');
     await user.clear(threshold);
     await user.type(threshold, '350');
     await user.tab();
+    await user.click(screen.getByLabelText('启用阈值'));
     expect(view.container.querySelector('[data-trend-item="duck-neck"]')).toHaveAttribute('data-exceeded', 'false');
     expect(view.container.querySelector('[data-trend-item="chips"]')).toHaveAttribute('data-exceeded', 'true');
     const saved = parseState(localStorage.getItem(STORAGE_KEY)!);
@@ -92,7 +99,7 @@ describe('Trend 页面', () => {
     fireEvent.blur(screen.getByLabelText('冷萃横坐标'));
     fireEvent.change(screen.getByLabelText('冷萃纵坐标'), { target: { value: '80' } });
     fireEvent.blur(screen.getByLabelText('冷萃纵坐标'));
-    const chart = screen.getByRole('figure', { name: '咖啡比较折线图' });
+    const chart = screen.getByRole('figure', { name: '咖啡比较等距对比图' });
     expect(within(chart).getByRole('button', { name: /冷萃：横坐标 -2，纵坐标 80/ })).toBeInTheDocument();
     expect(chart.querySelectorAll('.trend-ant-line')).toHaveLength(1);
     expect(container.querySelectorAll('svg')).not.toHaveLength(0);
@@ -106,7 +113,7 @@ describe('Trend 页面', () => {
     await user.click(screen.getByRole('button', { name: '删除当前类别' }));
     await user.click(screen.getByRole('button', { name: '确认删除' }));
     expect(screen.queryByRole('heading', { name: '咖啡比较' })).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '零食 · 单位热量性价比' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '零食 · 价格与热量' })).toBeInTheDocument();
   });
 
   it('拒绝空值和零重量，保留原始数据并反馈校验失败', async () => {
@@ -117,7 +124,7 @@ describe('Trend 页面', () => {
     await user.tab();
     expect(screen.getByLabelText('鸭腿重量')).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByRole('alert')).toHaveTextContent('请输入 ≥ 0.001 的数值');
-    expect(screen.getByRole('button', { name: /鸭腿：横坐标 3.85，纵坐标 37.28/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /鸭腿：横坐标 3.85，纵坐标 143.4/ })).toBeInTheDocument();
     await user.clear(screen.getByLabelText('阈值数值'));
     await user.tab();
     expect(screen.getByLabelText('阈值数值')).toHaveAttribute('aria-invalid', 'true');
@@ -177,8 +184,24 @@ describe('Trend 页面', () => {
     stored.categories[0].name = '本地私人配置';
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
     const html = renderToString(<Trend />);
-    expect(html).toContain('零食 · 单位热量性价比');
+    expect(html).toContain('零食 · 价格与热量');
     expect(html).not.toContain('本地私人配置');
     expect(html).toContain('data-trend-item="duck-neck"');
+  });
+
+  it('恢复旧默认类别时升级热量单位，暂停旧 Y 阈值并持久化，保留购买数据', () => {
+    const legacy = defaultState();
+    legacy.categories[0].name = '零食 · 单位热量性价比';
+    legacy.categories[0].yMetric = 'kcalPerYuan';
+    legacy.categories[0].threshold.value = 50;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(legacy));
+    render(<Trend />);
+    expect(screen.getByLabelText('纵坐标 Y')).toHaveValue('kcal100g');
+    expect(screen.getByLabelText('启用阈值')).not.toBeChecked();
+    expect(screen.getByText(/原纵轴阈值需按新单位重新设置/)).toBeInTheDocument();
+    const saved = parseState(localStorage.getItem(STORAGE_KEY)!);
+    expect(saved.categories[0].items).toEqual(legacy.categories[0].items);
+    expect(saved.categories[0].yMetric).toBe('kcal100g');
+    expect(saved.categories[0].threshold.enabled).toBe(false);
   });
 });
