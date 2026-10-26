@@ -18,6 +18,12 @@ import { SsgRouteContext, readSsgRouteData } from './ssr/routeData';
 
 const CloudAccount = import.meta.env.VITE_DEPLOY_TARGET === 'cloud' ? lazy(() => import('./cloud/CloudAccount')) : null;
 
+// Anki 记忆卡片是云端专属能力：仅 cloud 构建挂载路由，Pages 产物不包含该页面。
+const AnkiPage =
+  import.meta.env.VITE_DEPLOY_TARGET === 'cloud'
+    ? lazy(() => import('./pages/anki/Anki').then((module) => ({ default: module.default })))
+    : null;
+
 const Post = lazy(() => import('./pages/Post').then((m) => ({ default: m.Post })));
 const About = lazy(pageLoaders['/about']);
 const BookPage = lazy(pageLoaders['/book']);
@@ -135,6 +141,18 @@ const AppRoutes: React.FC = () => {
     setDisplayLocation(location);
   }, [location, displayLocation.pathname, displayLocation.search, hasViewTransition]);
 
+  const isAnkiRoute = displayLocation.pathname.startsWith('/anki');
+
+  // Anki 是独立学习白面：自带顶部条，不套用全站 Layout 的导航/页脚/雨鱼等装饰。
+  // cloud 构建下 AnkiPage 非空；Pages 构建恒为 null，走正常 Layout。
+  if (isAnkiRoute && AnkiPage) {
+    return (
+      <Suspense fallback={<RouteFallback />}>
+        <AnkiPage />
+      </Suspense>
+    );
+  }
+
   return (
     <Layout hasViewTransition={hasViewTransition}>
       {cloudReady && CloudAccount && (
@@ -165,6 +183,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/image-compress" element={<ImageCompress />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/tbd" element={<TbdPostsPage />} />
+          {AnkiPage && <Route path="/anki" element={<AnkiPage />} />}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
