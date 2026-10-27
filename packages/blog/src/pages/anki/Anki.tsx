@@ -12,7 +12,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useHref, useLocation } from 'react-router-dom';
 import { Seo } from '@/components/Seo';
 import { fetchDashboard, isUnauthorized, type AnkiCard, type NormalizedDashboard } from './anki-api';
 import { AnkiReview } from './AnkiReview';
@@ -41,6 +41,10 @@ const T = {
 };
 
 export default function AnkiPage() {
+  const loginReturn = useHref('/anki');
+  const loginHref = `${ANKI_LOGIN_HREF}?return_to=${encodeURIComponent(loginReturn)}`;
+  const location = useLocation();
+  const explicitLogin = location.pathname === '/anki/login';
   const [phase, setPhase] = useState<Phase>('loading');
   const [errorMessage, setErrorMessage] = useState('');
   const [dashboard, setDashboard] = useState<NormalizedDashboard | null>(null);
@@ -49,6 +53,9 @@ export default function AnkiPage() {
   const [toast, setToast] = useState('');
   const [reloadToken, setReloadToken] = useState(0);
   const toastTimer = useRef<number | undefined>(undefined);
+  const dashboardRequest = useRef<AbortController | null>(null);
+  const accountGeneration = useRef(0);
+  const [accountKey, setAccountKey] = useState(0);
 
   const showToast = useCallback((message: string) => {
     setToast(message);
@@ -61,16 +68,20 @@ export default function AnkiPage() {
   // dashboard 加载（账号探测）：401 → 登录门；其他失败如实反馈。
   useEffect(() => {
     const controller = new AbortController();
+    dashboardRequest.current = controller;
+    const generation = accountGeneration.current;
     let cancelled = false;
-    setPhase('loading');
+    setPhase((previous) => (previous === 'ready' ? 'ready' : 'loading'));
     fetchDashboard(controller.signal)
       .then((data) => {
-        if (cancelled) return;
+        if (cancelled || controller.signal.aborted || generation !== accountGeneration.current) return;
         setDashboard(data);
+        setErrorMessage('');
         setPhase('ready');
       })
       .catch((error) => {
-        if (cancelled || controller.signal.aborted) return;
+        if (cancelled || controller.signal.aborted || generation !== accountGeneration.current) return;
+        setDashboard(null);
         if (isUnauthorized(error)) {
           setPhase('unauthorized');
           return;
@@ -87,6 +98,11 @@ export default function AnkiPage() {
   // 退出/切换账号：CloudAccount 退出时广播 dblog-account-change。
   useEffect(() => {
     const onAccountChange = () => {
+      accountGeneration.current += 1;
+      dashboardRequest.current?.abort();
+      window.clearTimeout(toastTimer.current);
+      setToast('');
+      setAccountKey((key) => key + 1);
       setDashboard(null);
       setView({ name: 'overview' });
       setDialog(null);
@@ -97,12 +113,19 @@ export default function AnkiPage() {
   }, []);
 
   const refresh = useCallback(() => setReloadToken((token) => token + 1), []);
+  const navigate = useCallback(
+    (next: AnkiView) => {
+      if (view.name === 'review' && next.name !== 'review') refresh();
+      setView(next);
+    },
+    [view.name, refresh],
+  );
 
-  if (phase === 'unauthorized') {
+  if (phase === 'unauthorized' || explicitLogin) {
     return (
       <div className="min-h-screen bg-white" style={{ color: T.ink }}>
         <Seo title="Anki 记忆卡片" noindex />
-        <AnkiTopBar view={view} onNavigate={setView} showNav={false} />
+        <AnkiTopBar view={view} onNavigate={navigate} showNav={false} />
         <main className="mx-auto flex min-h-[60vh] w-full max-w-[1100px] flex-col items-center justify-center px-6 py-16 text-center">
           <div
             className="mb-5 grid h-[29px] w-[25px] place-items-center rounded-md text-[17px] font-semibold text-white"
@@ -117,15 +140,25 @@ export default function AnkiPage() {
             卡片库与练习进度只属于你，由服务端按会话隔离。
           </p>
           <a
-            href={ANKI_LOGIN_HREF}
+            href={loginHref}
             className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full px-6 text-sm font-medium text-white"
             style={{ background: T.accent }}
           >
             使用 GitHub 登录
           </a>
           <p className="mt-4 text-xs" style={{ color: T.muted }}>
-            登录成功后回到本页即可开始练习。
+            登录成功后自动返回 Anki。
           </p>
+          {phase === 'error' && (
+            <p role="alert" className="mt-4 max-w-md text-sm text-red-600">
+              {errorMessage}。当前无法确认登录状态，登录也需要可用的账号服务。
+            </p>
+          )}
+          {phase === 'ready' && (
+            <Link to="/anki" className="mt-4 text-sm" style={{ color: T.accent }}>
+              继续使用当前账号
+            </Link>
+          )}
         </main>
       </div>
     );
@@ -135,7 +168,7 @@ export default function AnkiPage() {
     return (
       <div className="min-h-screen bg-white" style={{ color: T.ink }}>
         <Seo title="Anki 记忆卡片" noindex />
-        <AnkiTopBar view={view} onNavigate={setView} showNav={false} />
+        <AnkiTopBar view={view} onNavigate={navigate} showNav={false} />
         <main className="mx-auto flex min-h-[60vh] w-full max-w-[1100px] flex-col items-center justify-center px-6 py-16 text-center">
           <h1 className="text-xl font-semibold" style={{ color: T.ink }}>
             学习统计暂时加载失败
@@ -151,6 +184,12 @@ export default function AnkiPage() {
           >
             重新加载
           </button>
+          <Link to="/anki/login" className="mt-5 text-sm font-medium" style={{ color: T.accent }}>
+            查看登录页面
+          </Link>
+          <p className="mt-3 max-w-md text-xs" style={{ color: T.muted }}>
+            无法确认登录状态；若账号 API 未启动或代理返回博客页面，登录操作也暂时不可用。
+          </p>
         </main>
       </div>
     );
@@ -163,7 +202,7 @@ export default function AnkiPage() {
         description="按分类整理 Q & A 卡片，到期主动回忆并自评，让知识在合适的时间再次出现。"
         noindex
       />
-      <AnkiTopBar view={view} onNavigate={setView} showNav={phase === 'ready' && Boolean(dashboard)} />
+      <AnkiTopBar view={view} onNavigate={navigate} showNav={phase === 'ready' && Boolean(dashboard)} />
       <main className="mx-auto w-full max-w-[1100px] px-[22px] pb-[65px] pt-[40px] min-[1000px]:px-[35px] min-[1000px]:pb-[75px] min-[1000px]:pt-[60px]">
         {phase === 'loading' || !dashboard ? (
           <div className="flex min-h-[40vh] items-center justify-center">
@@ -173,9 +212,10 @@ export default function AnkiPage() {
           </div>
         ) : (
           <AnkiWorkspace
+            key={accountKey}
             dashboard={dashboard}
             view={view}
-            onViewChange={setView}
+            onViewChange={navigate}
             dialog={dialog}
             onDialogChange={setDialog}
             refresh={refresh}
@@ -277,9 +317,14 @@ function AnkiTopBar({
             })}
           </nav>
         )}
-        <Link to="/" className="text-sm font-medium hover:opacity-80" style={{ color: T.accent }}>
-          返回博客
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link to="/anki/login" className="text-sm font-medium hover:opacity-80" style={{ color: T.accent }}>
+            账号登录
+          </Link>
+          <Link to="/" className="text-sm font-medium hover:opacity-80" style={{ color: T.accent }}>
+            返回博客
+          </Link>
+        </div>
       </div>
     </header>
   );
@@ -306,6 +351,7 @@ function AnkiWorkspace({ dashboard, view, onViewChange, dialog, onDialogChange, 
     <>
       {view.name === 'review' && (
         <AnkiReview
+          key={view.deckId ?? 'all'}
           decks={dashboard.decks}
           deckId={view.deckId}
           onExit={() => onViewChange({ name: 'overview' })}

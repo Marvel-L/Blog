@@ -2,6 +2,22 @@
 
 ## 当前权威状态
 
+### 2026-10-27 功能缺口修复（本轮最新，历史记录不改）
+
+- 登录：增加显式 `/anki/login` 和 Anki 顶部「账号登录」入口；匿名 401 仍显示登录门，API 返回 HTML 明确报告服务/代理错误，不伪装成未登录。OAuth 回跳沿用 router basename，仅新增精确 `/anki`、`/Blog/anki` 白名单，保留原 Trend 回跳验证与默认博客回跳。
+- 账号退出：取消在途 dashboard，generation 拒绝旧账号晚到响应；清空 toast/弹窗/视图；表单与复习请求卸载取消，不继续建库或回写 UI。
+- 练习：全失败队列进入错误态并可重载；部分失败警告贯穿结束页；跨库统一先复习后新卡、合并各卡间隔预览；中途退出刷新统计；整轮完成后台刷新不卸载完成页；单卡重洗隐藏答案。
+- 编辑：所属库默认取卡片原库，PATCH 可迁库，服务端校验目标库归属并保留排期；重学提示按实际动作区分。新增 `005_anki_review_snapshot.sql`，新评价保存原库快照，旧日志无来源不猜测回填。
+- 建库：分类成功/库失败时复用已建分类；分类响应丢失可从权威列表恢复；取消表单后不继续后续写请求。
+- 同范围附带修复：Anki 文本校验不再复用通用 200 UTF-16 长度限制，按 Anki 10000 字符上限校验，补长文本回归。
+- 验证：Anki 24 项行为测试通过；相关 Layout/Home 回归通过；前后端 `npm run typecheck` 通过；产品 ESLint 0 errors、4 条既有 Fast Refresh warnings保留。真实本机隔离 PostgreSQL 下 Go 全包 `-race -count=1` 通过，无 SQL skip；迁库隔离/进度/原库历史与 OAuth 回跳已验。
+- 构建：server 构建通过；cloud/Pages Vite 客户端编译通过，cloud 有 Anki chunk、Pages 无 Anki chunk。存在 chunk-size 提示；仅客户端编译，不冒充完整 SSG/SEO 构建通过。
+- 全量门禁仍未绿：`npm test` 在 gen:data 阶段因用户正在编辑的「114. 二叉树展开为链表」缺少 id/title/excerpt/tags 阻断，未运行后续 Vitest/Go。独立最终 `vitest run` 为 140 文件、1117 项：1116 通过、1 项 `scripts/upload-cloud-release.test.mjs` 5000ms 超时；未改发布测试与超时配置。
+- 真实页面：当前 3000/3001 实测都是 Pages Vite，3000 还发生既有依赖缓存 React hook 冲突；未改或停止用户进程。独立 cloud cache 预览 `http://127.0.0.1:27419/anki/login` 已通过浏览器文本和截图检查，可看到 GitHub 登录与服务故障提示。
+- 本地无项目 `.env` / 数据库 / OAuth 配置；现有 3001 是 Pages 而不是 API，所以预览仅证明登录页可显示，不代表真实登录/录卡可用。真实 GitHub OAuth、本次生产迁移和线上登录未验；不创建假身份或连接生产数据库。
+- 工作状态：修复完成时因根门禁阻断未 commit、未 push、未部署；用户文章和已有 index 状态保持不动。隔离测试 PostgreSQL 已停止，cloud 预览保留运行。
+- 后续用户在获知上述门禁限制后明确要求 `commit & push`，本次授权仅提交 Anki 修复、迁移及验证记录并普通推送到 `origin/custom`，不包含用户暂存的文章/图片，不绕过提交钩子、不强制推送、不部署。提交前重新通过前后端 typecheck、修复范围 ESLint 与 Anki 24 项测试；全量门禁限制仍按上文记录。执行结果以实际 Git 返回为准，不提前声明已推送。
+
 **HTML 原型 v3 已完成双端核心验证；2026-10-26 用户当面确认方向后，后端与前端实现已完成并经独立验收：后端 SM-2 标准、004 迁移、schema 隔离、用户隔离、并发幂等、服务端 due 守卫、custom review、编辑保留/历史不删均在真实隔离 PostgreSQL `-race` 下独验通过；前端 desktop 白 shell、topnav、连续列表、揭示/随机浏览、API 接入、登录保护、9 行为测试、编辑保留、账号切换、SSG/Pages 裁剪已通过；typecheck / 根 `npm test`（注入独立 DB，140 文件 1097 测试）/ Go 真 SQL 无 skip / Pages-cloud-server 构建通过。真实生产 OAuth、生产库迁移、公网验收、严格 390px 手机复验未做；无演示数据迁真实账号。**
 
 - 原型：`anki-prototype/anki.html`，浏览器双击打开，无外部资源依赖；v1/v2 备份在 `anki-prototype/_backup/`（`anki-v1.html`、`anki-v2.html`）。

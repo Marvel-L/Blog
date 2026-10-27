@@ -20,8 +20,9 @@ func ankiName(raw json.RawMessage) (string, bool) {
 }
 
 func ankiText(raw json.RawMessage) (string, bool) {
-	s, ok := text(raw)
-	return s, ok && strings.TrimSpace(s) != "" && utf8.RuneCountInString(s) <= 10000
+	var s string
+	err := json.Unmarshal(raw, &s)
+	return s, err == nil && strings.TrimSpace(s) != "" && utf8.RuneCountInString(s) <= 10000
 }
 
 func ankiInt(raw json.RawMessage, min, max int) (int, bool) {
@@ -183,7 +184,22 @@ func (a *API) ankiPatchCard(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	m, err := fields(raw, "question", "answer", "resetProgress", "version")
+	var supplied map[string]json.RawMessage
+	if json.Unmarshal(raw, &supplied) != nil {
+		failure(w, 400)
+		return
+	}
+	keys := []string{"question", "answer", "resetProgress", "version"}
+	deckID := ""
+	if supplied["deckId"] != nil {
+		keys = append(keys, "deckId")
+		deckID, _ = text(supplied["deckId"])
+		if !uuidPattern.MatchString(deckID) {
+			failure(w, 400)
+			return
+		}
+	}
+	m, err := fields(raw, keys...)
 	question, qok := ankiText(m["question"])
 	answer, aok := ankiText(m["answer"])
 	version, vok := ankiInt(m["version"], 1, 9007199254740990)
@@ -191,7 +207,7 @@ func (a *API) ankiPatchCard(w http.ResponseWriter, r *http.Request) {
 		failure(w, 400)
 		return
 	}
-	c, err := a.db.UpdateAnkiCard(r.Context(), u.ID, cardID, question, answer, string(m["resetProgress"]) == "true", version)
+	c, err := a.db.UpdateAnkiCard(r.Context(), u.ID, cardID, deckID, question, answer, string(m["resetProgress"]) == "true", version)
 	if ankiError(w, err) {
 		return
 	}

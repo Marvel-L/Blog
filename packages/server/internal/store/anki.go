@@ -236,7 +236,7 @@ func (s *Store) CreateAnkiCard(ctx context.Context, userID, deckID, question, an
 }
 
 // UpdateAnkiCard 编辑问答（保留进度，复习历史不删除）；resetProgress 时把排期重置为新卡。
-func (s *Store) UpdateAnkiCard(ctx context.Context, userID, cardID, question, answer string, resetProgress bool, version int) (AnkiCard, error) {
+func (s *Store) UpdateAnkiCard(ctx context.Context, userID, cardID, deckID, question, answer string, resetProgress bool, version int) (AnkiCard, error) {
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return AnkiCard{}, err
@@ -253,13 +253,24 @@ func (s *Store) UpdateAnkiCard(ctx context.Context, userID, cardID, question, an
 	if current != version {
 		return AnkiCard{}, ErrAnkiVersion
 	}
+	if deckID != "" {
+		var owned string
+		err = tx.QueryRow(ctx, "SELECT id::text FROM anki_decks WHERE id=$1 AND user_id=$2 FOR SHARE", deckID, userID).Scan(&owned)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return AnkiCard{}, ErrAnkiNotFound
+		}
+		if err != nil {
+			return AnkiCard{}, err
+		}
+	}
 	resetSQL := ", interval_days=0,repetitions=0,ease_factor=2.5,review_count=0,due_at=now()"
 	if !resetProgress {
 		resetSQL = ""
 	}
 	var c AnkiCard
-	err = tx.QueryRow(ctx, `UPDATE anki_cards SET question=$3,answer=$4,version=version+1`+resetSQL+`
-	 WHERE id=$1 AND user_id=$2 RETURNING `+ankiCardColumns, cardID, userID, question, answer).Scan(scanCardScans(&c)...)
+	err = tx.QueryRow(ctx, `UPDATE anki_cards SET question=$3,answer=$4,version=version+1,
+	 deck_id=COALESCE(NULLIF($5,'')::uuid,deck_id)`+resetSQL+`
+	 WHERE id=$1 AND user_id=$2 RETURNING `+ankiCardColumns, cardID, userID, question, answer, deckID).Scan(scanCardScans(&c)...)
 	if err != nil {
 		return AnkiCard{}, err
 	}
@@ -382,8 +393,8 @@ func (s *Store) ReviewAnkiCard(ctx context.Context, userID, cardID string, versi
 	if err != nil {
 		return AnkiCard{}, err
 	}
-	if _, err = tx.Exec(ctx, `INSERT INTO anki_reviews(user_id,mutation_id,card_id,card_version,rating,custom_days,review_date) VALUES($1,$2,$3,$4,$5,$6,$7)`,
-		userID, mutationID, cardID, version, effRating, customDays, today); err != nil {
+	if _, err = tx.Exec(ctx, `INSERT INTO anki_reviews(user_id,mutation_id,card_id,card_version,rating,custom_days,review_date,deck_id_snapshot) VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,
+		userID, mutationID, cardID, version, effRating, customDays, today, c.DeckID); err != nil {
 		return AnkiCard{}, err
 	}
 	// 当日聚合：reviews 恒 +1；unique_cards 仅在当日首次评价此卡时 +1；goal 仅在新建日行快照。

@@ -15,6 +15,7 @@ import { hasOpenOverlay } from '@/hooks/useModalOverlay';
 import {
   fetchDeckQueue,
   newMutationId,
+  isUnauthorized,
   readReviewPreview,
   submitReview,
   type AnkiCard,
@@ -54,23 +55,62 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
   // 失败重试复用同一 mutationId：网络恢复后不会产生第二条记录。
   const retryRef = useRef<AnkiReviewRequest | null>(null);
   const cancelledRef = useRef(false);
+  const submittingRef = useRef(false);
+  const submitController = useRef<AbortController | null>(null);
+  const queueTargets = useRef(deckId ? [deckId] : decks.filter((deck) => deck.due > 0).map((deck) => deck.id));
+  const [loadToken, setLoadToken] = useState(0);
+  const [queueWarning, setQueueWarning] = useState('');
 
   useEffect(() => {
     cancelledRef.current = false;
     const controller = new AbortController();
-    const targets = deckId ? [deckId] : decks.filter((deck) => deck.due > 0).map((deck) => deck.id);
+    const targets = queueTargets.current;
     setPhase('loading');
     setError('');
-    Promise.all(targets.map((targetId) => fetchDeckQueue(targetId, controller.signal).catch(() => null)))
+    setQueueWarning('');
+    setIndex(0);
+    setRevealed(false);
+    retryRef.current = null;
+    Promise.allSettled(targets.map((targetId) => fetchDeckQueue(targetId, controller.signal)))
       .then((results) => {
         if (cancelledRef.current || controller.signal.aborted) return;
-        const loaded = results.filter((result): result is NonNullable<typeof result> => result !== null);
-        const allCards = loaded.flatMap((result) => result.cards);
-        if (loaded.length < results.length) {
-          // 部分队列拉取失败：如实反馈，但仍进入已拿到的卡片。
-          setError('部分卡片库队列加载失败，可先练习已加载的卡片。');
+        const failures = results.filter((result) => result.status === 'rejected');
+        const loaded = results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []));
+        if (failures.some((result) => isUnauthorized(result.reason))) {
+          setError('登录已失效，请重新登录');
+          setPhase('error');
+          return;
         }
-        setQueuePreviews(loaded[0]?.previews ?? null);
+        if (failures.length > 0 && loaded.length === 0) {
+          setError('到期队列加载失败，请重试。');
+          setPhase('error');
+          return;
+        }
+        const allCards = loaded
+          .flatMap((result) => result.cards)
+          .sort(
+            (a, b) =>
+              Number(a.reviewCount === 0) - Number(b.reviewCount === 0) ||
+              a.dueAt.localeCompare(b.dueAt) ||
+              a.id.localeCompare(b.id),
+          );
+        const previews: Record<string, unknown> = {};
+        for (const result of loaded) {
+          for (const card of result.cards) {
+            const preview = readReviewPreview(result.previews, card.id);
+            if (preview) previews[card.id] = preview;
+          }
+        }
+        if (failures.length > 0) {
+          const message = '部分卡片库队列加载失败，请返回卡片库后重试未加载的部分。';
+          setQueueWarning(message);
+          if (allCards.length === 0) {
+            setError(message);
+            setPhase('error');
+            return;
+          }
+        }
+        setQueuePreviews(previews);
         setCards(allCards);
         setPhase(allCards.length > 0 ? 'active' : 'done');
       })
@@ -82,8 +122,9 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
     return () => {
       cancelledRef.current = true;
       controller.abort();
+      submitController.current?.abort();
     };
-  }, [deckId, decks]);
+  }, [loadToken]);
 
   const current = cards[index];
   const currentPreview = useMemo(
@@ -93,10 +134,14 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
 
   const sendReview = useCallback(
     async (payload: AnkiReviewRequest) => {
+      if (submittingRef.current) return;
+      submittingRef.current = true;
+      const controller = new AbortController();
+      submitController.current = controller;
       setSubmitting(true);
       setError('');
       try {
-        const updated = await submitReview(payload);
+        const updated = await submitReview(payload, AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]));
         if (cancelledRef.current) return;
         setCards((prev) => prev.map((card) => (card.id === updated.id ? updated : card)));
         retryRef.current = null;
@@ -115,6 +160,7 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
         retryRef.current = payload;
         setError(cause instanceof Error ? cause.message : '评价提交失败，请重试');
       } finally {
+        submittingRef.current = false;
         if (!cancelledRef.current) setSubmitting(false);
       }
     },
@@ -180,10 +226,17 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
         <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">
           ✓
         </div>
-        <h1 className="text-2xl font-bold text-ink dark:text-white">本轮练习完成</h1>
+        <h1 className="text-2xl font-bold text-ink dark:text-white">
+          {cards.length === 0 ? '暂无到期卡片' : queueWarning ? '已加载卡片练习完成' : '本轮练习完成'}
+        </h1>
         <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
-          评价失败的卡片会在稍后重新到期；自定义间隔不会推断对错。
+          答错的卡片会在稍后重新到期；自定义间隔不会推断对错。
         </p>
+        {queueWarning && (
+          <p role="alert" className="mt-3 text-sm text-red-600">
+            {queueWarning}
+          </p>
+        )}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             type="button"
@@ -204,6 +257,13 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
         <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400" role="alert">
           {error || '请稍后重试。'}
         </p>
+        <button
+          type="button"
+          className="mt-5 mr-4 text-sm text-[#087ae9]"
+          onClick={() => setLoadToken((token) => token + 1)}
+        >
+          重新加载队列
+        </button>
         <button
           type="button"
           className="rounded-full border border-[#087ae9] bg-[#087ae9] px-[17px] py-[9px] text-sm font-medium text-white inline-flex items-center justify-center gap-2 whitespace-nowrap mt-5"
@@ -271,6 +331,11 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
         </p>
       </article>
 
+      {queueWarning && (
+        <p role="alert" className="text-sm text-red-600">
+          {queueWarning}
+        </p>
+      )}
       {error && (
         <div
           role="alert"

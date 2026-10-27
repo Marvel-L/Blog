@@ -5,11 +5,13 @@
  * mutationId 重试幂等、随机浏览无写入、账号切换清理、热力/折线渲染。
  */
 import { StrictMode } from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { HelmetProvider } from 'react-helmet-async';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AnkiPage from './Anki';
+import { AnkiReview } from './AnkiReview';
+import { AnkiDialogs } from './AnkiDialogs';
 
 const DASHBOARD = {
   categories: [{ id: 'c1', name: '编程' }],
@@ -97,7 +99,7 @@ describe('Anki 登录门与加载', () => {
     mount();
     expect(await screen.findByText('登录后，查看自己的卡片库')).toBeInTheDocument();
     const login = screen.getByRole('link', { name: /使用 GitHub 登录/ });
-    expect(login).toHaveAttribute('href', '/api/v1/auth/github/start');
+    expect(login).toHaveAttribute('href', '/api/v1/auth/github/start?return_to=%2Fanki');
   });
 
   it('dashboard 网络失败时如实展示错误与重试', async () => {
@@ -266,5 +268,256 @@ describe('账号切换与统计', () => {
     const body = JSON.parse(String(patchCall?.[1]?.body));
     expect(body.resetProgress).toBe(false);
     expect(body.version).toBe(1);
+    expect(body.deckId).toBe('d1');
+  });
+});
+
+const jsonResponse = (value: unknown) => new Response(JSON.stringify(value), { status: 200 });
+const MULTI_DECKS = [...DASHBOARD.decks, { ...DASHBOARD.decks[0], id: 'd2', name: '第二个库' }];
+const FORM_DASHBOARD = { ...DASHBOARD, decks: MULTI_DECKS, todayCards: 1 };
+
+describe('Anki 缺口回归', () => {
+  it('账号退出取消在途请求，晚到响应不能恢复旧账号卡片', async () => {
+    const pending: Array<(value: Response) => void> = [];
+    request.mockImplementation(() => new Promise<Response>((resolve) => pending.push(resolve)));
+    mount();
+    fireEvent(window, new Event('dblog-account-change'));
+    expect(await screen.findByText('登录后，查看自己的卡片库')).toBeInTheDocument();
+    await act(async () => {
+      pending.forEach((resolve) => resolve(jsonResponse(DASHBOARD)));
+    });
+    expect(screen.queryByText('我的卡片库')).not.toBeInTheDocument();
+    expect(screen.queryByText('Go 语言')).not.toBeInTheDocument();
+    expect(request.mock.calls.every(([, init]) => init?.signal?.aborted)).toBe(true);
+  });
+
+  it('API 返回 HTML 时明确报错，故障页可进入显式登录页，保留故障提示', async () => {
+    request.mockResolvedValue(new Response('<html>blog</html>', { headers: { 'content-type': 'text/html' } }));
+    mount();
+    expect(await screen.findByRole('alert')).toHaveTextContent('账号 API 返回了博客页面');
+    fireEvent.click(screen.getByRole('link', { name: '查看登录页面' }));
+    expect(await screen.findByText('登录后，查看自己的卡片库')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '使用 GitHub 登录' })).toHaveAttribute(
+      'href',
+      '/api/v1/auth/github/start?return_to=%2Fanki',
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('当前无法确认登录状态');
+  });
+
+  it('显式登录页与 OAuth 回跳继承 /Blog basename', async () => {
+    request.mockResolvedValue(new Response('unauthorized', { status: 401 }));
+    render(
+      <HelmetProvider>
+        <MemoryRouter basename="/Blog" initialEntries={['/Blog/anki/login']}>
+          <AnkiPage />
+        </MemoryRouter>
+      </HelmetProvider>,
+    );
+    expect(await screen.findByRole('link', { name: '使用 GitHub 登录' })).toHaveAttribute(
+      'href',
+      '/api/v1/auth/github/start?return_to=%2FBlog%2Fanki',
+    );
+  });
+
+  it('全部队列失败显示失败并允许重新加载，不误报练习完成', async () => {
+    request.mockResolvedValue(new Response('offline', { status: 503 }));
+    render(<AnkiReview decks={MULTI_DECKS} deckId={null} onExit={vi.fn()} onSessionSettled={vi.fn()} />);
+    expect(await screen.findByRole('alert')).toHaveTextContent('到期队列加载失败');
+    expect(screen.queryByText('本轮练习完成')).not.toBeInTheDocument();
+    request.mockResolvedValue(jsonResponse({ cards: [makeCard('card1', 'Q1?')], previews: {} }));
+    fireEvent.click(screen.getByRole('button', { name: '重新加载队列' }));
+    expect(await screen.findByText('Q1?')).toBeInTheDocument();
+  });
+
+  it('跨库先复习后新卡，两个库的间隔预览都保留', async () => {
+    const fresh = { ...makeCard('fresh', '新卡?'), reviewCount: 0 };
+    const review = { ...makeCard('review', '复习卡?'), deckId: 'd2' };
+    request.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/reviews')) return jsonResponse({ card: { ...review, version: 2 } });
+      const card = url.includes('/d2/') ? review : fresh;
+      return jsonResponse({
+        cards: [card],
+        previews: { [card.id]: { againMinutes: 10, nextDays: card.id === 'review' ? 6 : 1 } },
+      });
+    });
+    render(<AnkiReview decks={MULTI_DECKS} deckId={null} onExit={vi.fn()} onSessionSettled={vi.fn()} />);
+    expect(await screen.findByText('复习卡?')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '显示答案' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: '显示下次间隔' }));
+    expect(screen.getByRole('button', { name: /^正确/ })).toHaveTextContent('6 天后');
+    fireEvent.click(screen.getByRole('button', { name: /^正确/ }));
+    await screen.findByText('新卡?');
+    fireEvent.click(screen.getByRole('button', { name: '显示答案' }));
+    expect(screen.getByRole('button', { name: /^正确/ })).toHaveTextContent('1 天后');
+  });
+
+  it('部分库失败在已加载卡片练完后仍保留警告', async () => {
+    request.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes('/d2/')) return new Response('error', { status: 503 });
+      if (url.endsWith('/reviews')) return jsonResponse({ card: makeCard('card1', 'Q1?', 2) });
+      return jsonResponse({ cards: [makeCard('card1', 'Q1?')], previews: {} });
+    });
+    render(<AnkiReview decks={MULTI_DECKS} deckId={null} onExit={vi.fn()} onSessionSettled={vi.fn()} />);
+    await screen.findByText('Q1?');
+    expect(screen.getByRole('alert')).toHaveTextContent('部分卡片库队列加载失败');
+    fireEvent.click(screen.getByRole('button', { name: '显示答案' }));
+    fireEvent.click(screen.getByRole('button', { name: /^正确/ }));
+    expect(await screen.findByText('已加载卡片练习完成')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('未加载的部分');
+  });
+
+  it('中途退出练习重新获取统计并更新待练数量', async () => {
+    let reviewed = false;
+    request.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/dashboard'))
+        return jsonResponse({
+          ...DASHBOARD,
+          today: reviewed ? 2 : 1,
+          decks: [{ ...DASHBOARD.decks[0], due: reviewed ? 1 : 2 }],
+        });
+      if (url.endsWith('/reviews')) {
+        reviewed = true;
+        return jsonResponse({ card: makeCard('card1', 'Q1?', 2) });
+      }
+      return jsonResponse({ cards: [makeCard('card1', 'Q1?'), makeCard('card2', 'Q2?')] });
+    });
+    mount();
+    fireEvent.click(await screen.findByRole('button', { name: /开始今日练习 · 2 张/ }));
+    await screen.findByText('Q1?');
+    fireEvent.click(screen.getByRole('button', { name: '显示答案' }));
+    fireEvent.click(screen.getByRole('button', { name: /^正确/ }));
+    await screen.findByText('Q2?');
+    fireEvent.click(screen.getByRole('button', { name: '退出练习' }));
+    expect(await screen.findByRole('button', { name: /开始今日练习 · 1 张/ })).toBeInTheDocument();
+    expect(screen.getByText(/今日目标/)).toHaveTextContent('2 / 12');
+  });
+
+  it('最后一卡后刷新统计不卸载完成页，不重新加载队列', async () => {
+    let reviewed = false;
+    request.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/dashboard'))
+        return jsonResponse({ ...DASHBOARD, decks: [{ ...DASHBOARD.decks[0], due: reviewed ? 0 : 1 }] });
+      if (url.endsWith('/reviews')) {
+        reviewed = true;
+        return jsonResponse({ card: makeCard('card1', 'Q1?', 2) });
+      }
+      return jsonResponse({ cards: [makeCard('card1', 'Q1?')] });
+    });
+    mount();
+    fireEvent.click(await screen.findByRole('button', { name: /开始今日练习 · 1 张/ }));
+    await screen.findByText('Q1?');
+    const queueCount = request.mock.calls.filter(([url]) => String(url).endsWith('/queue')).length;
+    fireEvent.click(screen.getByRole('button', { name: '显示答案' }));
+    fireEvent.click(screen.getByRole('button', { name: /^正确/ }));
+    expect(await screen.findByText('本轮练习完成')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(request.mock.calls.filter(([url]) => String(url).endsWith('/dashboard')).length).toBeGreaterThan(1),
+    );
+    expect(screen.getByText('本轮练习完成')).toBeInTheDocument();
+    expect(request.mock.calls.filter(([url]) => String(url).endsWith('/queue'))).toHaveLength(queueCount);
+  });
+
+  it('编辑使用卡片原库，并提交迁库字段与显式重学提示', async () => {
+    request.mockResolvedValue(jsonResponse(makeCard('card2', 'Q2?', 2)));
+    const done = vi.fn();
+    render(
+      <AnkiDialogs
+        state={{ kind: 'card', card: { ...makeCard('card2', 'Q2?'), deckId: 'd2' } }}
+        dashboard={FORM_DASHBOARD}
+        onClose={vi.fn()}
+        onDone={done}
+      />,
+    );
+    expect(screen.getByRole('combobox')).toHaveValue('d2');
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'd1' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: '保存卡片' }));
+    await waitFor(() => expect(done).toHaveBeenCalledWith('卡片已保存，已重新学习，历史记录保留。'));
+    expect(JSON.parse(String(request.mock.calls[0][1]?.body))).toMatchObject({
+      deckId: 'd1',
+      resetProgress: true,
+      version: 1,
+    });
+  });
+
+  it('单卡重洗仍隐藏答案，不发写请求', async () => {
+    request.mockImplementation(async (input) =>
+      String(input).endsWith('/dashboard')
+        ? jsonResponse(DASHBOARD)
+        : jsonResponse({ cards: [makeCard('card1', 'Q1?')] }),
+    );
+    mount();
+    fireEvent.click((await screen.findAllByRole('button', { name: '随机浏览' }))[0]);
+    await screen.findByText('Q1?');
+    fireEvent.click(screen.getByRole('button', { name: '显示答案' }));
+    fireEvent.click(screen.getByRole('button', { name: '重新洗牌' }));
+    expect(screen.queryByText('Q1? 的答案')).not.toBeInTheDocument();
+    expect(request.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(0);
+  });
+
+  it('分类已成功但建库失败，重试沿用新分类而不重复创建', async () => {
+    let deckAttempts = 0;
+    request.mockImplementation(async (input) => {
+      if (String(input).endsWith('/categories')) return jsonResponse({ id: 'new-category', name: '新分类' });
+      deckAttempts += 1;
+      return deckAttempts === 1 ? new Response('error', { status: 503 }) : jsonResponse({ id: 'new-deck' });
+    });
+    const done = vi.fn();
+    render(<AnkiDialogs state={{ kind: 'deck' }} dashboard={FORM_DASHBOARD} onClose={vi.fn()} onDone={done} />);
+    fireEvent.change(screen.getByLabelText('卡片库名称'), { target: { value: '新库' } });
+    fireEvent.change(screen.getByLabelText('所属分类'), { target: { value: '新分类' } });
+    fireEvent.click(screen.getByRole('button', { name: '创建卡片库' }));
+    await screen.findByRole('alert');
+    await waitFor(() => expect(screen.getByRole('button', { name: '创建卡片库' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: '创建卡片库' }));
+    await waitFor(() => expect(done).toHaveBeenCalledWith('卡片库已创建。'));
+    expect(request.mock.calls.filter(([url]) => String(url).endsWith('/categories'))).toHaveLength(1);
+    expect(deckAttempts).toBe(2);
+  });
+
+  it('分类响应丢失时从服务端列表恢复，不重复创建分类', async () => {
+    request.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/categories')) return new Response('lost', { status: 503 });
+      if (url.endsWith('/dashboard'))
+        return jsonResponse({ ...DASHBOARD, categories: [{ id: 'recovered', name: '新分类' }] });
+      return jsonResponse({ id: 'created' });
+    });
+    const done = vi.fn();
+    render(<AnkiDialogs state={{ kind: 'deck' }} dashboard={FORM_DASHBOARD} onClose={vi.fn()} onDone={done} />);
+    fireEvent.change(screen.getByLabelText('卡片库名称'), { target: { value: '新库' } });
+    fireEvent.change(screen.getByLabelText('所属分类'), { target: { value: '新分类' } });
+    fireEvent.click(screen.getByRole('button', { name: '创建卡片库' }));
+    await waitFor(() => expect(done).toHaveBeenCalled());
+    const call = request.mock.calls.find(([url]) => String(url).endsWith('/decks'));
+    expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({ categoryId: 'recovered' });
+  });
+
+  it('关闭新建弹窗取消在途分类请求，晚到响应不会继续建库', async () => {
+    let release: ((response: Response) => void) | undefined;
+    request.mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          release = resolve;
+        }),
+    );
+    const done = vi.fn();
+    const rendered = render(
+      <AnkiDialogs state={{ kind: 'deck' }} dashboard={FORM_DASHBOARD} onClose={vi.fn()} onDone={done} />,
+    );
+    fireEvent.change(screen.getByLabelText('卡片库名称'), { target: { value: '新库' } });
+    fireEvent.change(screen.getByLabelText('所属分类'), { target: { value: '新分类' } });
+    fireEvent.click(screen.getByRole('button', { name: '创建卡片库' }));
+    rendered.unmount();
+    expect(request.mock.calls[0][1]?.signal?.aborted).toBe(true);
+    await act(async () => {
+      release?.(jsonResponse({ id: 'created' }));
+    });
+    expect(request.mock.calls.filter(([url]) => String(url).endsWith('/decks'))).toHaveLength(0);
+    expect(done).not.toHaveBeenCalled();
   });
 });

@@ -48,7 +48,7 @@ type Persistence interface {
 	CreateAnkiDeck(context.Context, string, string, string) (store.AnkiDeck, error)
 	ListAnkiCards(context.Context, string, string) ([]store.AnkiCard, error)
 	CreateAnkiCard(context.Context, string, string, string, string) (store.AnkiCard, error)
-	UpdateAnkiCard(context.Context, string, string, string, string, bool, int) (store.AnkiCard, error)
+	UpdateAnkiCard(context.Context, string, string, string, string, string, bool, int) (store.AnkiCard, error)
 	AnkiQueue(context.Context, string, string) ([]store.AnkiCard, time.Time, error)
 	ReviewAnkiCard(context.Context, string, string, int, string, string, *int) (store.AnkiCard, error)
 	AnkiGoal(context.Context, string) (int, error)
@@ -173,6 +173,11 @@ func (a *API) me(w http.ResponseWriter, r *http.Request) {
 	}
 	respond(w, 200, map[string]any{"user": u})
 }
+func (a *API) validOAuthReturn(path string) bool {
+	// Only exact application destinations, never arbitrary relative/external redirects.
+	return path == "/Blog/anki" || path == "/anki" || a.validTrendReturn(path)
+}
+
 func (a *API) start(w http.ResponseWriter, r *http.Request) {
 	returnPath := "/Blog/"
 	query, err := url.ParseQuery(r.URL.RawQuery)
@@ -181,7 +186,7 @@ func (a *API) start(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if path := query.Get("return_to"); path != "" {
-		if !a.validTrendReturn(path) {
+		if !a.validOAuthReturn(path) {
 			failure(w, 400)
 			return
 		}
@@ -216,7 +221,7 @@ func (a *API) callback(w http.ResponseWriter, r *http.Request) {
 		failure(w, 503)
 		return
 	}
-	if verifier == "" || (returnPath != "/Blog/" && !a.validTrendReturn(returnPath)) || len(query["code"]) != 1 || code == "" || len(code) > 512 {
+	if verifier == "" || (returnPath != "/Blog/" && !a.validOAuthReturn(returnPath)) || len(query["code"]) != 1 || code == "" || len(code) > 512 {
 		failure(w, 400)
 		return
 	}

@@ -50,7 +50,7 @@ export function AnkiBrowse({ deckId, deckName, onExit }: AnkiBrowseProps) {
   }, [deckId]);
 
   const reshuffle = () => {
-    if (!cards || cards.length <= 1) return;
+    if (!cards || cards.length === 0) return;
     setCards(shuffle(cards));
     setIndex(0);
     setRevealed(false);

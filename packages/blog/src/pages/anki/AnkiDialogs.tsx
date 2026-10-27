@@ -11,6 +11,7 @@ import {
   createCard,
   createCategory,
   createDeck,
+  fetchDashboard,
   updateCard,
   updateGoal,
   type AnkiCard,
@@ -68,12 +69,39 @@ interface FormProps {
   onDone: (message: string) => void;
 }
 
+function useFormRequest() {
+  const mounted = useRef(false);
+  const controller = useRef<AbortController | null>(null);
+  const inFlight = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      controller.current?.abort();
+    };
+  }, []);
+  return {
+    begin: () => {
+      if (inFlight.current) return null;
+      inFlight.current = true;
+      controller.current = new AbortController();
+      return AbortSignal.any([controller.current.signal, AbortSignal.timeout(10000)]);
+    },
+    active: () => mounted.current && !controller.current?.signal.aborted,
+    finish: () => {
+      inFlight.current = false;
+    },
+  };
+}
+
 function DeckForm({ dashboard, onClose, onDone }: FormProps) {
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const request = useFormRequest();
   const nameRef = useRef<HTMLInputElement>(null);
+  const createdCategories = useRef(new Map<string, string>());
 
   useEffect(() => {
     nameRef.current?.focus();
@@ -87,17 +115,34 @@ function DeckForm({ dashboard, onClose, onDone }: FormProps) {
       setError('卡片库名称和分类名称不能仅为空格。');
       return;
     }
+    const signal = request.begin();
+    if (!signal) return;
     setBusy(true);
     setError('');
     try {
-      const existing = dashboard.categories.find((cat) => cat.name === trimmedCategory);
-      const categoryId = existing ? existing.id : (await createCategory(trimmedCategory)).id;
-      await createDeck(categoryId, trimmedName);
-      onDone('卡片库已创建。');
+      const categoryKey = trimmedCategory.toLowerCase();
+      const existing = dashboard.categories.find((cat) => cat.name.toLowerCase() === categoryKey);
+      let categoryId = existing?.id ?? createdCategories.current.get(categoryKey);
+      if (!categoryId) {
+        try {
+          categoryId = (await createCategory(trimmedCategory, signal)).id;
+        } catch (cause) {
+          // 请求可能已经落库但响应丢失；从权威列表确认，而不是重复创建。
+          if (!request.active()) return;
+          const current = await fetchDashboard(signal);
+          categoryId = current.categories.find((cat) => cat.name.toLowerCase() === categoryKey)?.id;
+          if (!categoryId) throw cause;
+        }
+        createdCategories.current.set(categoryKey, categoryId);
+      }
+      if (!request.active()) return;
+      await createDeck(categoryId, trimmedName, signal);
+      if (request.active()) onDone('卡片库已创建。');
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '创建失败，请重试。');
+      if (request.active()) setError(cause instanceof Error ? cause.message : '创建失败，请重试。');
     } finally {
-      setBusy(false);
+      request.finish();
+      if (request.active()) setBusy(false);
     }
   };
 
@@ -162,12 +207,13 @@ interface CardFormProps {
 
 function CardForm({ state, dashboard, onClose, onDone }: CardFormProps) {
   const editing = state.card;
-  const [deckId, setDeckId] = useState(state.deckId ?? dashboard.decks[0]?.id ?? '');
+  const [deckId, setDeckId] = useState(editing?.deckId ?? state.deckId ?? dashboard.decks[0]?.id ?? '');
   const [question, setQuestion] = useState(editing?.question ?? '');
   const [answer, setAnswer] = useState(editing?.answer ?? '');
   const [resetProgress, setResetProgress] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const request = useFormRequest();
   const firstRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -186,20 +232,28 @@ function CardForm({ state, dashboard, onClose, onDone }: CardFormProps) {
       setError('请先创建一个卡片库。');
       return;
     }
+    const signal = request.begin();
+    if (!signal) return;
     setBusy(true);
     setError('');
     try {
       if (editing) {
-        await updateCard(editing.id, { question: q, answer: a, resetProgress, version: editing.version });
-        onDone('卡片已保存，复习排期已保留。');
+        await updateCard(
+          editing.id,
+          { deckId, question: q, answer: a, resetProgress, version: editing.version },
+          signal,
+        );
+        if (request.active())
+          onDone(resetProgress ? '卡片已保存，已重新学习，历史记录保留。' : '卡片已保存，复习排期已保留。');
       } else {
-        await createCard(deckId, q, a);
-        onDone('卡片已录入。');
+        await createCard(deckId, q, a, signal);
+        if (request.active()) onDone('卡片已录入。');
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '保存失败，请重试。');
+      if (request.active()) setError(cause instanceof Error ? cause.message : '保存失败，请重试。');
     } finally {
-      setBusy(false);
+      request.finish();
+      if (request.active()) setBusy(false);
     }
   };
 
@@ -278,6 +332,7 @@ function GoalForm({ dashboard, onClose, onDone }: FormProps) {
   const [goal, setGoal] = useState(String(dashboard.goal));
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const request = useFormRequest();
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -286,15 +341,18 @@ function GoalForm({ dashboard, onClose, onDone }: FormProps) {
       setError('目标应为 1–500 之间的整数。');
       return;
     }
+    const signal = request.begin();
+    if (!signal) return;
     setBusy(true);
     setError('');
     try {
-      await updateGoal(value);
-      onDone('每日目标已更新。');
+      await updateGoal(value, signal);
+      if (request.active()) onDone('每日目标已更新。');
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '保存失败，请重试。');
+      if (request.active()) setError(cause instanceof Error ? cause.message : '保存失败，请重试。');
     } finally {
-      setBusy(false);
+      request.finish();
+      if (request.active()) setBusy(false);
     }
   };
 

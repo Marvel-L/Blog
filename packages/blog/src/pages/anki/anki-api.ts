@@ -209,6 +209,7 @@ export const createCard = (deckId: string, question: string, answer: string, sig
   }).then((card) => normalizeCard(card as unknown as Record<string, unknown>));
 
 export interface UpdateCardPatch {
+  deckId?: string;
   question: string;
   answer: string;
   resetProgress: boolean;

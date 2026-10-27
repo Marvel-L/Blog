@@ -3,6 +3,8 @@ package httpapi
 import (
 	"encoding/json"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"sync"
 	"testing"
 
@@ -389,6 +391,98 @@ func TestAnkiNotDueGuard(t *testing.T) {
 	}
 	if todayRow == nil || todayRow["reviews"].(float64) != 2 || todayRow["uniqueCards"].(float64) != 1 {
 		t.Fatalf("early review must not count: %+v", todayRow)
+	}
+}
+
+func TestAnkiMovePreservesProgressAndHistory(t *testing.T) {
+	f := setup(t)
+	cookie := f.login(t, "")
+	var category, firstDeck, secondDeck map[string]any
+	w := f.anki(t, "POST", "/api/v1/anki/categories", cookie, `{"name":"迁库"}`)
+	requireStatus(t, w, 200)
+	decode(t, w.Body.String(), &category)
+	newDeck := func(name string) map[string]any {
+		w := f.anki(t, "POST", "/api/v1/anki/decks", cookie, `{"categoryId":"`+category["id"].(string)+`","name":"`+name+`"}`)
+		requireStatus(t, w, 200)
+		var d map[string]any
+		decode(t, w.Body.String(), &d)
+		return d
+	}
+	firstDeck, secondDeck = newDeck("原库"), newDeck("目标库")
+	w = f.anki(t, "POST", "/api/v1/anki/decks/"+firstDeck["id"].(string)+"/cards", cookie, `{"question":"q","answer":"a"}`)
+	requireStatus(t, w, 200)
+	var c map[string]any
+	decode(t, w.Body.String(), &c)
+	cardID := c["id"].(string)
+	w = f.anki(t, "POST", "/api/v1/anki/reviews", cookie, `{"cardId":"`+cardID+`","version":1,"mutationId":"`+mustUUID()+`","rating":"correct"}`)
+	requireStatus(t, w, 200)
+	var review struct {
+		Card map[string]any `json:"card"`
+	}
+	decode(t, w.Body.String(), &review)
+	patch := `{"deckId":"` + secondDeck["id"].(string) + `","question":"new q","answer":"new a","resetProgress":false,"version":2}`
+	w = f.anki(t, "PATCH", "/api/v1/anki/cards/"+cardID, cookie, patch)
+	requireStatus(t, w, 200)
+	decode(t, w.Body.String(), &c)
+	if c["deckId"] != secondDeck["id"] || c["dueAt"] != review.Card["dueAt"] || c["reviewCount"] != review.Card["reviewCount"] {
+		t.Fatal("migration must preserve schedule and review count")
+	}
+	var snapshot string
+	if err := f.db.Pool.QueryRow(ctx, "SELECT deck_id_snapshot::text FROM anki_reviews WHERE card_id=$1", cardID).Scan(&snapshot); err != nil || snapshot != firstDeck["id"] {
+		t.Fatal("review history must retain original deck")
+	}
+	// Foreign user's deck must not be accepted; failed mutation preserves current version.
+	f.identity = github.Identity{ID: "200", Login: "bob", Name: "Bob"}
+	bob := f.login(t, "")
+	w = f.anki(t, "POST", "/api/v1/anki/categories", bob, `{"name":"bob"}`)
+	requireStatus(t, w, 200)
+	decode(t, w.Body.String(), &category)
+	w = f.anki(t, "POST", "/api/v1/anki/decks", bob, `{"categoryId":"`+category["id"].(string)+`","name":"foreign"}`)
+	requireStatus(t, w, 200)
+	var foreign map[string]any
+	decode(t, w.Body.String(), &foreign)
+	w = f.anki(t, "PATCH", "/api/v1/anki/cards/"+cardID, cookie, `{"deckId":"`+foreign["id"].(string)+`","question":"q","answer":"a","resetProgress":false,"version":3}`)
+	requireStatus(t, w, 404)
+	// Explicit relearn changes schedule but never deletes the original review.
+	w = f.anki(t, "PATCH", "/api/v1/anki/cards/"+cardID, cookie, `{"question":"q","answer":"a","resetProgress":true,"version":3}`)
+	requireStatus(t, w, 200)
+	decode(t, w.Body.String(), &c)
+	if c["reviewCount"].(float64) != 0 || count(t, f.db, "anki_reviews") != 1 {
+		t.Fatal("relearn must reset state and preserve history")
+	}
+}
+
+func TestAnkiOAuthReturn(t *testing.T) {
+	for _, destination := range []string{"/anki", "/Blog/anki"} {
+		t.Run(destination, func(t *testing.T) {
+			f := setup(t)
+			w := f.request("GET", "/api/v1/auth/github/start?return_to="+url.QueryEscape(destination), "", "", "")
+			requireStatus(t, w, 302)
+			u, err := url.Parse(w.Header().Get("Location"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			state := u.Query().Get("state")
+			cookie := w.Result().Cookies()[0]
+			w = f.request("GET", "/api/v1/auth/github/callback?code=code&state="+state, cookie.Name+"="+cookie.Value, "", "")
+			requireStatus(t, w, 302)
+			if w.Header().Get("Location") != destination {
+				t.Fatal("login must return to Anki")
+			}
+		})
+	}
+	f := setup(t)
+	for _, bad := range []string{"https://evil.example/anki", "//evil.example/anki", "/Blog/anki?next=evil", "/anki#x", "/Blog/anki/../admin"} {
+		requireStatus(t, f.request("GET", "/api/v1/auth/github/start?return_to="+url.QueryEscape(bad), "", "", ""), 400)
+	}
+}
+
+func TestAnkiLongTextValidation(t *testing.T) {
+	if _, ok := ankiText(json.RawMessage(`"` + strings.Repeat("问", 3000) + `"`)); !ok {
+		t.Fatal("valid long question rejected")
+	}
+	if _, ok := ankiText(json.RawMessage(`"` + strings.Repeat("答", 10001) + `"`)); ok {
+		t.Fatal("oversize answer accepted")
 	}
 }
 
