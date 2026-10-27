@@ -28,66 +28,6 @@
   outline: 2px solid var(--planner-accent);
   outline-offset: 3px;
 }
-.planner-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 36px;
-  align-items: end;
-  padding: 42px 0 30px;
-  border-bottom: 1px solid var(--planner-line);
-}
-.planner-kicker {
-  font-size: 10px;
-  letter-spacing: 0.24em;
-  color: var(--planner-accent);
-  margin-bottom: 15px;
-}
-.planner-hero h1 {
-  font-family: 'Source Han Serif CN', Georgia, serif;
-  font-size: clamp(54px, 9vw, 112px);
-  font-weight: 700;
-  line-height: 0.82;
-  letter-spacing: -0.055em;
-}
-.planner-hero h1 em {
-  font-weight: 400;
-  color: var(--planner-accent);
-}
-.planner-hero > div > p:last-child {
-  margin-top: 24px;
-  color: var(--planner-muted);
-  font-size: 13px;
-  letter-spacing: 0.06em;
-}
-.planner-clock {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 26px 0;
-  border-top: 1px solid var(--planner-line);
-  border-bottom: 1px solid var(--planner-line);
-}
-.planner-clock > svg {
-  width: 34px;
-  height: 34px;
-  color: var(--planner-accent);
-}
-.planner-clock div {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.planner-clock strong {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 32px;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.05em;
-}
-.planner-clock span {
-  font-size: 11px;
-  color: var(--planner-muted);
-  letter-spacing: 0.08em;
-}
 .planner-toolbar {
   display: flex;
   justify-content: space-between;
@@ -476,12 +416,6 @@
   color: var(--planner-muted);
 }
 @media (max-width: 900px) {
-  .planner-hero {
-    grid-template-columns: 1fr;
-  }
-  .planner-clock {
-    max-width: 430px;
-  }
   .planner-toolbar {
     align-items: flex-start;
     flex-direction: column;
@@ -505,15 +439,6 @@
 @media (max-width: 600px) {
   .planner-page {
     padding-top: 4px;
-  }
-  .planner-hero {
-    padding-top: 20px;
-  }
-  .planner-hero h1 {
-    font-size: 58px;
-  }
-  .planner-clock strong {
-    font-size: 26px;
   }
   .planner-file-actions button {
     padding: 9px;

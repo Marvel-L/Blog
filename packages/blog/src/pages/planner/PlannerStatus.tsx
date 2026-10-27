@@ -1,40 +1,7 @@
-import { BatteryMedium, Clock3 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { BatteryMedium } from 'lucide-react';
 import type { TaskProgress } from './model';
 
 const clampSegments = (value: number) => Math.max(0, Math.min(10, Math.round(value / 10)));
-
-export function PlannerClock() {
-  const [now, setNow] = useState<Date | null>(null);
-  useEffect(() => {
-    const update = () => setNow(new Date());
-    update();
-    const timer = window.setInterval(update, 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-  return (
-    <section className="planner-clock" aria-label="当前时间">
-      <Clock3 aria-hidden="true" />
-      <div>
-        <strong>
-          {now
-            ? new Intl.DateTimeFormat('zh-CN', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false,
-              }).format(now)
-            : '--:--:--'}
-        </strong>
-        <span>
-          {now
-            ? new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' }).format(now)
-            : '正在读取本地时间'}
-        </span>
-      </div>
-    </section>
-  );
-}
 
 function BatteryProgress({ label, value }: { label: string; value: number }) {
   const rounded = Math.round(value);

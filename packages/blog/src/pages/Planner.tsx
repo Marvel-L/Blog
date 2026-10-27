@@ -3,7 +3,7 @@ import { Check, ChevronLeft, ChevronRight, Download, FileText, Plus, Trash2 } fr
 import { Seo } from '@/components/Seo';
 import { downloadBlob } from '@/utils/download';
 import { assetUrl } from '@/utils/siteUrl';
-import { PlannerClock, TaskCharge } from './planner/PlannerStatus';
+import { TaskCharge } from './planner/PlannerStatus';
 import { parsePlannerMarkdown, plannerToMarkdown, tasksFor } from './planner/markdown';
 import {
   emptyPlannerState,
@@ -142,18 +142,7 @@ export const Planner = () => {
         description="支持本地 Markdown 文件、GitHub Pages 与登录云端自动同步的月度规划模板，可按年份和月份管理、完成与删除待办事项。"
         url="/planner"
       />
-      <header className="planner-hero">
-        <div>
-          <p className="planner-kicker">TWELVE MONTHS / ONE CLEAR VIEW</p>
-          <h1>
-            Monthly
-            <br />
-            <em>Planner</em>
-          </h1>
-          <p>把一年拆成十二个可完成的月份。</p>
-        </div>
-        <PlannerClock />
-      </header>
+      <h1 className="sr-only">月度规划</h1>
       <div className="planner-toolbar">
         <div className="planner-year-switch" aria-label="选择年份">
           <button aria-label="上一年" onClick={() => setSelectedYear((year) => Math.max(1970, year - 1))}>
