@@ -1,7 +1,7 @@
 ---
 id: flatten-binary-tree-to-linked-list-0x01
-title: [待定]114. 二叉树展开为链表
-excerpt: [待定]114. 二叉树展开为链表
+title: "[待定]114. 二叉树展开为链表"
+excerpt: "[待定]114. 二叉树展开为链表"
 category: 算法
 tags:
   - 树
@@ -10,7 +10,7 @@ author: Marvel-L
 rank: 星耀
 series: false
 draft: false
-tbd: true 
+tbd: true
 coverImage: /posts-img/算法/二叉树展开为链表.png
 ---
 
