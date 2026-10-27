@@ -147,7 +147,13 @@ const AppRoutes: React.FC = () => {
   // cloud 构建下 AnkiPage 非空；Pages 构建恒为 null，走正常 Layout。
   if (isAnkiRoute && AnkiPage) {
     return (
-      <Suspense fallback={<RouteFallback />}>
+      <Suspense
+        fallback={
+          <div className="anki-surface min-h-screen bg-white" style={{ background: '#fff', colorScheme: 'light' }}>
+            <RouteFallback />
+          </div>
+        }
+      >
         <AnkiPage />
       </Suspense>
     );

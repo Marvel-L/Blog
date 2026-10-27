@@ -95,6 +95,16 @@ const mount = () =>
   );
 
 describe('Anki 登录门与加载', () => {
+  it('请求未完成时已有独立白色学习面和页面标题，不显示博客内容', () => {
+    request.mockImplementation(() => new Promise<Response>(() => {}));
+    const { container } = mount();
+    const surface = container.querySelector('.anki-surface');
+    expect(surface).toHaveClass('min-h-screen', 'bg-white');
+    expect(screen.getByRole('heading', { level: 1, name: 'Anki 记忆卡片' })).toHaveClass('sr-only');
+    expect(screen.getByText('正在加载卡片库…')).toBeInTheDocument();
+    expect(container.querySelector('.site-shell')).toBeNull();
+  });
+
   it('dashboard 401 时展示登录门与 GitHub 登录入口', async () => {
     request.mockImplementation(async (input) => {
       if (String(input).endsWith('/anki/dashboard')) return new Response('unauthorized', { status: 401 });

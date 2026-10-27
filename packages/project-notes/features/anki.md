@@ -2,6 +2,17 @@
 
 ## 当前权威状态
 
+### 2026-10-27 刷新首帧闪回 Blog / 黑屏修复（本轮）
+
+- **原因已核查**：线上 `/Blog/anki`、query 视图和 login 入口返回与 Blog 首页相同的 HTML；浏览器刷新记录 React #418，地址仍在 Anki。不是实际导航回首页，而是错误的首页静态树被当作 Anki 水合，随后重新生成页面；懒加载占位露出博客底色。
+- **本地修复**：统一 SSG 流水线仅在 cloud 生成 `anki/index.html`、`anki/login/index.html`，只含无账号/卡片数据的初始学习壳；Nginx 精确入口直接提供对应文件，保留 query 且不强制目录重定向，制品缺失返回 404 而非博客首页。Anki 懒加载使用全屏白色占位；静态壳内联白底样式随 `.anki-surface` 存在生效，离开学习面自动失效，不改主题存储与 Love 模式逻辑。旧回退 HTML 的客户端入口不再错误水合；有效 Anki SSR 树仍使用 hydrateRoot。
+- **构建与静态检查**：完整 cloud 和 Pages 构建、SSG、SEO 与部署隔离审计通过；新学习壳已补非可见 h1，SEO 无新增标题/description错误。独立 HTML 解析验证两个入口各有一个 Anki surface、一个 h1、无 Blog shell；Pages 无 Anki 静态入口和 Anki JS/CSS chunk。完整前后端 typecheck 通过，全仓 ESLint 0 errors、4 条既有 Fast Refresh warnings；本轮改动无新增 warning。
+- **相关回归**：最终 Anki 与 SSG/路径/水合保护共 9 文件、104 项通过；包含旧首页回退拒绝、有效学习壳保留、根/子路径部署、Pages 保护、真实 SSG 文件落盘和加载期白色学习面。
+- **浏览器验证**：实际 cloud 构建在本地只读模拟 API 下验证 `view=deck&deck=refresh-deck` 刷新保留库详情，刷新加载期和完成后 `html.dark` 保持不变、body 为白色且没有 `.site-shell`，未再捕获 #418；已登录 login 入口仍按既有逻辑回到 Anki。模拟账号/数据明确标识，写入被拒绝，不连接生产或数据库。实际可观测视口 219×822，不声称桌面/390px 像素验收；外部资源存在 DNS 失败，不宣称全程控制台零报错。本机未安装 Nginx，配置经过契约测试，未做真实 Nginx 容器运行验收。
+- **完整门禁限制**：最终默认全量根测试为 147 文件、1186 项，1185 通过、1 项 `scripts/upload-cloud-release.test.mjs` 的 5000ms 超时；独立复验该文件通过，不等同全量通过。Go 测试因串联前段失败未执行，Go vet 已通过；不修改无关上传脚本、timeout、workers，也不绕过门禁。
+- **交付边界**：修复保留 `/Users/yuean/Blog` 本地源码；未 commit、未 push、未部署。只读刷新预览 `http://127.0.0.1:31827/Blog/anki?view=deck&deck=refresh-deck` 使用真实已构建前端与模拟数据，不能用于正式录卡。线上须后续部署才生效。历史备注与结论原样保留。
+- **本次提交与推送授权**：用户在获知完整根测试仍有上传脚本超时后明确要求 `commit & push`。本次仅提交刷新首帧、白色加载态、旧 HTML 水合保护、Nginx 精确入口及回归/本记录，普通推送至当前分支上游 `origin/custom`；依据用户授权破例提交，不改写历史全量门禁失败，不绕过 Git 钩子、不强推、不主动部署。提交前再次复验前后端 typecheck、全仓 ESLint 和相关 104 项测试通过；实际 commit/push 结果以 Git 返回与最终答复为准。
+
 ### 2026-10-27 证书恢复、刷新定位与卡片草稿（本轮最新）
 
 - **用户确认范围**：保存失败保护针对 Anki 卡片，不涉及博客文章；修复查看库后刷新退出，以及公网 HTTPS 证书故障。

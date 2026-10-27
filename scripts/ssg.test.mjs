@@ -1,6 +1,63 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { flattenSuspenseBoundaries } from './ssg.mjs';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { flattenSuspenseBoundaries, getAnkiStaticPages, runSsg } from './ssg.mjs';
+
+describe('Anki cloud 静态入口', () => {
+  it('仅 cloud 生成学习页和登录页，不把云端入口放进 Pages', () => {
+    expect(getAnkiStaticPages('cloud').map((page) => page.path)).toEqual(['anki', 'anki/login']);
+    expect(getAnkiStaticPages('pages')).toEqual([]);
+    expect(getAnkiStaticPages(undefined)).toEqual([]);
+  });
+
+  it('真实 SSG 落盘专属壳与白底样式，首页不带 Anki 覆盖', async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), 'dblog-anki-ssg-'));
+    const oldTarget = process.env.VITE_DEPLOY_TARGET;
+    try {
+      process.env.VITE_DEPLOY_TARGET = 'cloud';
+      const distDir = path.join(directory, 'dist');
+      const ssrDir = path.join(directory, 'ssr');
+      await mkdir(distDir);
+      await mkdir(ssrDir);
+      await writeFile(path.join(directory, 'package.json'), '{"type":"module"}');
+      await writeFile(
+        path.join(distDir, 'index.html'),
+        '<html><head><title>Blog</title></head><body><div id="root"></div></body></html>',
+      );
+      await writeFile(
+        path.join(ssrDir, 'entry-server.js'),
+        `
+        export async function renderApp(url) {
+          const anki = url === '/anki' || url === '/anki/login';
+          return {
+            html: anki ? '<div class="anki-surface">正在加载卡片库…</div>' : '<div class="site-shell">Blog</div>',
+            head: anki ? '<title>Anki 记忆卡片</title><meta name="robots" content="noindex"/>' : '<title>Blog</title>',
+          };
+        }
+      `,
+      );
+      expect(await runSsg({ distDir, ssrDir })).toBe(true);
+      for (const page of ['anki', 'anki/login']) {
+        const html = await readFile(path.join(distDir, page, 'index.html'), 'utf8');
+        expect(html).toContain('class="anki-surface"');
+        expect(html).toContain('id="anki-boot-style"');
+        expect(html).toContain('background: #fff !important');
+        expect(html).toContain("html[data-love-mode-boot='true']:has(.anki-surface) #root { opacity: 1; }");
+        expect(html).not.toContain('class="site-shell"');
+        expect(html).toContain('noindex');
+      }
+      const home = await readFile(path.join(distDir, 'index.html'), 'utf8');
+      expect(home).toContain('class="site-shell"');
+      expect(home).not.toContain('anki-boot-style');
+    } finally {
+      if (oldTarget === undefined) delete process.env.VITE_DEPLOY_TARGET;
+      else process.env.VITE_DEPLOY_TARGET = oldTarget;
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+});
 
 /**
  * 构造 React 19 Fizz 输出的 Suspense 序列化片段。

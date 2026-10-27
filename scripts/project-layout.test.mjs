@@ -88,6 +88,18 @@ describe('frontend workspace and deployment path contracts', () => {
     expect(client.config.server.proxy['/api/']).toBe('http://127.0.0.1:3001');
   });
 
+  it('Anki 精确刷新入口使用专属 HTML，不重定向或回退博客首页', async () => {
+    const config = await readFile(path.join(root, 'deploy/cloud/nginx.conf'), 'utf8');
+    for (const route of ['anki', 'anki/login']) {
+      const block = config.split(`location = /Blog/${route} {`)[1]?.split('}')[0];
+      expect(block).toBeDefined();
+      expect(block).toContain(`try_files /Blog/${route}/index.html =404;`);
+      expect(block).not.toContain('return 30');
+      expect(block).not.toContain('/Blog/index.html');
+    }
+    expect(config).toContain('try_files $uri $uri/ /Blog/index.html;');
+  });
+
   it('keeps existing CMS content and site configuration at their published editing paths', async () => {
     const cms = yaml.load(await readFile(path.join(root, '.pages.yml'), 'utf8'));
     const posts = cms.content.find((collection) => collection.name === 'posts');

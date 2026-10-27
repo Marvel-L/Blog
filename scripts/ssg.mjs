@@ -336,6 +336,19 @@ const formatError = (error) => {
   return String(error);
 };
 
+export const getAnkiStaticPages = (target) =>
+  target === 'cloud' ? ['anki', 'anki/login'].map((pagePath) => ({ path: pagePath, schemaFromSeo: true })) : [];
+
+// 静态入口先保持白色，再由 React 接管；规则仅作用于 Anki，不改博客主题存储。
+// :has 随 SPA 离开学习面自动失效，避免返回博客后仍被入口样式覆盖。
+const ANKI_BOOT_HEAD = `
+    <style id="anki-boot-style">
+      html:has(.anki-surface), html:has(.anki-surface) body { background: #fff !important; color-scheme: light; }
+      .anki-surface { min-height: 100vh; background: #fff; color-scheme: light; }
+      html:has(.anki-surface) #love-mode-preload { display: none; }
+      html[data-love-mode-boot='true']:has(.anki-surface) #root { opacity: 1; }
+    </style>`;
+
 export const runSsg = async ({
   distDir = process.env.SSG_DIST_DIR || DIST_DIR,
   ssrDir = process.env.SSG_SSR_DIR || DIST_SSR_DIR,
@@ -437,6 +450,7 @@ export const runSsg = async ({
   };
 
   const staticPages = [
+    ...getAnkiStaticPages(process.env.VITE_DEPLOY_TARGET),
     ...getBookRoutes(books).map((path) => ({ path, schemaFromSeo: true, schemaType: 'CollectionPage' })),
     {
       path: 'archive',
@@ -596,8 +610,9 @@ export const runSsg = async ({
     // 页面级 schema 已由页面组件 Seo 的 structuredData 输出（about/shuoshuo/guestbook，
     // 以及 tags/archive/friends 等页），SSG 不再重复注入，避免同一 @type 出现两份 JSON-LD。
     const schema = page.schemaFromSeo ? '' : createStaticPageSchema(page);
+    const bootHead = page.path === 'anki' || page.path === 'anki/login' ? ANKI_BOOT_HEAD : '';
     try {
-      await writePage(`/${page.path}`, page.path, schema);
+      await writePage(`/${page.path}`, page.path, `${schema}${bootHead}`);
     } catch (error) {
       failedPages.push({ url: `/${page.path}`, error: formatError(error) });
     }

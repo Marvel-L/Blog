@@ -283,7 +283,7 @@ export default function AnkiPage() {
     <div className="anki-surface min-h-screen bg-white" style={{ color: T.ink }}>
       <Seo
         title="Anki 记忆卡片"
-        description="按分类整理 Q & A 卡片，到期主动回忆并自评，让知识在合适的时间再次出现。"
+        description="按分类整理 Q & A 卡片，到期主动回忆并自评，让知识在合适的时间再次出现。登录后查看自己的卡片库、练习进度与每日统计。"
         noindex
       />
       {topBar}
@@ -291,6 +291,7 @@ export default function AnkiPage() {
         <AnkiSyncStatus key={`sync-${accountKey}`} onSync={refresh} disabled={phase !== 'ready'} />
         {phase === 'loading' || !dashboard ? (
           <div className="flex min-h-[40vh] items-center justify-center">
+            <h1 className="sr-only">Anki 记忆卡片</h1>
             <p className="text-sm" style={{ color: T.muted }}>
               正在加载卡片库…
             </p>

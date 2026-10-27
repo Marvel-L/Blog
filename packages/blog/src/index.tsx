@@ -7,6 +7,8 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import { registerServiceWorker } from './registerServiceWorker';
+import { shouldHydrateRoot } from './ssr/hydration';
+import { getRouterBasename } from './utils/siteUrl';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -23,9 +25,11 @@ const app = (
   </React.StrictMode>
 );
 
-if (rootElement.childElementCount > 0) {
+if (shouldHydrateRoot(rootElement, window.location.pathname, getRouterBasename(), import.meta.env.VITE_DEPLOY_TARGET)) {
   ReactDOM.hydrateRoot(rootElement, app);
 } else {
+  // 旧回退 HTML 与 Anki 不匹配时先清空，走正常客户端渲染，不触发 #418 重建。
+  rootElement.replaceChildren();
   ReactDOM.createRoot(rootElement).render(app);
 }
 
