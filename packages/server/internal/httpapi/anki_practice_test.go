@@ -136,6 +136,7 @@ func TestAnkiCountMigrationBackfillsImmutableHistory(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	migrationCount := count(t, f.db, "schema_migrations")
 	// 还原到 005 形态，只在此测试随机 schema 内执行，模拟带历史的旧库升级。
 	exec(t, f.db, `ALTER TABLE anki_cards DROP COLUMN practice_count,DROP COLUMN correct_count,DROP COLUMN hard_count,DROP COLUMN wrong_count,DROP COLUMN custom_count;
     ALTER TABLE anki_reviews DROP COLUMN review_mode;DROP INDEX anki_reviews_card_results;
@@ -155,7 +156,7 @@ func TestAnkiCountMigrationBackfillsImmutableHistory(t *testing.T) {
 	if err := migrations.Run(ctx, databaseURL); err != nil {
 		t.Fatal(err)
 	}
-	if count(t, f.db, "anki_reviews") != 4 || count(t, f.db, "schema_migrations") != 6 {
+	if count(t, f.db, "anki_reviews") != 4 || count(t, f.db, "schema_migrations") != migrationCount {
 		t.Fatal("rerun duplicated history/migration")
 	}
 }

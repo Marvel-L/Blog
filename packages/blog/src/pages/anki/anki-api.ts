@@ -19,6 +19,7 @@
  *   PUT    /anki/goal                      { goal } => { goal }
  */
 import { cloudRequest } from '@/cloud/api';
+import { normalizeTags } from './anki-tags';
 
 export const ANKI_SYNC_EVENT = 'dblog-anki-sync';
 export interface AnkiSyncEvent {
@@ -92,6 +93,8 @@ export interface AnkiCard {
   deckId: string;
   question: string;
   answer: string;
+  /** 旧服务/旧卡片无字段时兼容为无标签。 */
+  tags?: string[];
   dueAt: string;
   intervalDays: number;
   repetitions: number;
@@ -196,6 +199,7 @@ const normalizeCard = (raw: Record<string, unknown>): AnkiCard => ({
   deckId: String(raw.deckId ?? ''),
   question: String(raw.question ?? ''),
   answer: String(raw.answer ?? ''),
+  tags: normalizeTags(raw.tags),
   dueAt: String(raw.dueAt ?? ''),
   intervalDays: NUMBER(raw.intervalDays),
   repetitions: NUMBER(raw.repetitions),
@@ -243,19 +247,58 @@ export const createDeck = (categoryId: string, name: string, signal?: AbortSigna
     signal,
   });
 
+export interface AnkiTag {
+  id: string;
+  name: string;
+  cardCount: number;
+}
+export const fetchDeckTags = (deckId: string, signal?: AbortSignal): Promise<AnkiTag[]> =>
+  ankiRequest<{ tags: AnkiTag[] }>(`/anki/decks/${encodeURIComponent(deckId)}/tags`, { signal }).then((data) => {
+    if (
+      !Array.isArray(data.tags) ||
+      data.tags.some((tag) => !tag || typeof tag.id !== 'string' || typeof tag.name !== 'string')
+    )
+      throw new Error('标签目录响应无效，请重试');
+    return data.tags;
+  });
+export const createDeckTag = (deckId: string, name: string, signal?: AbortSignal) =>
+  ankiRequest<AnkiTag>(`/anki/decks/${encodeURIComponent(deckId)}/tags`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+    signal,
+  });
+export const renameDeckTag = (deckId: string, tagId: string, name: string, signal?: AbortSignal) =>
+  ankiRequest<AnkiTag>(`/anki/decks/${encodeURIComponent(deckId)}/tags/${encodeURIComponent(tagId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+    signal,
+  });
+export const deleteDeckTag = (deckId: string, tagId: string, signal?: AbortSignal) =>
+  ankiRequest<{ deleted: boolean }>(`/anki/decks/${encodeURIComponent(deckId)}/tags/${encodeURIComponent(tagId)}`, {
+    method: 'DELETE',
+    signal,
+  });
+
 export const fetchDeckCards = (deckId: string, signal?: AbortSignal) =>
   ankiRequest<{ cards: unknown }>(`/anki/decks/${encodeURIComponent(deckId)}/cards`, { signal }).then((data) =>
     normalizeCardList(data.cards),
   );
 
-export const createCard = (deckId: string, question: string, answer: string, signal?: AbortSignal) =>
+export const createCard = (
+  deckId: string,
+  question: string,
+  answer: string,
+  signal?: AbortSignal,
+  tags: string[] = [],
+) =>
   ankiRequest<AnkiCard>(`/anki/decks/${encodeURIComponent(deckId)}/cards`, {
     method: 'POST',
-    body: JSON.stringify({ question, answer }),
+    body: JSON.stringify({ question, answer, tags }),
     signal,
   }).then((card) => normalizeCard(card as unknown as Record<string, unknown>));
 
 export interface UpdateCardPatch {
+  tags?: string[];
   deckId?: string;
   question: string;
   answer: string;

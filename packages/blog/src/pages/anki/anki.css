@@ -8,6 +8,7 @@
   --anki-accent: #087ae9;
   --anki-soft: #f5f7fa;
   --anki-surface: #fff;
+  --anki-highlight: #fff1a8;
 }
 
 /* 使用已有弹层 className 扩展点，不改变其他业务的 SlideModal。 */
@@ -199,6 +200,39 @@
   font-style: normal;
   color: var(--anki-ink);
   background: transparent;
+}
+.anki-markdown mark {
+  background: var(--anki-highlight, #fff1a8);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0.06em 0.18em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.anki-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.anki-tag {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 3px 10px;
+  border-radius: 16px;
+  border: 1px solid var(--anki-line, #e9edf1);
+  background: var(--anki-soft, #f5f7fa);
+  color: var(--anki-muted, #777d86);
+  font-size: 12px;
+}
+button.anki-tag:hover,
+.anki-tag[aria-pressed='true'] {
+  border-color: var(--anki-accent, #087ae9);
+  color: var(--anki-accent, #087ae9);
+}
+button.anki-tag:focus-visible {
+  outline: 2px solid var(--anki-accent, #087ae9);
+  outline-offset: 2px;
 }
 .anki-markdown code {
   font-family: 'Resume Mono', ui-monospace, monospace;

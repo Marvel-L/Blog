@@ -8,6 +8,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { SlideModal } from '@/components/SlideModal';
 import { AnkiMarkdownEditor } from './AnkiMarkdownEditor';
+import { AnkiTagPicker } from './AnkiTagPicker';
+import { AnkiTagManager } from './AnkiTagManager';
 import './anki.css';
 import {
   createCard,
@@ -20,16 +22,21 @@ import {
   type NormalizedDashboard,
 } from './anki-api';
 
-export type AnkiDialogState = { kind: 'deck' } | { kind: 'card'; deckId?: string; card?: AnkiCard } | { kind: 'goal' };
+export type AnkiDialogState =
+  | { kind: 'deck' }
+  | { kind: 'card'; deckId?: string; card?: AnkiCard }
+  | { kind: 'goal' }
+  | { kind: 'tags'; deckId: string };
 
 interface AnkiDialogsProps {
   state: AnkiDialogState | null;
   dashboard: NormalizedDashboard;
   onClose: () => void;
   onDone: (message: string) => void;
+  onTagsChanged?: () => void;
 }
 
-export function AnkiDialogs({ state, dashboard, onClose, onDone }: AnkiDialogsProps) {
+export function AnkiDialogs({ state, dashboard, onClose, onDone, onTagsChanged }: AnkiDialogsProps) {
   if (!state) return null;
   const title =
     state.kind === 'deck'
@@ -38,7 +45,9 @@ export function AnkiDialogs({ state, dashboard, onClose, onDone }: AnkiDialogsPr
         ? state.card
           ? '编辑 Q & A 卡片'
           : '录入 Q & A 卡片'
-        : '每日练习目标';
+        : state.kind === 'tags'
+          ? '管理标签'
+          : '每日练习目标';
   return (
     <SlideModal
       isOpen
@@ -52,6 +61,14 @@ export function AnkiDialogs({ state, dashboard, onClose, onDone }: AnkiDialogsPr
         </h2>
         {state.kind === 'deck' && <DeckForm dashboard={dashboard} onClose={onClose} onDone={onDone} />}
         {state.kind === 'card' && <CardForm state={state} dashboard={dashboard} onClose={onClose} onDone={onDone} />}
+        {state.kind === 'tags' && (
+          <>
+            <AnkiTagManager key={state.deckId} deckId={state.deckId} onChanged={() => onTagsChanged?.()} />
+            <button type="button" className="anki-rating-button mt-5" onClick={onClose}>
+              关闭标签管理
+            </button>
+          </>
+        )}
         {state.kind === 'goal' && <GoalForm dashboard={dashboard} onClose={onClose} onDone={onDone} />}
       </div>
     </SlideModal>
@@ -214,6 +231,8 @@ function CardForm({ state, dashboard, onClose, onDone }: CardFormProps) {
   const [deckId, setDeckId] = useState(editing?.deckId ?? state.deckId ?? dashboard.decks[0]?.id ?? '');
   const [question, setQuestion] = useState(editing?.question ?? '');
   const [answer, setAnswer] = useState(editing?.answer ?? '');
+  const [tags, setTags] = useState<string[]>(editing?.tags ?? []);
+  const [tagsReady, setTagsReady] = useState(false);
   const [resetProgress, setResetProgress] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -233,6 +252,14 @@ function CardForm({ state, dashboard, onClose, onDone }: CardFormProps) {
       setError('问题和答案不能为空或仅为空格。');
       return;
     }
+    if (!tagsReady) {
+      setError('标签目录尚未加载，请重试后保存。');
+      return;
+    }
+    if (tags.length > 20 || tags.some((tag) => [...tag].length > 30 || /[\t]/.test(tag))) {
+      setError('最多添加 20 个标签，每个标签不超过 30 个字且不能含制表符。');
+      return;
+    }
     if (!deckId) {
       setError('请先创建一个卡片库。');
       return;
@@ -245,13 +272,13 @@ function CardForm({ state, dashboard, onClose, onDone }: CardFormProps) {
       if (editing) {
         await updateCard(
           editing.id,
-          { deckId, question: q, answer: a, resetProgress, version: editing.version },
+          { deckId, question: q, answer: a, tags, resetProgress, version: editing.version },
           signal,
         );
         if (request.active())
           onDone(resetProgress ? '卡片已保存，已重新学习，历史记录保留。' : '卡片已保存，复习排期已保留。');
       } else {
-        await createCard(deckId, q, a, signal);
+        await createCard(deckId, q, a, signal, tags);
         if (request.active()) onDone('卡片已录入。');
       }
     } catch (cause) {
@@ -266,7 +293,16 @@ function CardForm({ state, dashboard, onClose, onDone }: CardFormProps) {
     <form onSubmit={submit} className="anki-card-form mt-4 space-y-5">
       <label className="block">
         <span className="text-xs text-zinc-500">所属卡片库</span>
-        <select value={deckId} onChange={(event) => setDeckId(event.target.value)} required className="anki-input mt-1">
+        <select
+          value={deckId}
+          onChange={(event) => {
+            setDeckId(event.target.value);
+            setTags([]);
+            setTagsReady(false);
+          }}
+          required
+          className="anki-input mt-1"
+        >
           {dashboard.decks.length === 0 && <option value="">请先创建卡片库</option>}
           {dashboard.decks.map((deck) => (
             <option key={deck.id} value={deck.id}>
@@ -275,6 +311,7 @@ function CardForm({ state, dashboard, onClose, onDone }: CardFormProps) {
           ))}
         </select>
       </label>
+      <AnkiTagPicker deckId={deckId} value={tags} onChange={setTags} disabled={busy} onReady={setTagsReady} />
       <AnkiMarkdownEditor
         label="Q · 问题"
         inputRef={firstRef}
@@ -299,7 +336,7 @@ function CardForm({ state, dashboard, onClose, onDone }: CardFormProps) {
         </label>
       )}
       <p className="text-xs text-zinc-400">
-        以 Markdown 源码保存；支持标题、加粗、列表、引用、链接、表格和代码块，不执行 HTML；答案默认隐藏。
+        以 Markdown 源码保存；支持标题、加粗、==高亮==、列表、引用、链接、表格和代码块，不执行 HTML；答案默认隐藏。
       </p>
       <FieldError message={error} />
       <div className="flex justify-end gap-2 pt-1">

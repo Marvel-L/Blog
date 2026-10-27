@@ -53,6 +53,7 @@ type AnkiCard struct {
 	ID            string    `json:"id"`
 	DeckID        string    `json:"deckId"`
 	Question      string    `json:"question"`
+	Tags          []string  `json:"tags"`
 	Answer        string    `json:"answer"`
 	DueAt         time.Time `json:"dueAt"`
 	IntervalDays  int       `json:"intervalDays"`
@@ -172,7 +173,7 @@ func scanCard(row pgx.Row) (AnkiCard, error) {
 	return c, err
 }
 
-const ankiCardColumns = `id::text, deck_id::text, question, answer, due_at, interval_days, repetitions, ease_factor, review_count, version, practice_count, correct_count, hard_count, wrong_count, custom_count`
+const ankiCardColumns = `id::text, deck_id::text, question, answer, due_at, interval_days, repetitions, ease_factor, review_count, version, practice_count, correct_count, hard_count, wrong_count, custom_count, tags`
 
 func (s *Store) CreateAnkiCategory(ctx context.Context, userID, name string) (AnkiCategory, error) {
 	var c AnkiCategory
@@ -226,29 +227,58 @@ func (s *Store) ListAnkiCards(ctx context.Context, userID, deckID string) ([]Ank
 	return result, rows.Err()
 }
 
-func (s *Store) CreateAnkiCard(ctx context.Context, userID, deckID, question, answer string) (AnkiCard, error) {
+func (s *Store) CreateAnkiCard(ctx context.Context, userID, deckID, question, answer string, tagSets ...[]string) (AnkiCard, error) {
+	tags := []string{}
+	if len(tagSets) > 0 && tagSets[0] != nil {
+		tags = tagSets[0]
+	}
+	tx, err := s.Pool.Begin(ctx)
+	if err != nil {
+		return AnkiCard{}, err
+	}
+	defer tx.Rollback(context.Background())
+	if err = lockAnkiUser(ctx, tx, userID); err != nil {
+		return AnkiCard{}, err
+	}
+	if err = ownAnkiDeck(ctx, tx, userID, deckID); err != nil {
+		return AnkiCard{}, err
+	}
+	tags, err = canonicalAnkiTags(ctx, tx, userID, deckID, tags)
+	if err != nil {
+		return AnkiCard{}, err
+	}
 	var c AnkiCard
-	err := s.Pool.QueryRow(ctx, `INSERT INTO anki_cards(id,deck_id,user_id,question,answer)
-	 SELECT $1,$2,$3,$4,$5 FROM anki_decks WHERE id=$2 AND user_id=$3 RETURNING `+ankiCardColumns,
-		uuid(), deckID, userID, question, answer).Scan(scanCardScans(&c)...)
+	err = tx.QueryRow(ctx, `INSERT INTO anki_cards(id,deck_id,user_id,question,answer,tags)
+	 SELECT $1,$2,$3,$4,$5,$6 FROM anki_decks WHERE id=$2 AND user_id=$3 RETURNING `+ankiCardColumns,
+		uuid(), deckID, userID, question, answer, tags).Scan(scanCardScans(&c)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return AnkiCard{}, ErrAnkiNotFound
 	}
 	if err != nil {
 		return AnkiCard{}, err
 	}
-	return c, nil
+	return c, tx.Commit(ctx)
 }
 
 // UpdateAnkiCard 编辑问答（保留进度，复习历史不删除）；resetProgress 时把排期重置为新卡。
-func (s *Store) UpdateAnkiCard(ctx context.Context, userID, cardID, deckID, question, answer string, resetProgress bool, version int) (AnkiCard, error) {
+func (s *Store) UpdateAnkiCard(ctx context.Context, userID, cardID, deckID, question, answer string, resetProgress bool, version int, tagSets ...[]string) (AnkiCard, error) {
+	// 旧客户端省略 tags 时保留标签；显式空数组才清空。
+	var tags []string
+	if len(tagSets) > 0 {
+		tags = tagSets[0]
+	}
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return AnkiCard{}, err
 	}
 	defer tx.Rollback(context.Background())
+	if err = lockAnkiUser(ctx, tx, userID); err != nil {
+		return AnkiCard{}, err
+	}
 	var current int
-	err = tx.QueryRow(ctx, "SELECT version FROM anki_cards WHERE id=$1 AND user_id=$2 FOR UPDATE", cardID, userID).Scan(&current)
+	var currentDeck string
+	var currentTags []string
+	err = tx.QueryRow(ctx, "SELECT version,deck_id::text,tags FROM anki_cards WHERE id=$1 AND user_id=$2 FOR UPDATE", cardID, userID).Scan(&current, &currentDeck, &currentTags)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return AnkiCard{}, ErrAnkiNotFound
 	}
@@ -268,14 +298,24 @@ func (s *Store) UpdateAnkiCard(ctx context.Context, userID, cardID, deckID, ques
 			return AnkiCard{}, err
 		}
 	}
+	if deckID == "" {
+		deckID = currentDeck
+	}
+	if tags == nil {
+		tags = currentTags
+	}
+	tags, err = canonicalAnkiTags(ctx, tx, userID, deckID, tags)
+	if err != nil {
+		return AnkiCard{}, err
+	}
 	resetSQL := ", interval_days=0,repetitions=0,ease_factor=2.5,review_count=0,due_at=now()"
 	if !resetProgress {
 		resetSQL = ""
 	}
 	var c AnkiCard
 	err = tx.QueryRow(ctx, `UPDATE anki_cards SET question=$3,answer=$4,version=version+1,
-	 deck_id=COALESCE(NULLIF($5,'')::uuid,deck_id)`+resetSQL+`
-	 WHERE id=$1 AND user_id=$2 RETURNING `+ankiCardColumns, cardID, userID, question, answer, deckID).Scan(scanCardScans(&c)...)
+	 deck_id=COALESCE(NULLIF($5,'')::uuid,deck_id),tags=COALESCE($6::text[],tags)`+resetSQL+`
+	 WHERE id=$1 AND user_id=$2 RETURNING `+ankiCardColumns, cardID, userID, question, answer, deckID, tags).Scan(scanCardScans(&c)...)
 	if err != nil {
 		return AnkiCard{}, err
 	}
@@ -525,5 +565,5 @@ func (s *Store) AnkiDashboard(ctx context.Context, userID string, historyDays in
 
 // scanCardScans 返回按 ankiCardColumns 顺序的扫描目标（便于 QueryRow/Scan 复用）。
 func scanCardScans(c *AnkiCard) []any {
-	return []any{&c.ID, &c.DeckID, &c.Question, &c.Answer, &c.DueAt, &c.IntervalDays, &c.Repetitions, &c.EaseFactor, &c.ReviewCount, &c.Version, &c.PracticeCount, &c.CorrectCount, &c.HardCount, &c.WrongCount, &c.CustomCount}
+	return []any{&c.ID, &c.DeckID, &c.Question, &c.Answer, &c.DueAt, &c.IntervalDays, &c.Repetitions, &c.EaseFactor, &c.ReviewCount, &c.Version, &c.PracticeCount, &c.CorrectCount, &c.HardCount, &c.WrongCount, &c.CustomCount, &c.Tags}
 }

@@ -368,6 +368,7 @@ func TestCleanupAndRecentLimit(t *testing.T) {
 func TestMigrationSerializationAndRollback(t *testing.T) {
 	db := database(t)
 	databaseURL := db.Pool.Config().ConnConfig.ConnString()
+	migrationCount := count(t, db, "schema_migrations")
 	exec(t, db, `INSERT INTO users(id,github_id,login,name) VALUES('315fc762-613d-4b27-bef1-900686b00002','keep','keep','Keep')`)
 	var wg sync.WaitGroup
 	results := make(chan error, 4)
@@ -381,7 +382,7 @@ func TestMigrationSerializationAndRollback(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if count(t, db, "schema_migrations") != 6 || count(t, db, "users") != 1 {
+	if count(t, db, "schema_migrations") != migrationCount || count(t, db, "users") != 1 {
 		t.Fatal("migration rewrote existing data")
 	}
 	bad := fstest.MapFS{"999_failure.sql": &fstest.MapFile{Data: []byte("CREATE TABLE rollback_probe(id integer); SELECT * FROM nonexistent_table;")}}
@@ -389,7 +390,7 @@ func TestMigrationSerializationAndRollback(t *testing.T) {
 		t.Fatal("invalid migration succeeded")
 	}
 	var exists bool
-	if err := db.Pool.QueryRow(ctx, "SELECT to_regclass('rollback_probe') IS NOT NULL").Scan(&exists); err != nil || exists || count(t, db, "schema_migrations") != 6 {
+	if err := db.Pool.QueryRow(ctx, "SELECT to_regclass('rollback_probe') IS NOT NULL").Scan(&exists); err != nil || exists || count(t, db, "schema_migrations") != migrationCount {
 		t.Fatal("migration failed to roll back")
 	}
 }

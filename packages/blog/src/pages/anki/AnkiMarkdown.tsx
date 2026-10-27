@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import ReactMarkdown, { defaultUrlTransform, type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { remarkTyporaMarks } from '@/utils/remarkTyporaMarks';
 import { visit } from 'unist-util-visit';
 import type { Root, Element, Text } from 'hast';
 import '@/styles/resumeTypography.css';
@@ -9,7 +10,7 @@ import '@/styles/resumeTypography.css';
 function rehypeCardBreaks() {
   return (tree: Root) => {
     visit(tree, 'element', (node: Element) => {
-      if (!['p', 'li', 'strong', 'em', 'a', 'del'].includes(node.tagName)) return;
+      if (!['p', 'li', 'strong', 'em', 'a', 'del', 'mark', 'ins'].includes(node.tagName)) return;
       // 松散列表项的 p/ul 等块之间的结构换行不是正文，不转换为额外 br。
       if (
         node.tagName === 'li' &&
@@ -35,7 +36,7 @@ function rehypeCardBreaks() {
   };
 }
 
-const plugins = [remarkGfm];
+const plugins = [remarkGfm, remarkTyporaMarks];
 const rehypePlugins = [rehypeCardBreaks];
 
 /** 不解析 HTML，不加载远程媒体；URL 再经白名单过滤，预览和正式展示走同一路径。 */

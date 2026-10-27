@@ -10,12 +10,15 @@
 import { useEffect, useState } from 'react';
 import { fetchDeckCards, type AnkiCard } from './anki-api';
 import { AnkiMarkdown } from './AnkiMarkdown';
+import { AnkiCardTags } from './AnkiTags';
+import { matchesTag } from './anki-tags';
 import { AnkiCardCounts } from './AnkiCardCounts';
 
 interface AnkiBrowseProps {
   deckId: string;
   deckName: string;
   refreshToken?: number;
+  tag?: string | null;
   onExit: () => void;
 }
 
@@ -28,7 +31,7 @@ const shuffle = <T,>(input: T[]): T[] => {
   return arr;
 };
 
-export function AnkiBrowse({ deckId, deckName, refreshToken = 0, onExit }: AnkiBrowseProps) {
+export function AnkiBrowse({ deckId, deckName, refreshToken = 0, tag = null, onExit }: AnkiBrowseProps) {
   const [cards, setCards] = useState<AnkiCard[] | null>(null);
   const [error, setError] = useState('');
   const [index, setIndex] = useState(0);
@@ -40,7 +43,7 @@ export function AnkiBrowse({ deckId, deckName, refreshToken = 0, onExit }: AnkiB
     fetchDeckCards(deckId, controller.signal)
       .then((loaded) => {
         if (cancelled) return;
-        setCards(shuffle(loaded));
+        setCards(shuffle(loaded.filter((card) => matchesTag(card, tag))));
         setError('');
         setIndex(0);
         setRevealed(false);
@@ -53,7 +56,7 @@ export function AnkiBrowse({ deckId, deckName, refreshToken = 0, onExit }: AnkiB
       cancelled = true;
       controller.abort();
     };
-  }, [deckId, refreshToken]);
+  }, [deckId, refreshToken, tag]);
 
   const reshuffle = () => {
     if (!cards || cards.length === 0) return;
@@ -95,7 +98,9 @@ export function AnkiBrowse({ deckId, deckName, refreshToken = 0, onExit }: AnkiB
   if (cards.length === 0) {
     return (
       <div className="rounded-surface border border-zinc-200 bg-white p-8 text-center">
-        <h2 className="text-lg font-semibold text-ink">这个卡片库还没有卡片</h2>
+        <h2 className="text-lg font-semibold text-ink">
+          {tag === null ? '这个卡片库还没有卡片' : '当前标签下没有卡片'}
+        </h2>
         <button
           type="button"
           className="rounded-full border border-[#087ae9] bg-[#087ae9] px-[17px] py-[9px] text-sm font-medium text-white inline-flex items-center justify-center gap-2 whitespace-nowrap mt-5"
@@ -124,7 +129,10 @@ export function AnkiBrowse({ deckId, deckName, refreshToken = 0, onExit }: AnkiB
         </span>
       </div>
 
-      <p className="text-xs text-zinc-400">不受到期限制 · {deckName}</p>
+      <p className="text-xs text-zinc-400">
+        不受到期限制 · {deckName}
+        {tag !== null ? ` · ${tag || '无标签'}` : ''}
+      </p>
 
       <article className="rounded-surface border border-zinc-200 bg-white p-6 md:p-8">
         <span className="text-xs font-semibold text-sky-600" aria-hidden="true">
@@ -139,6 +147,7 @@ export function AnkiBrowse({ deckId, deckName, refreshToken = 0, onExit }: AnkiB
             <AnkiMarkdown content={current.answer} className="mt-2" />
           </section>
         )}
+        <AnkiCardTags tags={current.tags} />
         <AnkiCardCounts card={current} />
         <p className="mt-4 text-xs text-zinc-400">{revealed ? '答案已展开' : '答案已隐藏，先试着回忆'}</p>
       </article>

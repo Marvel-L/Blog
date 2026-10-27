@@ -25,6 +25,35 @@ func ankiText(raw json.RawMessage) (string, bool) {
 	return s, err == nil && strings.TrimSpace(s) != "" && utf8.RuneCountInString(s) <= 10000
 }
 
+// ankiTags 严格区分省略（PATCH 保留）、空数组（清空）与非法值。
+func ankiTags(raw json.RawMessage) ([]string, bool) {
+	if raw == nil {
+		return nil, true
+	}
+	var values []json.RawMessage
+	if string(raw) == "null" || json.Unmarshal(raw, &values) != nil || len(values) > 20 {
+		return nil, false
+	}
+	tags := []string{}
+	seen := map[string]bool{}
+	for _, value := range values {
+		var name string
+		if json.Unmarshal(value, &name) != nil || string(value) == "null" {
+			return nil, false
+		}
+		name = strings.TrimSpace(name)
+		if name == "" || utf8.RuneCountInString(name) > 30 || strings.ContainsAny(name, ",，\n\r\t") {
+			return nil, false
+		}
+		key := strings.ToLower(name)
+		if !seen[key] {
+			tags = append(tags, name)
+			seen[key] = true
+		}
+	}
+	return tags, true
+}
+
 func ankiInt(raw json.RawMessage, min, max int) (int, bool) {
 	v, ok := number(raw)
 	if !ok || v < float64(min) || v > float64(max) || v != float64(int(v)) {
@@ -52,6 +81,10 @@ func ankiError(w http.ResponseWriter, err error) bool {
 		return false
 	}
 	switch {
+	case errors.Is(err, store.ErrAnkiUnknownTag):
+		respond(w, 400, map[string]string{"error": "标签不属于当前卡片库或已被删除，请刷新后重新选择"})
+	case errors.Is(err, store.ErrAnkiDuplicateTag):
+		respond(w, 409, map[string]string{"error": "标签已存在（忽略大小写）"})
 	case errors.Is(err, store.ErrAnkiNotFound):
 		failure(w, 404)
 	case errors.Is(err, store.ErrAnkiVersion):
@@ -156,14 +189,24 @@ func (a *API) ankiCreateCard(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	m, err := fields(raw, "question", "answer")
-	question, qok := ankiText(m["question"])
-	answer, aok := ankiText(m["answer"])
-	if err != nil || !qok || !aok {
+	var supplied map[string]json.RawMessage
+	if json.Unmarshal(raw, &supplied) != nil {
 		failure(w, 400)
 		return
 	}
-	c, err := a.db.CreateAnkiCard(r.Context(), u.ID, deckID, question, answer)
+	keys := []string{"question", "answer"}
+	if supplied["tags"] != nil {
+		keys = append(keys, "tags")
+	}
+	m, err := fields(raw, keys...)
+	question, qok := ankiText(m["question"])
+	answer, aok := ankiText(m["answer"])
+	tags, tok := ankiTags(m["tags"])
+	if err != nil || !qok || !aok || !tok {
+		failure(w, 400)
+		return
+	}
+	c, err := a.db.CreateAnkiCard(r.Context(), u.ID, deckID, question, answer, tags)
 	if ankiError(w, err) {
 		return
 	}
@@ -190,6 +233,9 @@ func (a *API) ankiPatchCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	keys := []string{"question", "answer", "resetProgress", "version"}
+	if supplied["tags"] != nil {
+		keys = append(keys, "tags")
+	}
 	deckID := ""
 	if supplied["deckId"] != nil {
 		keys = append(keys, "deckId")
@@ -203,11 +249,12 @@ func (a *API) ankiPatchCard(w http.ResponseWriter, r *http.Request) {
 	question, qok := ankiText(m["question"])
 	answer, aok := ankiText(m["answer"])
 	version, vok := ankiInt(m["version"], 1, 9007199254740990)
-	if err != nil || !qok || !aok || !boolean(m["resetProgress"]) || !vok {
+	tags, tok := ankiTags(m["tags"])
+	if err != nil || !qok || !aok || !tok || !boolean(m["resetProgress"]) || !vok {
 		failure(w, 400)
 		return
 	}
-	c, err := a.db.UpdateAnkiCard(r.Context(), u.ID, cardID, deckID, question, answer, string(m["resetProgress"]) == "true", version)
+	c, err := a.db.UpdateAnkiCard(r.Context(), u.ID, cardID, deckID, question, answer, string(m["resetProgress"]) == "true", version, tags)
 	if ankiError(w, err) {
 		return
 	}

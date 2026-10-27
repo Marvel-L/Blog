@@ -53,6 +53,7 @@ beforeEach(() => {
   reviewFailure = 'none';
   request = vi.fn<typeof fetch>().mockImplementation(async (input) => {
     const url = String(input);
+    if (url.endsWith('/tags')) return new Response(JSON.stringify({ tags: [] }));
     if (url.endsWith('/me'))
       return new Response(JSON.stringify({ user: { id: 'user1', login: 'alice', name: 'Alice' } }));
     if (url.endsWith('/auth/logout')) return new Response(null, { status: 204 });
@@ -260,6 +261,7 @@ describe('账号切换与统计', () => {
     fireEvent.click((await screen.findAllByRole('button', { name: '编辑' }))[0]);
     // 对话框打开，直接提交（默认不勾「重新学习」）
     await screen.findByRole('dialog');
+    await screen.findByText('当前库没有标签，可以先保存无标签卡片，或返回卡片库管理标签。');
     fireEvent.click(screen.getByRole('button', { name: /保存卡片/ }));
     await waitFor(() =>
       expect(
@@ -598,7 +600,9 @@ describe('Anki 缺口回归', () => {
   });
 
   it('编辑使用卡片原库，并提交迁库字段与显式重学提示', async () => {
-    request.mockResolvedValue(jsonResponse(makeCard('card2', 'Q2?', 2)));
+    request.mockImplementation(async (input) =>
+      String(input).endsWith('/tags') ? jsonResponse({ tags: [] }) : jsonResponse(makeCard('card2', 'Q2?', 2)),
+    );
     const done = vi.fn();
     render(
       <AnkiDialogs
@@ -611,9 +615,12 @@ describe('Anki 缺口回归', () => {
     expect(screen.getByRole('combobox')).toHaveValue('d2');
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'd1' } });
     fireEvent.click(screen.getByRole('checkbox'));
+    await screen.findByText('当前库没有标签，可以先保存无标签卡片，或返回卡片库管理标签。');
     fireEvent.click(screen.getByRole('button', { name: '保存卡片' }));
     await waitFor(() => expect(done).toHaveBeenCalledWith('卡片已保存，已重新学习，历史记录保留。'));
-    expect(JSON.parse(String(request.mock.calls[0][1]?.body))).toMatchObject({
+    expect(
+      JSON.parse(String(request.mock.calls.find(([, init]) => init?.method === 'PATCH')?.[1]?.body)),
+    ).toMatchObject({
       deckId: 'd1',
       resetProgress: true,
       version: 1,

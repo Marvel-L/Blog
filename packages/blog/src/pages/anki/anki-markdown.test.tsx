@@ -49,6 +49,32 @@ describe('Anki Markdown 安全渲染', () => {
     expect(screen.getByRole('table')).toHaveTextContent('Markdown');
   });
 
+  it('复用博客高亮：嵌套格式与跨行解析一致，代码/转义/未成对等号不改写', () => {
+    const { container } = render(
+      <AnkiMarkdown
+        content={
+          '==Txt== ==**重点**==\n\n==第一行\n第二行==\n\n`==代码==`\n\n```go\na == b\n// ==不高亮==\n```\n\n\\==转义\\==\n\na == b'
+        }
+      />,
+    );
+    expect(container.querySelectorAll('mark')).toHaveLength(3);
+    expect(container.querySelector('mark')).toHaveTextContent('Txt');
+    expect(container.querySelector('mark strong')).toHaveTextContent('重点');
+    expect(container.querySelectorAll('mark')[2]).toHaveTextContent('第一行第二行');
+    expect(container.querySelector('pre code')).toHaveTextContent('// ==不高亮==');
+    expect(container.querySelector('code mark')).toBeNull();
+    expect(screen.getByText('==转义==')).toBeInTheDocument();
+    expect(screen.getByText('a == b', { selector: 'p' })).toBeInTheDocument();
+  });
+
+  it('高亮不执行 HTML 或危险链接', () => {
+    const { container } = render(
+      <AnkiMarkdown content={'==<img src=x onerror=alert(1)>==\n\n==[危险](javascript:alert%281%29)=='} />,
+    );
+    expect(container.querySelector('img,script,a,[onerror]')).toBeNull();
+    expect(container.querySelector('mark')).not.toBeNull();
+  });
+
   it('HTML、脚本、事件属性与危险协议无法变为可执行 DOM，不加载远程图片', () => {
     const malicious =
       '<script>alert(1)</script>\n\n<img src=x onerror=alert(1)>\n\n<iframe src="https://example.com"></iframe>\n\n[危险](javascript:alert%281%29)\n\n[数据](data:text/html;base64,AAA)\n\n[文件](file:///etc/passwd)\n\n![图片](https://example.com/tracker.png)';
@@ -85,7 +111,11 @@ describe('Anki Markdown 安全渲染', () => {
 
 describe('新建与编辑 Markdown 源码', () => {
   it.each([false, true])('编辑=%s：输入与预览实时同步，提交源码而不是 HTML，默认保留排期', async (editing) => {
-    const request = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify(card)));
+    const request = vi
+      .fn<typeof fetch>()
+      .mockImplementation(
+        async (input) => new Response(JSON.stringify(String(input).endsWith('/tags') ? { tags: [] } : card)),
+      );
     vi.stubGlobal('fetch', request);
     const done = vi.fn();
     render(
@@ -104,10 +134,11 @@ describe('新建与编辑 Markdown 源码', () => {
     expect(screen.getByRole('region', { name: 'A · 答案 Markdown 预览' })).toHaveTextContent('实时新增');
     fireEvent.change(screen.getByLabelText('A · 答案'), { target: { value: markdown } });
     expect(screen.getByLabelText('A · 答案')).toHaveValue(markdown);
+    await screen.findByText('当前库没有标签，可以先保存无标签卡片，或返回卡片库管理标签。');
     fireEvent.click(screen.getByRole('button', { name: '保存卡片' }));
     await waitFor(() => expect(done).toHaveBeenCalled());
-    expect(request).toHaveBeenCalledTimes(1);
-    const [url, init] = request.mock.calls[0];
+    expect(request.mock.calls.filter(([, init]) => init?.method)).toHaveLength(1);
+    const [url, init] = request.mock.calls.find(([, init]) => init?.method)!;
     expect(String(url)).toContain(editing ? '/anki/cards/card1' : '/anki/decks/d1/cards');
     expect(init?.method).toBe(editing ? 'PATCH' : 'POST');
     expect(JSON.parse(String(init?.body))).toMatchObject({ question: '**我的问题**', answer: markdown });
@@ -125,24 +156,39 @@ describe('新建与编辑 Markdown 源码', () => {
     expect(screen.getByRole('region', { name: 'A · 答案 Markdown 预览' })).toHaveTextContent('还没有内容，请先编辑。');
     fireEvent.submit(screen.getByRole('button', { name: '保存卡片' }).closest('form')!);
     expect(screen.getByRole('alert')).toHaveTextContent('不能为空');
-    expect(request).not.toHaveBeenCalled();
+    expect(request.mock.calls.filter(([, init]) => init?.method)).toHaveLength(0);
   });
 
   it('保存保留 Markdown 的前导缩进和尾部换行', async () => {
     const source = '    fmt.Println("indented code")\n';
-    const request = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify(card)));
+    const request = vi
+      .fn<typeof fetch>()
+      .mockImplementation(
+        async (input) => new Response(JSON.stringify(String(input).endsWith('/tags') ? { tags: [] } : card)),
+      );
     vi.stubGlobal('fetch', request);
     render(<AnkiDialogs state={{ kind: 'card', card }} dashboard={dashboard} onClose={vi.fn()} onDone={vi.fn()} />);
     fireEvent.change(screen.getByLabelText('A · 答案'), { target: { value: source } });
+    await screen.findByText('当前库没有标签，可以先保存无标签卡片，或返回卡片库管理标签。');
     fireEvent.click(screen.getByRole('button', { name: '保存卡片' }));
-    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
-    expect(JSON.parse(String(request.mock.calls[0][1]?.body)).answer).toBe(source);
+    await waitFor(() => expect(request.mock.calls.filter(([, init]) => init?.method)).toHaveLength(1));
+    expect(JSON.parse(String(request.mock.calls.find(([, init]) => init?.method)![1]?.body)).answer).toBe(source);
   });
 
   it('保存失败保留 Markdown 草稿与错误提示', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('error', { status: 503 })));
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockImplementation(async (input) =>
+          String(input).endsWith('/tags')
+            ? new Response(JSON.stringify({ tags: [] }))
+            : new Response('error', { status: 503 }),
+        ),
+    );
     const done = vi.fn();
     render(<AnkiDialogs state={{ kind: 'card', card }} dashboard={dashboard} onClose={vi.fn()} onDone={done} />);
+    await screen.findByText('当前库没有标签，可以先保存无标签卡片，或返回卡片库管理标签。');
     fireEvent.click(screen.getByRole('button', { name: '保存卡片' }));
     await screen.findByRole('alert');
     expect(screen.getByLabelText('A · 答案')).toHaveValue(markdown);
@@ -157,7 +203,14 @@ describe('各展示入口与深色样式隔离', () => {
       document.documentElement.classList.add('dark');
       vi.stubGlobal(
         'fetch',
-        vi.fn().mockImplementation(async () => new Response(JSON.stringify({ cards: [card], previews: {} }))),
+        vi
+          .fn()
+          .mockImplementation(
+            async (input) =>
+              new Response(
+                JSON.stringify(String(input).endsWith('/tags') ? { tags: [] } : { cards: [card], previews: {} }),
+              ),
+          ),
       );
       const { container } = render(
         view === 'detail' ? (

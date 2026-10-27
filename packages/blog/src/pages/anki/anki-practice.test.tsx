@@ -52,7 +52,11 @@ describe('库内主动练习', () => {
     const request = vi
       .fn<typeof fetch>()
       .mockImplementation(async (input) =>
-        String(input).endsWith('/practice') ? response({ card: updated }) : response({ cards: [card] }),
+        String(input).endsWith('/tags')
+          ? response({ tags: [] })
+          : String(input).endsWith('/practice')
+            ? response({ card: updated })
+            : response({ cards: [card] }),
       );
     vi.stubGlobal('fetch', request);
     const refresh = vi.fn();
@@ -76,6 +80,7 @@ describe('库内主动练习', () => {
     let attempts = 0;
     const updated = { ...card, version: 4, practiceCount: 5, correctCount: 3 };
     const request = vi.fn<typeof fetch>().mockImplementation(async (input) => {
+      if (String(input).endsWith('/tags')) return response({ tags: [] });
       if (!String(input).endsWith('/practice')) return response({ cards: [card] });
       return ++attempts === 1 ? new Response('offline', { status: 503 }) : response({ card: updated });
     });
@@ -122,7 +127,11 @@ describe('库内主动练习', () => {
       vi
         .fn<typeof fetch>()
         .mockImplementation(async (url) =>
-          String(url).endsWith('/practice') ? new Response('{}', { status: 409 }) : response({ cards: [card] }),
+          String(url).endsWith('/tags')
+            ? response({ tags: [] })
+            : String(url).endsWith('/practice')
+              ? new Response('{}', { status: 409 })
+              : response({ cards: [card] }),
         ),
     );
     mount();

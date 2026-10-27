@@ -27,9 +27,9 @@ import './anki.css';
 type AnkiView =
   | { name: 'overview' }
   | { name: 'stats' }
-  | { name: 'review'; deckId: string | null }
-  | { name: 'browse'; deckId: string }
-  | { name: 'deck'; deckId: string };
+  | { name: 'review'; deckId: string | null; tag?: string | null }
+  | { name: 'browse'; deckId: string; tag?: string | null }
+  | { name: 'deck'; deckId: string; tag?: string | null };
 
 type Phase = 'loading' | 'ready' | 'unauthorized' | 'error';
 
@@ -502,9 +502,10 @@ function AnkiWorkspace({
     <>
       {view.name === 'review' && (
         <AnkiReview
-          key={view.deckId ?? 'all'}
+          key={`${view.deckId ?? 'all'}:${view.tag ?? 'all'}`}
           decks={dashboard.decks}
           deckId={view.deckId}
+          tag={view.tag}
           onExit={() => onViewChange({ name: 'overview' })}
           onSessionSettled={() => refresh()}
         />
@@ -512,10 +513,12 @@ function AnkiWorkspace({
 
       {view.name === 'browse' && (
         <AnkiBrowse
+          key={`${view.deckId}:${view.tag ?? 'all'}`}
           deckId={view.deckId}
+          tag={view.tag}
           refreshToken={refreshToken}
           deckName={deckById.get(view.deckId)?.name ?? ''}
-          onExit={() => onViewChange({ name: 'deck', deckId: view.deckId })}
+          onExit={() => onViewChange({ name: 'deck', deckId: view.deckId, tag: view.tag })}
         />
       )}
 
@@ -528,14 +531,17 @@ function AnkiWorkspace({
           }
           return (
             <AnkiDeckDetail
+              key={deck.id}
+              initialTag={view.tag}
               deck={deck}
               refreshToken={refreshToken}
               categoryName={dashboard.categories.find((cat) => cat.id === deck.categoryId)?.name ?? ''}
               onBack={() => onViewChange({ name: 'overview' })}
               onNewCard={() => onDialogChange({ kind: 'card', deckId: deck.id })}
               onEditCard={(card: AnkiCard) => onDialogChange({ kind: 'card', card })}
-              onBrowse={() => onViewChange({ name: 'browse', deckId: deck.id })}
-              onPractice={() => onViewChange({ name: 'review', deckId: deck.id })}
+              onBrowse={(tag) => onViewChange({ name: 'browse', deckId: deck.id, tag })}
+              onPractice={(tag) => onViewChange({ name: 'review', deckId: deck.id, tag })}
+              onManageTags={() => onDialogChange({ kind: 'tags', deckId: deck.id })}
               onRecorded={refresh}
             />
           );
@@ -571,6 +577,7 @@ function AnkiWorkspace({
       <AnkiDialogs
         state={dialog}
         dashboard={dashboard}
+        onTagsChanged={refresh}
         onClose={() => onDialogChange(null)}
         onDone={(message) => {
           onDialogChange(null);

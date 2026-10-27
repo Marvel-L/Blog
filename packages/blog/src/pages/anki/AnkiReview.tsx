@@ -13,6 +13,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { hasOpenOverlay } from '@/hooks/useModalOverlay';
 import { AnkiMarkdown } from './AnkiMarkdown';
+import { AnkiCardTags } from './AnkiTags';
+import { matchesTag } from './anki-tags';
 import { AnkiCardCounts } from './AnkiCardCounts';
 import {
   fetchDeckQueue,
@@ -29,6 +31,7 @@ import {
 interface AnkiReviewProps {
   decks: AnkiDeckSummary[];
   deckId: string | null;
+  tag?: string | null;
   onExit: () => void;
   onSessionSettled: () => void;
 }
@@ -43,7 +46,7 @@ const RATING_LABELS: Array<{ rating: AnkiRating; label: string; hint: string }> 
 
 const formatNext = (card: AnkiCard): string => (card.intervalDays >= 1 ? `${card.intervalDays} 天后` : '稍后再练');
 
-export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiReviewProps) {
+export function AnkiReview({ decks, deckId, tag = null, onExit, onSessionSettled }: AnkiReviewProps) {
   const [phase, setPhase] = useState<ReviewPhase>('loading');
   const [error, setError] = useState('');
   const [cards, setCards] = useState<AnkiCard[]>([]);
@@ -90,6 +93,7 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
         }
         const allCards = loaded
           .flatMap((result) => result.cards)
+          .filter((card) => matchesTag(card, tag))
           .sort(
             (a, b) =>
               Number(a.reviewCount === 0) - Number(b.reviewCount === 0) ||
@@ -126,7 +130,7 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
       controller.abort();
       submitController.current?.abort();
     };
-  }, [loadToken]);
+  }, [loadToken, tag]);
 
   const current = cards[index];
   const currentPreview = useMemo(
@@ -324,6 +328,7 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
             <AnkiMarkdown content={current.answer} className="mt-2" />
           </section>
         )}
+        <AnkiCardTags tags={current.tags} />
         <AnkiCardCounts card={current} />
         <p className="mt-4 text-xs text-zinc-400">
           {revealed ? '已揭示答案，请根据回忆情况评价' : '答案已隐藏，先试着回忆'}
