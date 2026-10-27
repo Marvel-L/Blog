@@ -31,6 +31,7 @@ export function AnkiAIDialog({ card, onClose }: Props) {
   const [view, setView] = useState<View>(card ? 'home' : 'settings');
   const [settings, setSettings] = useState<AISettings | null>(null);
   const [key, setKey] = useState('');
+  const [editingKey, setEditingKey] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -251,6 +252,7 @@ export function AnkiAIDialog({ card, onClose }: Props) {
       const value = await fetchAISettings(signal);
       if (!alive(signal)) return;
       setSettings(value);
+      setEditingKey(false);
       setNotice('配置已加密保存；未自动检查，也未验证厂商凭据。');
       if (card) setView('home');
     });
@@ -262,6 +264,7 @@ export function AnkiAIDialog({ card, onClose }: Props) {
       const value = await fetchAISettings(signal);
       if (!alive(signal)) return;
       setSettings(value);
+      setEditingKey(false);
       setActive(null);
       setNotice('Key 已删除，尚未发送的任务停止；已完成历史保留。');
     });
@@ -363,38 +366,76 @@ export function AnkiAIDialog({ card, onClose }: Props) {
         )}
         {view === 'settings' && (
           <section className="anki-ai-settings">
-            <p>API Key 按当前登录账号加密保存，页面不回读明文。保存配置不会自动开始 Check。</p>
+            <p>
+              API Key 按当前登录账号加密保存；登出、重新登录或更换设备后继续使用，无需重复输入。保存配置不会自动开始
+              Check。
+            </p>
             {settings && (
               <p className="anki-ai-subtitle">
                 {settings.configured ? `当前配置：${settings.maskedKey}` : '尚未配置'}
                 {!settings.available ? ' · 服务端加密配置不可用' : ''}
               </p>
             )}
-            <label>
-              <span>你的 DeepSeek API Key</span>
-              <input
-                type="password"
-                value={key}
-                onChange={(event) => setKey(event.target.value)}
-                maxLength={512}
-                autoComplete="off"
-                spellCheck={false}
-                className="anki-input"
-              />
-            </label>
-            <div className="anki-ai-actions">
+            {settings?.configured && !editingKey ? (
               <button
                 type="button"
-                className={`${buttonClass} anki-ai-primary`}
-                disabled={busy || !settings?.available}
-                onClick={save}
+                className={buttonClass}
+                disabled={busy || !settings.available}
+                onClick={() => {
+                  setKey('');
+                  setEditingKey(true);
+                }}
               >
-                保存配置
+                修改 API Key
               </button>
-              <button type="button" className={buttonClass} disabled={busy || !settings?.configured} onClick={clearKey}>
-                删除 Key
-              </button>
-            </div>
+            ) : (
+              settings && (
+                <>
+                  <label>
+                    <span>{settings.configured ? '新的 DeepSeek API Key' : '你的 DeepSeek API Key'}</span>
+                    <input
+                      type="password"
+                      value={key}
+                      onChange={(event) => setKey(event.target.value)}
+                      maxLength={512}
+                      autoComplete="off"
+                      spellCheck={false}
+                      className="anki-input"
+                    />
+                  </label>
+                  <div className="anki-ai-actions">
+                    <button
+                      type="button"
+                      className={`${buttonClass} anki-ai-primary`}
+                      disabled={busy || !settings.available}
+                      onClick={save}
+                    >
+                      {settings.configured ? '保存修改' : '保存配置'}
+                    </button>
+                    {settings.configured && (
+                      <button
+                        type="button"
+                        className={buttonClass}
+                        disabled={busy}
+                        onClick={() => {
+                          setKey('');
+                          setEditingKey(false);
+                        }}
+                      >
+                        取消修改
+                      </button>
+                    )}
+                  </div>
+                </>
+              )
+            )}
+            {settings?.configured && (
+              <div className="anki-ai-actions">
+                <button type="button" className={buttonClass} disabled={busy} onClick={clearKey}>
+                  删除 Key
+                </button>
+              </div>
+            )}
           </section>
         )}
         {(view === 'history' || view === 'review') && (

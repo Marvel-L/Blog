@@ -243,14 +243,14 @@ export function AnkiDeckDetail({
                     <AnkiMarkdown content={card.question} />
                   </div>
                   <div className="anki-card-ai-tools">
-                    <button
-                      type="button"
-                      className="shrink-0 rounded-full border border-[#e9edf1] bg-white px-3 py-1.5 text-xs font-medium text-[#202124]"
-                      onClick={() => onEditCard(card)}
-                    >
+                    <button type="button" className="anki-card-tool-button" onClick={() => onEditCard(card)}>
                       编辑
                     </button>
-                    <button type="button" className="anki-card-ai-check" onClick={() => setAICard(card)}>
+                    <button
+                      type="button"
+                      className="anki-card-tool-button anki-card-ai-check"
+                      onClick={() => setAICard(card)}
+                    >
                       Ai Check
                     </button>
                   </div>

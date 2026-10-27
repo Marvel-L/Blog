@@ -10,22 +10,22 @@ services:
     volumes:
       - database:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dblog -d dblog"]
+      test: ['CMD-SHELL', 'pg_isready -U dblog -d dblog']
       interval: 5s
       timeout: 3s
       retries: 20
     logging: &logging
       driver: json-file
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 
   migrate:
     image: dblog-api:${API_IMAGE_TAG:-local}
     build:
       context: ../..
       dockerfile: deploy/cloud/server.Dockerfile
-    command: ["migrate"]
+    command: ['migrate']
     environment:
       DATABASE_URL: postgresql://dblog:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/dblog
     depends_on:
@@ -41,6 +41,10 @@ services:
       APP_ORIGIN: https://${CLOUD_DOMAIN:?Set CLOUD_DOMAIN}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      # Stable server-only master key; never derive it from a user's login session.
+      ANKI_AI_ENCRYPTION_KEY: ${ANKI_AI_ENCRYPTION_KEY:-}
+      ANKI_AI_ENCRYPTION_KEY_ID: ${ANKI_AI_ENCRYPTION_KEY_ID:-v1}
+      ANKI_AI_MODEL: ${ANKI_AI_MODEL:-deepseek-flash}
       TREND_ALLOWED_ORIGINS: ${TREND_ALLOWED_ORIGINS:-https://marvel-l.github.io,http://localhost:3000,http://localhost:3001}
       PLANNER_GITHUB_TOKEN: ${PLANNER_GITHUB_TOKEN:-}
       PLANNER_GITHUB_OWNER: ${PLANNER_GITHUB_OWNER:-}
@@ -48,12 +52,12 @@ services:
       PLANNER_GITHUB_BRANCH: ${PLANNER_GITHUB_BRANCH:-custom}
       PLANNER_GITHUB_FILE: ${PLANNER_GITHUB_FILE:-planner-data/monthly-planner.md}
       NODE_ENV: production
-      PORT: "3001"
+      PORT: '3001'
     depends_on:
       migrate:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "/app/dblog-server", "healthcheck"]
+      test: ['CMD', '/app/dblog-server', 'healthcheck']
       interval: 15s
       timeout: 5s
       retries: 5
@@ -74,8 +78,8 @@ services:
     image: caddy:2.10.2-alpine
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - '80:80'
+      - '443:443'
     environment:
       CLOUD_DOMAIN: ${CLOUD_DOMAIN:?Set CLOUD_DOMAIN}
     volumes:

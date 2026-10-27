@@ -314,15 +314,24 @@ button.anki-tag:focus-visible {
   justify-content: flex-end;
   max-width: 170px;
 }
-.anki-card-ai-check {
-  min-height: 44px;
+.anki-card-tool-button {
+  flex-shrink: 0;
   padding: 6px 12px;
-  border: 1px solid var(--anki-line);
-  border-radius: 24px;
+  border: 1px solid var(--anki-line, #e9edf1);
+  border-radius: 9999px;
   background: white;
-  color: var(--anki-accent);
+  color: var(--anki-ink, #202124);
   font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
   white-space: nowrap;
+}
+.anki-card-tool-button:focus-visible {
+  outline: 2px solid var(--anki-accent, #087ae9);
+  outline-offset: 2px;
+}
+.anki-card-ai-check {
+  color: var(--anki-accent, #087ae9);
 }
 .anki-dialog-panel.anki-ai-dialog {
   max-width: 64rem;

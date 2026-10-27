@@ -132,6 +132,8 @@ describe('Anki AI Check', () => {
     fireEvent.click(await screen.findByRole('button', { name: '查看答案' }));
     const check = screen.getByRole('button', { name: 'Ai Check' });
     expect(check.previousElementSibling).toHaveTextContent('编辑');
+    expect(check).toHaveClass('anki-card-tool-button');
+    expect(check.previousElementSibling).toHaveClass('anki-card-tool-button');
     fireEvent.click(check);
     expect(screen.getByRole('region', { name: '卡片答案' })).toHaveTextContent('当前答案');
     fireEvent.click(screen.getByRole('button', { name: '关闭' }));
@@ -185,6 +187,21 @@ describe('Anki AI Check', () => {
     await screen.findByText('卡片已更新');
     expect(screen.queryByText('正确但不完整')).not.toBeInTheDocument();
     expect(request.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(1);
+  });
+  it('账号配置恢复后不要求重新输入，仅主动修改显示空输入且取消不写入', async () => {
+    const request = fixture();
+    const mounted = render(<AnkiAIDialog onClose={vi.fn()} />);
+    await screen.findByRole('button', { name: '修改 API Key' });
+    expect(screen.queryByLabelText('你的 DeepSeek API Key')).not.toBeInTheDocument();
+    mounted.unmount();
+    render(<AnkiAIDialog onClose={vi.fn()} />);
+    fireEvent.click(await screen.findByRole('button', { name: '修改 API Key' }));
+    const input = screen.getByLabelText('新的 DeepSeek API Key');
+    expect(input).toHaveValue('');
+    fireEvent.change(input, { target: { value: 'temporary-draft-key' } });
+    fireEvent.click(screen.getByRole('button', { name: '取消修改' }));
+    expect(screen.queryByLabelText('新的 DeepSeek API Key')).not.toBeInTheDocument();
+    expect(request.mock.calls.every(([, init]) => !init?.method || init.method === 'GET')).toBe(true);
   });
   it('解析与复制保留合法得分，拒绝伪造类型和空建议', () => {
     expect(validResult(record.result)).toBe(true);

@@ -53,6 +53,51 @@ func aiCreate(t *testing.T, f *fixture, cookie string, card store.AnkiCard, muta
 	decode(t, response.Body.String(), &value)
 	return value.Check
 }
+func TestAIKeySurvivesLogoutAndRelogin(t *testing.T) {
+	f, cookie, cfgAI := setupAI(t)
+	requireStatus(t, f.anki(t, "PUT", "/api/v1/anki/ai/settings", cookie, `{"apiKey":"test-persistent-private-key"}`), 200)
+	var user string
+	if err := f.db.Pool.QueryRow(ctx, `SELECT user_id::text FROM anki_ai_settings`).Scan(&user); err != nil {
+		t.Fatal(err)
+	}
+	before, err := f.db.AIKey(ctx, user)
+	if err != nil {
+		t.Fatal(err)
+	}
+	requireStatus(t, f.request("POST", "/api/v1/auth/logout", cookie, "", cfg.Origin), 204)
+	requireStatus(t, f.anki(t, "GET", "/api/v1/anki/ai/settings", cookie, ""), 401)
+	// New API instance and new OAuth session must restore the same account's saved key.
+	f.handler = New(cfgAI, f.db, func(context.Context, string, string) (github.Identity, error) { return f.identity, nil })
+	secondCookie := f.login(t, "")
+	response := f.anki(t, "GET", "/api/v1/anki/ai/settings", secondCookie, "")
+	requireStatus(t, response, 200)
+	var settings store.AISettings
+	decode(t, response.Body.String(), &settings)
+	if !settings.Configured || !settings.Available || strings.Contains(response.Body.String(), "test-persistent-private-key") {
+		t.Fatal("configuration not safely restored")
+	}
+	after, err := f.db.AIKey(ctx, user)
+	if err != nil || before.Version != after.Version || string(before.Ciphertext) != string(after.Ciphertext) || string(before.Nonce) != string(after.Nonce) {
+		t.Fatal("login changed persisted key")
+	}
+	cipher, err := deepseek.NewCipher(cfgAI.AIEncryptionKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plain, err := cipher.Decrypt(user, after.Version, after.Ciphertext, after.Nonce)
+	if err != nil || plain != "test-persistent-private-key" {
+		t.Fatal("saved key no longer decrypts")
+	}
+	f.identity = github.Identity{ID: "200", Login: "bob", Name: "Bob"}
+	bob := f.login(t, "")
+	response = f.anki(t, "GET", "/api/v1/anki/ai/settings", bob, "")
+	requireStatus(t, response, 200)
+	decode(t, response.Body.String(), &settings)
+	if settings.Configured {
+		t.Fatal("another account inherited key")
+	}
+}
+
 func TestAIRealPersistenceAndSnapshot(t *testing.T) {
 	f, cookie, _ := setupAI(t)
 	card := aiCard(t, f, cookie)

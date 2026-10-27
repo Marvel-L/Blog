@@ -180,6 +180,16 @@ CLOUD_SSH_KNOWN_HOSTS_FILE=/secure/path/known_hosts \
 以 `/Blog/cloud-release.json` 的 `commit` 为实际版本证据，并打开新文章验收。
 不能仅凭工作流文件已添加或上传成功宣称自动发布已经上线。
 
+## Anki AI Review 服务端启用
+
+AI Key 按账号加密保存在 PostgreSQL，登出仅撤销会话，不删除 Key。用户再次登录同一 GitHub 账号无需重新输入；只有主动修改或删除时才更改配置。服务端必须保留同一加密主密钥，不应在部署、重启或登录时重新生成。
+
+Compose 的 API 服务接收 `ANKI_AI_ENCRYPTION_KEY`、`ANKI_AI_ENCRYPTION_KEY_ID`（默认 v1）和 `ANKI_AI_MODEL`（默认 deepseek-flash）；不配置主密钥时 AI 不可用，普通 Anki 仍正常。用户自己的 DeepSeek Key 仅在页面输入，不是服务端环境变量。
+
+首次启用：在已执行 009 迁移的部署中，先以只读 SQL 确认 `SELECT count(*) FROM anki_ai_settings WHERE api_key_ciphertext IS NOT NULL`。服务器 `cloud.env` 必须为 0600，可用 `initialize-anki-ai-key.py --env-file /opt/dblog/shared/cloud.env --existing-key-count 0` 显式初始化随机 32 字节标准 base64 主密钥。脚本不输出密钥，保留其他变量；重跑保留原有效密钥，存在密文而缺少主密钥时拒绝生成，必须恢复原密钥。随后按正常不可变 release 流程部署；已发布 AI 代码但未启用的服务器，也可将两个运维脚本安装于 `/opt/dblog-tools/` 后显式执行 `enable-anki-ai.sh`。它持有发布锁，查询现有密文数量、保留已有主密钥，用临时 Compose override 只重新配置 API，并检查健康；失败恢复旧 API 配置。不修改数据库、Web 或历史 release。
+
+主密钥须与数据库备份分开安全保管；现有备份不自动包含该环境文件。没有实现自动轮换，不能直接替换或丢弃旧值，否则已有用户配置无法解密。
+
 ## 0.3.0 Go 后端切换
 
 API 镜像由 Go 1.27.3 静态编译，最终镜像只包含二进制与 CA 根证书，以 UID 10001 运行。
