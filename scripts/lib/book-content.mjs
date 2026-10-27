@@ -9,7 +9,18 @@ import { extractMarkdownHeadings } from '@d-blog/blog/headings-core';
 export const BOOKS_ROOT = path.resolve(fileURLToPath(new URL('../../books/', import.meta.url)));
 export const BOOKS_DATA_FILE = fileURLToPath(new URL('../../generated/books.json', import.meta.url));
 const CONFIG_NAMES = ['config.json', 'config.yaml', 'config.yml'];
-const BOOK_FIELDS = new Set(['id', 'name', 'subtitle', 'edition', 'accent', 'order', 'draft', 'chapters']);
+const BOOK_FIELDS = new Set([
+  'id',
+  'name',
+  'subtitle',
+  'edition',
+  'accent',
+  'order',
+  'draft',
+  'chapters',
+  'markdownFirst',
+  'directoryOrder',
+]);
 const CHAPTER_FIELDS = new Set(['id', 'title', 'order', 'draft', 'relatedPostIds']);
 const compareText = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 const fail = (filename, reason) => {
@@ -66,14 +77,16 @@ const entries = (directory) => {
   }
 };
 
-const markdownFiles = (directory, relative = '') => {
+const markdownFiles = (directory, relative = '', directories = new Set()) => {
   const files = [];
   for (const entry of entries(path.join(directory, relative))) {
     if (entry.name.startsWith('.')) continue;
     const filename = path.posix.join(relative, entry.name);
     if (entry.isSymbolicLink()) fail(path.join(directory, filename), 'symbolic links are not supported');
-    if (entry.isDirectory()) files.push(...markdownFiles(directory, filename));
-    else if (entry.isFile() && entry.name.endsWith('.md')) files.push(filename);
+    if (entry.isDirectory()) {
+      directories.add(filename);
+      files.push(...markdownFiles(directory, filename, directories));
+    } else if (entry.isFile() && entry.name.endsWith('.md')) files.push(filename);
   }
   return files.sort(compareText);
 };
@@ -109,9 +122,80 @@ const chapterOverrides = (config, files, filename) => {
   return overrides;
 };
 
+/** Directory preferences never change a chapter's physical location or URL. */
+const directorySorting = (config, directories, filename) => {
+  if (config.markdownFirst !== undefined && typeof config.markdownFirst !== 'boolean') {
+    fail(filename, 'markdownFirst must be a boolean');
+  }
+  const markdownFirst = config.markdownFirst ?? config.directoryOrder !== undefined;
+  const priorities = new Map();
+  if (config.directoryOrder !== undefined) {
+    const definition = config.directoryOrder;
+    if (!definition || typeof definition !== 'object' || Array.isArray(definition)) {
+      fail(filename, 'directoryOrder must be an object mapping parent paths to child directory arrays');
+    }
+    for (const [parent, children] of Object.entries(definition)) {
+      if (parent !== '.' && !directories.has(parent)) {
+        fail(filename, `directoryOrder parent "${parent}" is missing or outside this package`);
+      }
+      if (!Array.isArray(children)) fail(filename, `directoryOrder["${parent}"] must be an array`);
+      const ranks = new Map();
+      children.forEach((value, index) => {
+        const child = text(value, '', filename, 'directoryOrder item');
+        if (child !== value || /[/\\]/.test(child) || child.startsWith('.')) {
+          fail(filename, 'directoryOrder items must be direct child directory names');
+        }
+        const relative = parent === '.' ? child : `${parent}/${child}`;
+        if (!directories.has(relative)) fail(filename, `directory "${relative}" is missing or outside this package`);
+        if (ranks.has(child)) fail(filename, `directory "${relative}" is listed twice`);
+        ranks.set(child, index);
+      });
+      priorities.set(parent, ranks);
+    }
+  }
+  return { markdownFirst, priorities, enabled: markdownFirst || config.directoryOrder !== undefined };
+};
+
+/** Apply preferences per level, then emit the same depth-first order as the UI. */
+const sortChapterDirectories = (chapters, { markdownFirst, priorities, enabled }) => {
+  if (!enabled) return chapters;
+  const tree = { path: '.', children: [], folders: new Map() };
+  for (const chapter of chapters) {
+    let parent = tree;
+    for (const label of chapter.directory) {
+      let folder = parent.folders.get(label);
+      if (!folder) {
+        folder = {
+          label,
+          path: parent.path === '.' ? label : `${parent.path}/${label}`,
+          children: [],
+          folders: new Map(),
+        };
+        parent.folders.set(label, folder);
+        parent.children.push(folder);
+      }
+      parent = folder;
+    }
+    parent.children.push({ chapter });
+  }
+  const visit = (parent) => {
+    const ranks = priorities.get(parent.path);
+    const folders = parent.children.filter((node) => !node.chapter);
+    // Stable sort keeps unlisted directories in their existing reading order.
+    folders.sort((a, b) => (ranks?.get(a.label) ?? Infinity) - (ranks?.get(b.label) ?? Infinity));
+    let folderIndex = 0;
+    const children = markdownFirst
+      ? [...parent.children.filter((node) => node.chapter), ...folders]
+      : parent.children.map((node) => (node.chapter ? node : folders[folderIndex++]));
+    return children.flatMap((node) => (node.chapter ? [node.chapter] : visit(node)));
+  };
+  return visit(tree);
+};
+
 /**
  * Each immediate subdirectory is a package. Unlisted Markdown chapters are
  * appended automatically; config.chapters may pin an initial reading order.
+ * Optional directory preferences apply after the legacy chapter sorting.
  * @returns {import('../../packages/blog/src/books/books-core.mjs').BookPackageDefinition[]}
  */
 export const loadBookPackages = (root = BOOKS_ROOT) => {
@@ -125,7 +209,9 @@ export const loadBookPackages = (root = BOOKS_ROOT) => {
     const directory = path.join(root, entry.name);
     const { config, filename, configured } = readConfig(directory);
     if (draft(config.draft, filename)) continue;
-    const files = markdownFiles(directory);
+    const directories = new Set();
+    const files = markdownFiles(directory, '', directories);
+    const sorting = directorySorting(config, directories, filename);
     if (!configured && !files.length) continue;
     const bookId = id(config.id, entry.name, filename);
     if (bookIds.has(bookId)) fail(filename, `duplicate book id "${bookId}"`);
@@ -175,7 +261,9 @@ export const loadBookPackages = (root = BOOKS_ROOT) => {
       edition: text(config.edition, 'KNOWLEDGE PACKAGE', filename, 'edition'),
       accent,
       sortOrder: order(config.order, filename),
-      chapters: chapters.map(({ sortOrder: _order, pinnedIndex: _index, ...chapter }) => chapter),
+      chapters: sortChapterDirectories(chapters, sorting).map(
+        ({ sortOrder: _order, pinnedIndex: _index, ...chapter }) => chapter,
+      ),
     });
   }
   return books

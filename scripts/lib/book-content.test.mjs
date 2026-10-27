@@ -79,6 +79,83 @@ describe('local Book content packages', () => {
     expect(loadBookPackages(root)).toEqual(books);
   });
 
+  it('puts direct Markdown first at every level without comparing orders across packages', () => {
+    put('go/config.json', { markdownFirst: true, chapters: ['基础/嵌套/b.md', '基础/z.md', 'z.md'] });
+    put('go/z.md', '---\norder: 100\n---\n# Root pinned');
+    put('go/a.md', '---\norder: 50\n---\n# Root unlisted');
+    put('go/基础/z.md', '---\norder: 100\n---\n# Direct pinned');
+    put('go/基础/a.md', '---\norder: 50\n---\n# Direct unlisted');
+    put('go/基础/嵌套/b.md', '---\norder: -100\n---\n# Nested pinned');
+    const definition = loadBookPackages(root)[0];
+    expect(definition.chapters.map((chapter) => chapter.id)).toEqual(['z', 'a', '基础--z', '基础--a', '基础--嵌套--b']);
+    const book = buildBooks([], [definition])[0];
+    expect(book.chapters.map((chapter) => chapter.id)).toEqual(definition.chapters.map((chapter) => chapter.id));
+    expect(book.tree.map((node) => node.label)).toEqual(['Root pinned', 'Root unlisted', '基础']);
+    expect(book.tree[2].children.map((node) => node.label)).toEqual(['Direct pinned', 'Direct unlisted', '嵌套']);
+  });
+
+  it.each(['json', 'yaml', 'yml'])('orders sibling directories with config.%s and appends unlisted packages', (ext) => {
+    const config = {
+      directoryOrder: { '.': ['技术', '业务'], 技术: ['接口', 'MQ'], '技术/接口': ['鉴权', '基础'] },
+    };
+    put(`go/config.${ext}`, config);
+    put('go/root.md', '---\norder: 999\n---\n# Root');
+    put('go/业务/b.md', '---\norder: -50\n---\n# Business');
+    put('go/技术/root.md', '# Tech root');
+    put('go/技术/MQ/one.md', '---\norder: 2\n---\n# MQ one');
+    put('go/技术/MQ/two.md', '---\norder: 1\n---\n# MQ two');
+    put('go/技术/接口/root.md', '# API root');
+    put('go/技术/接口/基础/a.md', '# Basics');
+    put('go/技术/接口/鉴权/a.md', '# Auth');
+    put('go/技术/定时/a.md', '# Cron');
+    put('go/其他/a.md', '# Other');
+    put('go/技术/MQ/.hidden.md', '# Hidden');
+    put('go/技术/MQ/draft.md', '---\ndraft: true\n---\n');
+    const definition = loadBookPackages(root)[0];
+    const book = buildBooks([], [definition])[0];
+    expect(book.tree.map((node) => node.label)).toEqual(['Root', '技术', '业务', '其他']);
+    expect(book.tree[1].children.map((node) => node.label)).toEqual(['Tech root', '接口', 'MQ', '定时']);
+    expect(book.tree[1].children[1].children.map((node) => node.label)).toEqual(['API root', '鉴权', '基础']);
+    expect(book.tree[1].children[2].children.map((node) => node.label)).toEqual(['MQ two', 'MQ one']);
+    expect(book.chapters).toHaveLength(10);
+    expect(book.chapters.map((chapter) => chapter.id)).toEqual(definition.chapters.map((chapter) => chapter.id));
+    expect(loadBookPackages(root)).toEqual([definition]);
+    // A new chapter requires no configuration update and stays inside its package.
+    put('go/技术/MQ/new.md', '# New MQ');
+    expect(buildBooks([], loadBookPackages(root))[0].tree[1].children[2].children.map((node) => node.label)).toEqual([
+      'New MQ',
+      'MQ two',
+      'MQ one',
+    ]);
+  });
+
+  it('can explicitly retain interleaved Markdown positions while ordering directory slots', () => {
+    put('go/config.yaml', 'markdownFirst: false\ndirectoryOrder:\n  ".": [技术, 业务]\n');
+    put('go/业务/a.md', '---\norder: -1\n---\n# Business');
+    put('go/root.md', '# Root');
+    put('go/技术/a.md', '---\norder: 1\n---\n# Tech');
+    const book = buildBooks([], loadBookPackages(root))[0];
+    expect(book.tree.map((node) => node.label)).toEqual(['技术', 'Root', '业务']);
+  });
+
+  it('preserves legacy chapter priority when directory sorting is absent or disabled', () => {
+    put('go/config.json', { chapters: ['基础/b.md'] });
+    put('go/root.md', '# Root');
+    put('go/基础/b.md', '# Pinned');
+    const legacy = loadBookPackages(root);
+    expect(legacy[0].chapters.map((chapter) => chapter.id)).toEqual(['基础--b', 'root']);
+    put('go/config.json', { chapters: ['基础/b.md'], markdownFirst: false });
+    expect(loadBookPackages(root)).toEqual(legacy);
+  });
+
+  it('accepts empty or draft-only configured directories without rendering empty nodes', () => {
+    put('go/config.json', { directoryOrder: { '.': ['empty', 'drafts'] } });
+    fs.mkdirSync(path.join(root, 'go/empty'));
+    put('go/drafts/unfinished.md', '---\ndraft: true\n---\n');
+    put('go/root.md', '# Root');
+    expect(buildBooks([], loadBookPackages(root))[0].tree.map((node) => node.label)).toEqual(['Root']);
+  });
+
   it('refreshes added, edited and removed chapters from the filesystem', () => {
     put('local/first.md', '# First');
     expect(loadBookPackages(root)[0].chapters).toHaveLength(1);
@@ -116,6 +193,22 @@ describe('local Book content packages', () => {
     ['invalid accent', 'go/config.json', { accent: 'red' }, '#RRGGBB'],
     ['invalid order', 'go/config.json', { order: '1' }, 'order must'],
     ['invalid draft', 'go/config.json', { draft: 'false' }, 'draft must'],
+    ['invalid Markdown preference', 'go/config.json', { markdownFirst: 'true' }, 'markdownFirst must be a boolean'],
+    ['invalid directory map', 'go/config.json', { directoryOrder: [] }, 'directoryOrder must be an object'],
+    ['null directory map', 'go/config.json', { directoryOrder: null }, 'directoryOrder must be an object'],
+    ['missing parent directory', 'go/config.json', { directoryOrder: { missing: [] } }, 'parent "missing"'],
+    ['parent path traversal', 'go/config.json', { directoryOrder: { '../other': [] } }, 'missing or outside'],
+    ['noncanonical parent', 'go/config.json', { directoryOrder: { '基础/': [] } }, 'missing or outside'],
+    ['invalid directory list', 'go/config.json', { directoryOrder: { '.': '基础' } }, 'must be an array'],
+    ['missing directory', 'go/config.json', { directoryOrder: { '.': ['missing'] } }, 'missing or outside'],
+    ['file as directory', 'go/config.json', { directoryOrder: { '.': ['intro.md'] } }, 'missing or outside'],
+    ['invalid directory item', 'go/config.json', { directoryOrder: { '.': [42] } }, 'directoryOrder item'],
+    ['child path traversal', 'go/config.json', { directoryOrder: { '.': ['../基础'] } }, 'direct child'],
+    ['child with slash', 'go/config.json', { directoryOrder: { '.': ['基础/嵌套'] } }, 'direct child'],
+    ['child with backslash', 'go/config.json', { directoryOrder: { '.': ['基础\\嵌套'] } }, 'direct child'],
+    ['hidden directory', 'go/config.json', { directoryOrder: { '.': ['.hidden'] } }, 'direct child'],
+    ['padded directory', 'go/config.json', { directoryOrder: { '.': [' 基础 '] } }, 'direct child'],
+    ['duplicate directory', 'go/config.json', { directoryOrder: { '.': ['基础', '基础'] } }, 'listed twice'],
     ['missing chapter', 'go/config.json', { chapters: ['missing.md'] }, 'missing or outside'],
     ['path traversal', 'go/config.json', { chapters: ['../other.md'] }, 'missing or outside'],
     ['duplicate file', 'go/config.json', { chapters: ['intro.md', 'intro.md'] }, 'listed twice'],
@@ -132,6 +225,7 @@ describe('local Book content packages', () => {
     ['invalid front matter', 'go/intro.md', '---\ntitle: [\n---\n# Intro', 'go/intro.md'],
   ])('rejects %s with a file-specific diagnostic', (_label, filename, content, reason) => {
     put('go/intro.md', '# Intro');
+    put('go/基础/chapter.md', '# Basics');
     put(filename, content);
     expect(() => loadBookPackages(root)).toThrow(reason);
   });

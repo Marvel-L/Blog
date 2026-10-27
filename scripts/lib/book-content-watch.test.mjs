@@ -48,6 +48,22 @@ describe('Book authoring in the dev server', () => {
     fs.writeFileSync(config, 'name: 本地手册');
     watcher.emit('all', 'change', config);
     expect(JSON.parse(fs.readFileSync(dataFile, 'utf8'))[0].name).toBe('本地手册');
+    const nested = path.join(root, 'local/基础/a.md');
+    fs.mkdirSync(path.dirname(nested));
+    fs.writeFileSync(nested, '---\norder: -1\n---\n# Nested');
+    watcher.emit('all', 'add', nested);
+    expect(JSON.parse(fs.readFileSync(dataFile, 'utf8'))[0].chapters.map((chapter) => chapter.id)).toEqual([
+      '基础--a',
+      'intro',
+    ]);
+    fs.writeFileSync(config, 'name: 本地手册\nmarkdownFirst: true\ndirectoryOrder:\n  ".": [基础]\n');
+    watcher.emit('all', 'change', config);
+    expect(JSON.parse(fs.readFileSync(dataFile, 'utf8'))[0].chapters.map((chapter) => chapter.id)).toEqual([
+      'intro',
+      '基础--a',
+    ]);
+    fs.unlinkSync(nested);
+    watcher.emit('all', 'unlink', nested);
     fs.unlinkSync(source);
     watcher.emit('all', 'unlink', source);
     expect(JSON.parse(fs.readFileSync(dataFile, 'utf8'))[0].chapters).toEqual([]);

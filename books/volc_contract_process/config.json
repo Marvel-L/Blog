@@ -4,5 +4,10 @@
   "subtitle": "社招的第二份工作 火山引擎合同侧",
   "edition": "contract project",
   "accent": "#0a8f29",
-  "order": 9
+  "order": 9,
+  "markdownFirst": true,
+  "directoryOrder": {
+    ".": ["业务", "技术"],
+    "技术": ["接口和鉴权", "定时任务", "MQ"]
+  }
 }
