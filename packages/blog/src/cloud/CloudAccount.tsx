@@ -1,5 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
+import { LoaderCircle, LogIn, UserRound, X } from 'lucide-react';
+import { useModalOverlay } from '../hooks/useModalOverlay';
 import { cloudRequest, pageEvent, type CloudUser, type CloudEvent } from './api';
 
 export default function CloudAccount() {
@@ -10,11 +13,19 @@ export default function CloudAccount() {
   const [tracking, setTracking] = useState(false);
   const [events, setEvents] = useState<CloudEvent[]>([]);
   const [busy, setBusy] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const panelId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const closePanel = useCallback(() => setIsOpen(false), []);
+  useModalOverlay({ isOpen, onClose: closePanel, containerRef: panelRef, initialFocusRef: closeButtonRef });
   const mounted = useRef(false);
   const generation = useRef(0);
   const lastPage = useRef('');
 
   useEffect(() => {
+    setIsClient(true);
     mounted.current = true;
     const controller = new AbortController();
     cloudRequest<{ user: CloudUser | null }>('/me', { signal: controller.signal })
@@ -108,63 +119,132 @@ export default function CloudAccount() {
       if (mounted.current) setEvents(data.events);
     });
 
-  return (
-    <aside
-      aria-label="云端账号"
-      className="border-b border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-    >
-      <details className="mx-auto max-w-6xl">
-        <summary className="cursor-pointer">
-          云端增强版 · {loading ? '正在检查登录状态' : user ? user.name || user.login : '账号登录'}
-        </summary>
-        <div className="mt-3 space-y-3">
-          {!loading && !user && (
-            <a className="underline" href="/api/v1/auth/github/start">
-              使用 GitHub 登录
-            </a>
-          )}
-          {user && (
-            <>
-              <p>已登录：{user.login}。登录安全记录由服务器保存，页面访问记录可自行开启。</p>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={tracking}
-                  disabled={busy}
-                  onChange={(event) => {
-                    generation.current += 1;
-                    lastPage.current = '';
-                    setTracking(event.target.checked);
-                  }}
-                />
-                本次使用期间记录页面访问（不含搜索参数）
-              </label>
-              <div className="flex gap-4">
-                <button className="underline" disabled={busy} onClick={showEvents}>
-                  查看最近记录
-                </button>
-                <button className="underline" disabled={busy} onClick={logout}>
-                  退出登录
-                </button>
+  if (!isClient) return null;
+
+  const accountLabel = loading ? '正在检查登录状态' : user ? user.name || user.login : '账号登录';
+  const floatingStyle = {
+    bottom:
+      'calc(var(--tab-bar-height, 0px) + max(1.25rem, var(--cookie-notice-height, 0px) + var(--service-worker-prompt-height, 0px) + env(safe-area-inset-bottom, 0px) + 1.25rem) + 4rem)',
+    right: 'max(1rem, calc(env(safe-area-inset-right, 0px) + 1rem))',
+  };
+
+  // Portal keeps both the launcher and panel outside the page layout and its transformed ancestors.
+  return createPortal(
+    <>
+      <button
+        type="button"
+        aria-label={`打开云端账号：${accountLabel}`}
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+        aria-controls={isOpen ? panelId : undefined}
+        title={accountLabel}
+        style={floatingStyle}
+        className="frosted-control fixed z-floating inline-flex h-14 w-14 flex-col items-center justify-center gap-1 !rounded-full text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 motion-safe:transition-transform motion-safe:hover:-translate-y-1"
+        onClick={() => setIsOpen(true)}
+      >
+        {loading ? (
+          <LoaderCircle size={19} aria-hidden="true" className="motion-safe:animate-spin" />
+        ) : user ? (
+          <UserRound size={19} aria-hidden="true" />
+        ) : (
+          <LogIn size={19} aria-hidden="true" />
+        )}
+        <span>{loading ? '检查中' : user ? '账号' : '登录'}</span>
+        {error && <span className="absolute right-0 top-0 h-2.5 w-2.5 rounded-full bg-amber-500" aria-hidden="true" />}
+      </button>
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-modal"
+          style={{ '--account-bottom': floatingStyle.bottom } as React.CSSProperties}
+        >
+          <div className="absolute inset-0 bg-black/15" aria-hidden="true" onClick={closePanel} />
+          <div
+            ref={panelRef}
+            id={panelId}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`${panelId}-title`}
+            tabIndex={-1}
+            style={{ right: floatingStyle.right }}
+            className="frosted-panel absolute bottom-[calc(var(--account-bottom)+4.5rem)] max-h-[calc(100dvh-var(--account-bottom)-5.5rem)] w-[min(22rem,calc(100vw-2rem-env(safe-area-inset-right,0px)))] overflow-y-auto overscroll-contain p-5 text-sm outline-none"
+          >
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 id={`${panelId}-title`} className="font-semibold">
+                  云端账号
+                </h2>
+                <p className="mt-1 text-xs opacity-70">云端增强版 · {accountLabel}</p>
               </div>
-              {events.length > 0 && (
-                <ul className="space-y-1" aria-label="最近行为记录">
-                  {events.map((event) => (
-                    <li key={event.eventId}>
-                      {event.name === 'login_success' ? '登录' : '访问'} · {event.path} ·{' '}
-                      {new Date(event.occurredAt).toLocaleString()}
-                    </li>
-                  ))}
-                </ul>
+              <button
+                ref={closeButtonRef}
+                type="button"
+                className="frosted-control inline-flex h-9 w-9 shrink-0 items-center justify-center"
+                aria-label="关闭云端账号"
+                onClick={closePanel}
+              >
+                <X size={16} aria-hidden="true" />
+              </button>
+            </div>
+            <div className="space-y-3 leading-relaxed">
+              {!loading && !user && (
+                <a
+                  className="frosted-control flex items-center justify-center gap-2 px-4 py-3 font-medium"
+                  href="/api/v1/auth/github/start"
+                >
+                  <LogIn size={16} aria-hidden="true" />
+                  使用 GitHub 登录
+                </a>
               )}
-            </>
-          )}
-          <p>文章和工具支持未登录使用；阅读进度目前保存在本机。</p>
-          <p role="status" aria-live="polite">
-            {error}
-          </p>
+              {user && (
+                <>
+                  <p>已登录：{user.login}。登录安全记录由服务器保存，页面访问记录可自行开启。</p>
+                  <label className="flex items-start gap-2">
+                    <input
+                      className="mt-1"
+                      type="checkbox"
+                      checked={tracking}
+                      disabled={busy}
+                      onChange={(event) => {
+                        generation.current += 1;
+                        lastPage.current = '';
+                        setTracking(event.target.checked);
+                      }}
+                    />
+                    本次使用期间记录页面访问（不含搜索参数）
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      className="frosted-control px-3 py-2 disabled:opacity-50"
+                      disabled={busy}
+                      onClick={showEvents}
+                    >
+                      查看最近记录
+                    </button>
+                    <button className="frosted-control px-3 py-2 disabled:opacity-50" disabled={busy} onClick={logout}>
+                      退出登录
+                    </button>
+                  </div>
+                  {events.length > 0 && (
+                    <ul className="space-y-2 break-words" aria-label="最近行为记录">
+                      {events.map((event) => (
+                        <li key={event.eventId}>
+                          {event.name === 'login_success' ? '登录' : '访问'} · {event.path} ·{' '}
+                          {new Date(event.occurredAt).toLocaleString()}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              )}
+              <p className="text-xs opacity-70">文章和工具支持未登录使用；阅读进度目前保存在本机。</p>
+              <p role="status" aria-live="polite">
+                {error}
+              </p>
+            </div>
+          </div>
         </div>
-      </details>
-    </aside>
+      )}
+    </>,
+    document.body,
   );
 }
