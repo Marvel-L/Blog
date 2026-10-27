@@ -7,7 +7,7 @@
 import { StrictMode } from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { HelmetProvider } from 'react-helmet-async';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AnkiPage from './Anki';
 import { AnkiReview } from './AnkiReview';
@@ -53,6 +53,9 @@ beforeEach(() => {
   reviewFailure = 'none';
   request = vi.fn<typeof fetch>().mockImplementation(async (input) => {
     const url = String(input);
+    if (url.endsWith('/me'))
+      return new Response(JSON.stringify({ user: { id: 'user1', login: 'alice', name: 'Alice' } }));
+    if (url.endsWith('/auth/logout')) return new Response(null, { status: 204 });
     if (url.endsWith('/anki/dashboard')) return new Response(JSON.stringify(DASHBOARD), { status: 200 });
     if (url.endsWith('/anki/decks/d1/queue'))
       return new Response(
@@ -174,7 +177,8 @@ describe('到期练习：揭示后自评', () => {
 
     // 失败：仍在第 1 张
     expect(await screen.findByText(/第 1 \/ 2 张/)).toBeInTheDocument();
-    expect(await screen.findByRole('alert')).toHaveTextContent(/云端服务暂时不可用|失败/);
+    const alerts = await screen.findAllByRole('alert');
+    expect(alerts.some((alert) => /云端服务暂时不可用|失败/.test(alert.textContent ?? ''))).toBe(true);
 
     const firstBody = JSON.parse(String(pendingReviews()[0][1]?.body));
     // 重试按钮 → 同一 mutationId 重发
@@ -273,6 +277,178 @@ describe('账号切换与统计', () => {
 });
 
 const jsonResponse = (value: unknown) => new Response(JSON.stringify(value), { status: 200 });
+const LocationProbe = () => <output data-testid="route-path">{useLocation().pathname}</output>;
+
+describe('Anki 账号与同步反馈回归', () => {
+  it('dashboard 判定会话失效后晚到 /me 不会恢复旧用户名', async () => {
+    const releases: Array<(response: Response) => void> = [];
+    request.mockImplementation((input) =>
+      String(input).endsWith('/me')
+        ? new Promise<Response>((resolve) => releases.push(resolve))
+        : Promise.resolve(new Response('unauthorized', { status: 401 })),
+    );
+    mount();
+    await screen.findByText('登录后，查看自己的卡片库');
+    await act(async () =>
+      releases.forEach((resolve) => resolve(jsonResponse({ user: { id: 'old', login: 'old-user' } }))),
+    );
+    expect(screen.queryByText('已登录 · old-user')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '账号登录' })).toBeInTheDocument();
+    expect(
+      request.mock.calls.filter(([url]) => String(url).endsWith('/me')).every(([, init]) => init?.signal?.aborted),
+    ).toBe(true);
+  });
+
+  it('已登录访问 /Blog/anki/login 自动返回学习页，仅显示服务端用户名和退出', async () => {
+    render(
+      <HelmetProvider>
+        <MemoryRouter basename="/Blog" initialEntries={['/Blog/anki/login']}>
+          <AnkiPage />
+          <LocationProbe />
+        </MemoryRouter>
+      </HelmetProvider>,
+    );
+    expect(await screen.findByText('我的卡片库')).toBeInTheDocument();
+    expect(await screen.findByText('已登录 · alice')).toBeInTheDocument();
+    expect(screen.getByTestId('route-path')).toHaveTextContent('/anki');
+    expect(screen.getByRole('button', { name: '退出登录' })).toBeEnabled();
+    expect(screen.queryByRole('link', { name: /账号登录|使用 GitHub 登录/ })).not.toBeInTheDocument();
+  });
+
+  it('成功退出撤销服务端会话并清理账号、卡片和同步确认', async () => {
+    mount();
+    await screen.findByText('已登录 · alice');
+    await screen.findByText('我的卡片库');
+    fireEvent.click(screen.getByRole('button', { name: '退出登录' }));
+    expect(await screen.findByText('登录后，查看自己的卡片库')).toBeInTheDocument();
+    expect(screen.queryByText('已登录 · alice')).not.toBeInTheDocument();
+    expect(screen.queryByText('Go 语言')).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: '云端同步' })).not.toBeInTheDocument();
+    const logout = request.mock.calls.find(([url]) => String(url).endsWith('/auth/logout'));
+    expect(logout?.[1]).toMatchObject({ method: 'POST', credentials: 'same-origin', cache: 'no-store' });
+  });
+
+  it('退出失败仍保留登录用户，不伪装成功，可重试', async () => {
+    const original = request.getMockImplementation()!;
+    request.mockImplementation((input, init) =>
+      String(input).endsWith('/auth/logout')
+        ? Promise.resolve(new Response('failed', { status: 503 }))
+        : original(input, init),
+    );
+    mount();
+    await screen.findByText('已登录 · alice');
+    fireEvent.click(screen.getByRole('button', { name: '退出登录' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: '退出登录' })).toBeEnabled());
+    expect(screen.getByText('已登录 · alice')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '账号登录' })).not.toBeInTheDocument();
+    expect(screen.getByText(/云端服务暂时不可用/)).toBeInTheDocument();
+  });
+
+  it('账号信息失败不将已授权的卡片库伪装为未登录', async () => {
+    const original = request.getMockImplementation()!;
+    request.mockImplementation((input, init) =>
+      String(input).endsWith('/me') ? Promise.resolve(new Response('failed', { status: 503 })) : original(input, init),
+    );
+    mount();
+    await screen.findByText('我的卡片库');
+    expect(await screen.findByText('已登录 · 用户名暂不可用')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '退出登录' })).toBeEnabled();
+    expect(screen.queryByRole('link', { name: '账号登录' })).not.toBeInTheDocument();
+  });
+
+  it('手动同步只拉取云端并更新统计，显示最近确认和事件触发策略', async () => {
+    mount();
+    await screen.findByText('我的卡片库');
+    expect(await screen.findByText(/最近确认：/)).not.toHaveTextContent('尚未收到云端确认');
+    expect(screen.getByText(/下次同步：保存或评价时立即上传/)).toHaveTextContent('无定时同步任务');
+    const count = request.mock.calls.filter(([url]) => String(url).endsWith('/dashboard')).length;
+    const original = request.getMockImplementation()!;
+    request.mockImplementation((input, init) =>
+      String(input).endsWith('/dashboard')
+        ? Promise.resolve(jsonResponse({ ...DASHBOARD, today: 3 }))
+        : original(input, init),
+    );
+    fireEvent.click(screen.getByRole('button', { name: '手动同步' }));
+    await waitFor(() => expect(screen.getByText(/今日目标/)).toHaveTextContent('3 / 12'));
+    expect(request.mock.calls.filter(([url]) => String(url).endsWith('/dashboard'))).toHaveLength(count + 1);
+    expect(request.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(0);
+  });
+
+  it('手动同步失败保留旧数据、错误提示和原确认时间，重试后恢复', async () => {
+    mount();
+    await screen.findByText('我的卡片库');
+    await waitFor(() => expect(screen.getByRole('button', { name: '手动同步' })).toBeEnabled());
+    const confirmed = screen.getByText(/最近确认：/).textContent;
+    const original = request.getMockImplementation()!;
+    request.mockImplementation((input, init) =>
+      String(input).endsWith('/dashboard')
+        ? Promise.resolve(new Response('error', { status: 503 }))
+        : original(input, init),
+    );
+    fireEvent.click(screen.getByRole('button', { name: '手动同步' }));
+    expect(await screen.findByText(/云端拉取失败，当前显示可能是旧数据/)).toBeInTheDocument();
+    expect(screen.getByText('Go 语言')).toBeInTheDocument();
+    expect(screen.getByText(/最近确认：/).textContent).toBe(confirmed);
+    request.mockImplementation(original);
+    fireEvent.click(screen.getByRole('button', { name: '手动同步' }));
+    await waitFor(() => expect(screen.queryByText(/云端拉取失败/)).not.toBeInTheDocument());
+  });
+
+  it('评价失败的未确认标记不被成功手动拉取抹掉，原操作重试成功后清除', async () => {
+    reviewFailure = 'once';
+    mount();
+    fireEvent.click(await screen.findByRole('button', { name: /开始今日练习/ }));
+    await screen.findByText('Q1?');
+    fireEvent.click(screen.getByRole('button', { name: '显示答案' }));
+    fireEvent.click(screen.getByRole('button', { name: /^正确/ }));
+    await screen.findByText(/保存或评价未收到云端确认/);
+    fireEvent.click(screen.getByRole('button', { name: '手动同步' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: '手动同步' })).toBeEnabled());
+    expect(screen.getByText(/保存或评价未收到云端确认/)).toBeInTheDocument();
+    expect(pendingReviews()).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: '重试' }));
+    await screen.findByText('Q2?');
+    expect(screen.queryByText(/保存或评价未收到云端确认/)).not.toBeInTheDocument();
+    expect(pendingReviews()).toHaveLength(2);
+  });
+
+  it('手动同步刷新当前库的卡片列表，不只刷新概览', async () => {
+    mount();
+    fireEvent.click(await screen.findByRole('button', { name: 'Go 语言' }));
+    await screen.findByText('Q1?');
+    const original = request.getMockImplementation()!;
+    request.mockImplementation((input, init) =>
+      String(input).endsWith('/cards')
+        ? Promise.resolve(jsonResponse({ cards: [makeCard('remote-card', '其他设备新增?')] }))
+        : original(input, init),
+    );
+    await waitFor(() => expect(screen.getByRole('button', { name: '手动同步' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: '手动同步' }));
+    expect(await screen.findByText('其他设备新增?')).toBeInTheDocument();
+    expect(screen.queryByText('Q1?')).not.toBeInTheDocument();
+  });
+
+  it('html.dark 下今日练习的问答、自评与输入仍保持独立浅色，不改博客主题', async () => {
+    document.documentElement.classList.add('dark');
+    try {
+      mount();
+      fireEvent.click(await screen.findByRole('button', { name: /开始今日练习/ }));
+      const question = await screen.findByText('Q1?');
+      const article = question.closest('article')!;
+      expect(article).toHaveClass('bg-white');
+      expect(article.className).not.toContain('dark:');
+      expect(question.className).not.toContain('dark:');
+      fireEvent.click(screen.getByRole('button', { name: '显示答案' }));
+      expect(screen.getByText('Q1? 的答案').className).not.toContain('dark:');
+      expect(screen.getByRole('button', { name: /^正确/ }).className).not.toContain('dark:');
+      expect(screen.getByLabelText('自定义复习天数')).toHaveClass('bg-white');
+      expect(document.documentElement).toHaveClass('dark');
+    } finally {
+      document.documentElement.classList.remove('dark');
+    }
+  });
+});
+
 const MULTI_DECKS = [...DASHBOARD.decks, { ...DASHBOARD.decks[0], id: 'd2', name: '第二个库' }];
 const FORM_DASHBOARD = { ...DASHBOARD, decks: MULTI_DECKS, todayCards: 1 };
 

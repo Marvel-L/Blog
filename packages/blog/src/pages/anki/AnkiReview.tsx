@@ -215,23 +215,21 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
   if (phase === 'loading') {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <p className="text-sm text-zinc-400 dark:text-zinc-500">正在准备今日练习…</p>
+        <p className="text-sm text-zinc-400">正在准备今日练习…</p>
       </div>
     );
   }
 
   if (phase === 'done') {
     return (
-      <div className="rounded-surface border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">
+      <div className="rounded-surface border border-zinc-200 bg-white p-8 text-center">
+        <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-sky-100 text-sky-700">
           ✓
         </div>
-        <h1 className="text-2xl font-bold text-ink dark:text-white">
+        <h1 className="text-2xl font-bold text-ink">
           {cards.length === 0 ? '暂无到期卡片' : queueWarning ? '已加载卡片练习完成' : '本轮练习完成'}
         </h1>
-        <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
-          答错的卡片会在稍后重新到期；自定义间隔不会推断对错。
-        </p>
+        <p className="mt-3 text-sm text-zinc-500">答错的卡片会在稍后重新到期；自定义间隔不会推断对错。</p>
         {queueWarning && (
           <p role="alert" className="mt-3 text-sm text-red-600">
             {queueWarning}
@@ -252,9 +250,9 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
 
   if (phase === 'error' || !current) {
     return (
-      <div className="rounded-surface border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-900">
-        <h1 className="text-xl font-bold text-ink dark:text-white">练习暂时不可用</h1>
-        <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400" role="alert">
+      <div className="rounded-surface border border-zinc-200 bg-white p-8 text-center">
+        <h1 className="text-xl font-bold text-ink">练习暂时不可用</h1>
+        <p className="mt-3 text-sm text-zinc-500" role="alert">
           {error || '请稍后重试。'}
         </p>
         <button
@@ -280,7 +278,7 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between text-sm text-zinc-500 dark:text-zinc-400">
+      <div className="flex items-center justify-between text-sm text-zinc-500">
         <button
           type="button"
           className="rounded-full border border-[#e9edf1] bg-white px-[17px] py-[9px] text-sm font-medium text-[#202124] inline-flex items-center justify-center gap-2 whitespace-nowrap"
@@ -294,7 +292,7 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
       </div>
 
       <div
-        className="h-1 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800"
+        className="h-1 overflow-hidden rounded-full bg-zinc-100"
         role="progressbar"
         aria-label="本轮练习进度"
         aria-valuemin={0}
@@ -305,25 +303,23 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
       </div>
 
       {lastRecord && revealed === false && (
-        <p className="text-xs text-emerald-600 dark:text-emerald-400" role="status">
+        <p className="text-xs text-emerald-600" role="status">
           {lastRecord}
         </p>
       )}
 
-      <article className="rounded-surface border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 md:p-8">
+      <article className="rounded-surface border border-zinc-200 bg-white p-6 md:p-8">
         <span className="text-xs font-semibold text-sky-600" aria-hidden="true">
           Q
         </span>
-        <h2 className="mt-1 whitespace-pre-wrap text-xl font-semibold leading-relaxed text-ink dark:text-white md:text-2xl">
+        <h2 className="mt-1 whitespace-pre-wrap text-xl font-semibold leading-relaxed text-ink md:text-2xl">
           {current.question}
         </h2>
         {/* 答案未揭示时不渲染进 DOM/可访问树，自评控件仅揭示后可用。 */}
         {revealed && (
-          <section aria-label="卡片答案" className="mt-6 border-t border-zinc-100 pt-5 dark:border-zinc-800">
+          <section aria-label="卡片答案" className="mt-6 border-t border-zinc-100 pt-5">
             <div className="text-xs font-semibold text-zinc-400">A · 参考答案</div>
-            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-zinc-700 dark:text-zinc-200">
-              {current.answer}
-            </p>
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">{current.answer}</p>
           </section>
         )}
         <p className="mt-4 text-xs text-zinc-400">
@@ -337,10 +333,7 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
         </p>
       )}
       {error && (
-        <div
-          role="alert"
-          className="rounded-surface border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
-        >
+        <div role="alert" className="rounded-surface border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
           {error}
           {retryRef.current && (
             <button
@@ -368,7 +361,7 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
         </div>
       ) : (
         <div className="space-y-4">
-          <label className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+          <label className="flex items-center gap-2 text-sm text-zinc-500">
             <input
               type="checkbox"
               checked={showIntervals}
@@ -386,9 +379,9 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
                   type="button"
                   disabled={submitting}
                   onClick={() => rate(rating)}
-                  className="rounded-surface border border-zinc-200 bg-white px-2 py-3 text-center transition-colors hover:border-sky-400 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900"
+                  className="rounded-surface border border-zinc-200 bg-white px-2 py-3 text-center transition-colors hover:border-sky-400 disabled:opacity-50"
                 >
-                  <strong className="block text-sm text-ink dark:text-white">{label}</strong>
+                  <strong className="block text-sm text-ink">{label}</strong>
                   <small className="mt-0.5 block text-xs text-zinc-400">
                     {showIntervals && typeof preview === 'number'
                       ? rating === 'wrong'
@@ -400,7 +393,7 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
               );
             })}
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-500">
             <label htmlFor="anki-custom-days" className="shrink-0">
               或自行指定
             </label>
@@ -412,7 +405,8 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
               step={1}
               value={customDays}
               onChange={(event) => setCustomDays(event.target.value)}
-              className="editorial-input w-24"
+              className="w-24 rounded-md border border-zinc-200 bg-white px-3 py-2 text-[#202124]"
+              style={{ colorScheme: 'light' }}
               aria-label="自定义复习天数"
             />
             <span>天后</span>

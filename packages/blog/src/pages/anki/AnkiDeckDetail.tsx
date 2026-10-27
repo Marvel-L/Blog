@@ -7,6 +7,7 @@ import { fetchDeckCards, type AnkiCard, type AnkiDeckSummary } from './anki-api'
 
 interface AnkiDeckDetailProps {
   deck: AnkiDeckSummary;
+  refreshToken?: number;
   categoryName: string;
   onBack: () => void;
   onNewCard: () => void;
@@ -24,6 +25,7 @@ const formatDue = (dueAt: string): string => {
 
 export function AnkiDeckDetail({
   deck,
+  refreshToken = 0,
   categoryName,
   onBack,
   onNewCard,
@@ -42,6 +44,7 @@ export function AnkiDeckDetail({
       .then((loaded) => {
         if (cancelled) return;
         setCards(loaded);
+        setError('');
       })
       .catch(() => {
         if (cancelled || controller.signal.aborted) return;
@@ -51,7 +54,7 @@ export function AnkiDeckDetail({
       cancelled = true;
       controller.abort();
     };
-  }, [deck.id]);
+  }, [deck.id, refreshToken]);
 
   const toggleAnswer = (cardId: string) => {
     setOpenAnswer((prev) => {

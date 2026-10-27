@@ -13,6 +13,7 @@ import { fetchDeckCards, type AnkiCard } from './anki-api';
 interface AnkiBrowseProps {
   deckId: string;
   deckName: string;
+  refreshToken?: number;
   onExit: () => void;
 }
 
@@ -25,7 +26,7 @@ const shuffle = <T,>(input: T[]): T[] => {
   return arr;
 };
 
-export function AnkiBrowse({ deckId, deckName, onExit }: AnkiBrowseProps) {
+export function AnkiBrowse({ deckId, deckName, refreshToken = 0, onExit }: AnkiBrowseProps) {
   const [cards, setCards] = useState<AnkiCard[] | null>(null);
   const [error, setError] = useState('');
   const [index, setIndex] = useState(0);
@@ -38,6 +39,9 @@ export function AnkiBrowse({ deckId, deckName, onExit }: AnkiBrowseProps) {
       .then((loaded) => {
         if (cancelled) return;
         setCards(shuffle(loaded));
+        setError('');
+        setIndex(0);
+        setRevealed(false);
       })
       .catch(() => {
         if (cancelled || controller.signal.aborted) return;
@@ -47,7 +51,7 @@ export function AnkiBrowse({ deckId, deckName, onExit }: AnkiBrowseProps) {
       cancelled = true;
       controller.abort();
     };
-  }, [deckId]);
+  }, [deckId, refreshToken]);
 
   const reshuffle = () => {
     if (!cards || cards.length === 0) return;

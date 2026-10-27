@@ -19,6 +19,41 @@
  */
 import { cloudRequest } from '@/cloud/api';
 
+export const ANKI_SYNC_EVENT = 'dblog-anki-sync';
+export interface AnkiSyncEvent {
+  id: number;
+  path: string;
+  write: boolean;
+  phase: 'pending' | 'success' | 'error' | 'cancelled';
+  at?: number;
+  message?: string;
+}
+let syncRequestId = 0;
+function emitSync(detail: AnkiSyncEvent) {
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(ANKI_SYNC_EVENT, { detail }));
+}
+
+/** 成功时间是本浏览器收到云端确认的时间，不冒充数据库写入时间；不保存卡片到本机。 */
+async function ankiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const event = { id: ++syncRequestId, path, write: Boolean(init.method && init.method !== 'GET') };
+  emitSync({ ...event, phase: 'pending' });
+  try {
+    const data = await cloudRequest<T>(path, {
+      ...init,
+      signal: init.signal ? AbortSignal.any([init.signal, AbortSignal.timeout(10000)]) : undefined,
+    });
+    emitSync({ ...event, phase: init.signal?.aborted ? 'cancelled' : 'success', at: Date.now() });
+    return data;
+  } catch (cause) {
+    emitSync({
+      ...event,
+      phase: init.signal?.aborted ? 'cancelled' : 'error',
+      message: cause instanceof Error ? cause.message : '云端同步失败，请重试',
+    });
+    throw cause;
+  }
+}
+
 export interface AnkiCategory {
   id: string;
   name: string;
@@ -180,29 +215,29 @@ export const isUnauthorized = (error: unknown): boolean =>
   error instanceof Error && error.message === UNAUTHORIZED_MESSAGE;
 
 export const fetchDashboard = (signal?: AbortSignal) =>
-  cloudRequest<AnkiDashboard>('/anki/dashboard', { signal }).then(normalizeDashboard);
+  ankiRequest<AnkiDashboard>('/anki/dashboard', { signal }).then(normalizeDashboard);
 
 export const createCategory = (name: string, signal?: AbortSignal) =>
-  cloudRequest<AnkiCategory>('/anki/categories', {
+  ankiRequest<AnkiCategory>('/anki/categories', {
     method: 'POST',
     body: JSON.stringify({ name }),
     signal,
   });
 
 export const createDeck = (categoryId: string, name: string, signal?: AbortSignal) =>
-  cloudRequest<AnkiDeckSummary>('/anki/decks', {
+  ankiRequest<AnkiDeckSummary>('/anki/decks', {
     method: 'POST',
     body: JSON.stringify({ categoryId, name }),
     signal,
   });
 
 export const fetchDeckCards = (deckId: string, signal?: AbortSignal) =>
-  cloudRequest<{ cards: unknown }>(`/anki/decks/${encodeURIComponent(deckId)}/cards`, { signal }).then((data) =>
+  ankiRequest<{ cards: unknown }>(`/anki/decks/${encodeURIComponent(deckId)}/cards`, { signal }).then((data) =>
     normalizeCardList(data.cards),
   );
 
 export const createCard = (deckId: string, question: string, answer: string, signal?: AbortSignal) =>
-  cloudRequest<AnkiCard>(`/anki/decks/${encodeURIComponent(deckId)}/cards`, {
+  ankiRequest<AnkiCard>(`/anki/decks/${encodeURIComponent(deckId)}/cards`, {
     method: 'POST',
     body: JSON.stringify({ question, answer }),
     signal,
@@ -217,14 +252,14 @@ export interface UpdateCardPatch {
 }
 
 export const updateCard = (cardId: string, patch: UpdateCardPatch, signal?: AbortSignal) =>
-  cloudRequest<AnkiCard>(`/anki/cards/${encodeURIComponent(cardId)}`, {
+  ankiRequest<AnkiCard>(`/anki/cards/${encodeURIComponent(cardId)}`, {
     method: 'PATCH',
     body: JSON.stringify(patch),
     signal,
   }).then((card) => normalizeCard(card as unknown as Record<string, unknown>));
 
 export const fetchDeckQueue = (deckId: string, signal?: AbortSignal) =>
-  cloudRequest<{ cards: unknown; serverNow?: string; previews?: unknown }>(
+  ankiRequest<{ cards: unknown; serverNow?: string; previews?: unknown }>(
     `/anki/decks/${encodeURIComponent(deckId)}/queue`,
     { signal },
   ).then((data) => ({
@@ -234,14 +269,14 @@ export const fetchDeckQueue = (deckId: string, signal?: AbortSignal) =>
   }));
 
 export const submitReview = (body: AnkiReviewRequest, signal?: AbortSignal) =>
-  cloudRequest<{ card: unknown }>('/anki/reviews', {
+  ankiRequest<{ card: unknown }>('/anki/reviews', {
     method: 'POST',
     body: JSON.stringify(body),
     signal,
   }).then((data) => normalizeCard(data.card as Record<string, unknown>));
 
 export const updateGoal = (goal: number, signal?: AbortSignal) =>
-  cloudRequest<{ goal: number }>('/anki/goal', {
+  ankiRequest<{ goal: number }>('/anki/goal', {
     method: 'PUT',
     body: JSON.stringify({ goal }),
     signal,

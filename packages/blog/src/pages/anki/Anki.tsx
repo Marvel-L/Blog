@@ -12,9 +12,11 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useHref, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useHref, useLocation } from 'react-router-dom';
+import { cloudRequest, type CloudUser } from '@/cloud/api';
 import { Seo } from '@/components/Seo';
 import { fetchDashboard, isUnauthorized, type AnkiCard, type NormalizedDashboard } from './anki-api';
+import { AnkiSyncStatus } from './AnkiSyncStatus';
 import { AnkiReview } from './AnkiReview';
 import { AnkiBrowse } from './AnkiBrowse';
 import { AnkiDeckDetail } from './AnkiDeckDetail';
@@ -44,6 +46,7 @@ export default function AnkiPage() {
   const loginReturn = useHref('/anki');
   const loginHref = `${ANKI_LOGIN_HREF}?return_to=${encodeURIComponent(loginReturn)}`;
   const location = useLocation();
+  const routerNavigate = useNavigate();
   const explicitLogin = location.pathname === '/anki/login';
   const [phase, setPhase] = useState<Phase>('loading');
   const [errorMessage, setErrorMessage] = useState('');
@@ -56,6 +59,64 @@ export default function AnkiPage() {
   const dashboardRequest = useRef<AbortController | null>(null);
   const accountGeneration = useRef(0);
   const [accountKey, setAccountKey] = useState(0);
+  const [user, setUser] = useState<CloudUser | null>(null);
+  const [accountLoading, setAccountLoading] = useState(true);
+  const [accountError, setAccountError] = useState('');
+  const [loggingOut, setLoggingOut] = useState(false);
+  const logoutRequest = useRef<AbortController | null>(null);
+  const accountRequest = useRef<AbortController | null>(null);
+
+  // 身份只能取自 /me 的服务端会话，不从卡片数据或本机缓存推断用户名。
+  useEffect(() => {
+    const controller = new AbortController();
+    accountRequest.current = controller;
+    const generation = accountGeneration.current;
+    setAccountLoading(true);
+    cloudRequest<{ user: CloudUser | null }>('/me', {
+      signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]),
+    })
+      .then((data) => {
+        if (controller.signal.aborted || generation !== accountGeneration.current) return;
+        const identity = data.user;
+        if (identity && (!identity.id || !identity.login)) throw new Error('账号响应无效，请重试');
+        setUser(identity ?? null);
+        setAccountError('');
+      })
+      .catch((cause) => {
+        if (controller.signal.aborted || generation !== accountGeneration.current) return;
+        setAccountError(cause instanceof Error ? cause.message : '账号信息加载失败');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted && generation === accountGeneration.current) setAccountLoading(false);
+      });
+    return () => controller.abort();
+  }, [reloadToken]);
+
+  useEffect(() => () => logoutRequest.current?.abort(), []);
+
+  const logout = useCallback(async () => {
+    if (logoutRequest.current) return;
+    const controller = new AbortController();
+    logoutRequest.current = controller;
+    const generation = accountGeneration.current;
+    setLoggingOut(true);
+    setAccountError('');
+    try {
+      await cloudRequest('/auth/logout', {
+        method: 'POST',
+        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]),
+      });
+      if (controller.signal.aborted || generation !== accountGeneration.current) return;
+      // 服务端撤销成功后才清理账号；失败保留登录状态并允许重试。
+      window.dispatchEvent(new Event('dblog-account-change'));
+    } catch (cause) {
+      if (!controller.signal.aborted && generation === accountGeneration.current)
+        setAccountError(cause instanceof Error ? cause.message : '退出失败，请重试');
+    } finally {
+      if (!controller.signal.aborted) setLoggingOut(false);
+      if (logoutRequest.current === controller) logoutRequest.current = null;
+    }
+  }, []);
 
   const showToast = useCallback((message: string) => {
     setToast(message);
@@ -81,13 +142,16 @@ export default function AnkiPage() {
       })
       .catch((error) => {
         if (cancelled || controller.signal.aborted || generation !== accountGeneration.current) return;
-        setDashboard(null);
         if (isUnauthorized(error)) {
+          accountRequest.current?.abort();
+          setAccountLoading(false);
+          setDashboard(null);
+          setUser(null);
           setPhase('unauthorized');
           return;
         }
         setErrorMessage(error instanceof Error ? error.message : '云端服务暂时不可用，请重试');
-        setPhase('error');
+        setPhase((previous) => (previous === 'ready' ? 'ready' : 'error'));
       });
     return () => {
       cancelled = true;
@@ -100,6 +164,13 @@ export default function AnkiPage() {
     const onAccountChange = () => {
       accountGeneration.current += 1;
       dashboardRequest.current?.abort();
+      accountRequest.current?.abort();
+      logoutRequest.current?.abort();
+      logoutRequest.current = null;
+      setLoggingOut(false);
+      setUser(null);
+      setAccountLoading(false);
+      setAccountError('');
       window.clearTimeout(toastTimer.current);
       setToast('');
       setAccountKey((key) => key + 1);
@@ -121,11 +192,30 @@ export default function AnkiPage() {
     [view.name, refresh],
   );
 
-  if (phase === 'unauthorized' || explicitLogin) {
+  useEffect(() => {
+    if (explicitLogin && (user || phase === 'ready')) routerNavigate('/anki', { replace: true });
+  }, [explicitLogin, user, phase, routerNavigate]);
+
+  const topBar = (
+    <AnkiTopBar
+      view={view}
+      onNavigate={navigate}
+      showNav={phase === 'ready' && Boolean(dashboard)}
+      user={user}
+      accountLoading={accountLoading}
+      accountError={accountError}
+      loggingOut={loggingOut}
+      onLogout={() => void logout()}
+      onRetryAccount={refresh}
+      authenticated={phase === 'ready'}
+    />
+  );
+
+  if (phase === 'unauthorized' || (explicitLogin && phase === 'error' && !user)) {
     return (
       <div className="min-h-screen bg-white" style={{ color: T.ink }}>
         <Seo title="Anki 记忆卡片" noindex />
-        <AnkiTopBar view={view} onNavigate={navigate} showNav={false} />
+        {topBar}
         <main className="mx-auto flex min-h-[60vh] w-full max-w-[1100px] flex-col items-center justify-center px-6 py-16 text-center">
           <div
             className="mb-5 grid h-[29px] w-[25px] place-items-center rounded-md text-[17px] font-semibold text-white"
@@ -154,11 +244,6 @@ export default function AnkiPage() {
               {errorMessage}。当前无法确认登录状态，登录也需要可用的账号服务。
             </p>
           )}
-          {phase === 'ready' && (
-            <Link to="/anki" className="mt-4 text-sm" style={{ color: T.accent }}>
-              继续使用当前账号
-            </Link>
-          )}
         </main>
       </div>
     );
@@ -168,7 +253,7 @@ export default function AnkiPage() {
     return (
       <div className="min-h-screen bg-white" style={{ color: T.ink }}>
         <Seo title="Anki 记忆卡片" noindex />
-        <AnkiTopBar view={view} onNavigate={navigate} showNav={false} />
+        {topBar}
         <main className="mx-auto flex min-h-[60vh] w-full max-w-[1100px] flex-col items-center justify-center px-6 py-16 text-center">
           <h1 className="text-xl font-semibold" style={{ color: T.ink }}>
             学习统计暂时加载失败
@@ -184,9 +269,11 @@ export default function AnkiPage() {
           >
             重新加载
           </button>
-          <Link to="/anki/login" className="mt-5 text-sm font-medium" style={{ color: T.accent }}>
-            查看登录页面
-          </Link>
+          {!user && (
+            <Link to="/anki/login" className="mt-5 text-sm font-medium" style={{ color: T.accent }}>
+              查看登录页面
+            </Link>
+          )}
           <p className="mt-3 max-w-md text-xs" style={{ color: T.muted }}>
             无法确认登录状态；若账号 API 未启动或代理返回博客页面，登录操作也暂时不可用。
           </p>
@@ -202,8 +289,9 @@ export default function AnkiPage() {
         description="按分类整理 Q & A 卡片，到期主动回忆并自评，让知识在合适的时间再次出现。"
         noindex
       />
-      <AnkiTopBar view={view} onNavigate={navigate} showNav={phase === 'ready' && Boolean(dashboard)} />
+      {topBar}
       <main className="mx-auto w-full max-w-[1100px] px-[22px] pb-[65px] pt-[40px] min-[1000px]:px-[35px] min-[1000px]:pb-[75px] min-[1000px]:pt-[60px]">
+        <AnkiSyncStatus key={`sync-${accountKey}`} onSync={refresh} disabled={phase !== 'ready'} />
         {phase === 'loading' || !dashboard ? (
           <div className="flex min-h-[40vh] items-center justify-center">
             <p className="text-sm" style={{ color: T.muted }}>
@@ -212,8 +300,9 @@ export default function AnkiPage() {
           </div>
         ) : (
           <AnkiWorkspace
-            key={accountKey}
+            key={`workspace-${accountKey}`}
             dashboard={dashboard}
+            refreshToken={reloadToken}
             view={view}
             onViewChange={navigate}
             dialog={dialog}
@@ -251,10 +340,24 @@ function AnkiTopBar({
   view,
   onNavigate,
   showNav,
+  user,
+  accountLoading,
+  accountError,
+  loggingOut,
+  onLogout,
+  onRetryAccount,
+  authenticated,
 }: {
   view: AnkiView;
   onNavigate: (view: AnkiView) => void;
   showNav: boolean;
+  user: CloudUser | null;
+  accountLoading: boolean;
+  accountError: string;
+  loggingOut: boolean;
+  onLogout: () => void;
+  onRetryAccount: () => void;
+  authenticated: boolean;
 }) {
   return (
     <header className="border-b bg-white/[.85] backdrop-blur-xl" style={{ borderColor: T.line }}>
@@ -318,20 +421,58 @@ function AnkiTopBar({
           </nav>
         )}
         <div className="flex items-center gap-4">
-          <Link to="/anki/login" className="text-sm font-medium hover:opacity-80" style={{ color: T.accent }}>
-            账号登录
-          </Link>
+          {accountLoading && !user && !authenticated ? (
+            <span className="text-xs" style={{ color: T.muted }} role="status">
+              正在确认账号…
+            </span>
+          ) : user || authenticated ? (
+            <>
+              <span className="max-w-[180px] truncate text-sm" title={user?.login}>
+                已登录 · {user?.login ?? '用户名暂不可用'}
+              </span>
+              <button
+                type="button"
+                disabled={loggingOut}
+                onClick={onLogout}
+                className="min-h-11 text-sm font-medium disabled:opacity-50"
+                style={{ color: T.accent }}
+              >
+                {loggingOut ? '正在退出…' : '退出登录'}
+              </button>
+            </>
+          ) : accountError ? (
+            <button type="button" onClick={onRetryAccount} className="min-h-11 text-sm" style={{ color: T.accent }}>
+              重试账号检查
+            </button>
+          ) : (
+            <Link to="/anki/login" className="text-sm font-medium hover:opacity-80" style={{ color: T.accent }}>
+              账号登录
+            </Link>
+          )}
           <Link to="/" className="text-sm font-medium hover:opacity-80" style={{ color: T.accent }}>
             返回博客
           </Link>
         </div>
       </div>
+      {accountError && (
+        <p
+          role="status"
+          aria-live="polite"
+          className="mx-auto max-w-[1200px] px-[22px] pb-3 text-xs text-red-600 min-[1000px]:px-[35px]"
+        >
+          {accountError}
+          <button type="button" onClick={onRetryAccount} className="ml-3 underline">
+            重试账号检查
+          </button>
+        </p>
+      )}
     </header>
   );
 }
 
 interface WorkspaceProps {
   dashboard: NormalizedDashboard;
+  refreshToken: number;
   view: AnkiView;
   onViewChange: (view: AnkiView) => void;
   dialog: AnkiDialogState | null;
@@ -340,7 +481,16 @@ interface WorkspaceProps {
   showToast: (message: string) => void;
 }
 
-function AnkiWorkspace({ dashboard, view, onViewChange, dialog, onDialogChange, refresh, showToast }: WorkspaceProps) {
+function AnkiWorkspace({
+  dashboard,
+  refreshToken,
+  view,
+  onViewChange,
+  dialog,
+  onDialogChange,
+  refresh,
+  showToast,
+}: WorkspaceProps) {
   const deckById = useMemo(() => {
     const map = new Map<string, (typeof dashboard.decks)[number]>();
     dashboard.decks.forEach((deck) => map.set(deck.id, deck));
@@ -362,6 +512,7 @@ function AnkiWorkspace({ dashboard, view, onViewChange, dialog, onDialogChange, 
       {view.name === 'browse' && (
         <AnkiBrowse
           deckId={view.deckId}
+          refreshToken={refreshToken}
           deckName={deckById.get(view.deckId)?.name ?? ''}
           onExit={() => onViewChange({ name: 'deck', deckId: view.deckId })}
         />
@@ -377,6 +528,7 @@ function AnkiWorkspace({ dashboard, view, onViewChange, dialog, onDialogChange, 
           return (
             <AnkiDeckDetail
               deck={deck}
+              refreshToken={refreshToken}
               categoryName={dashboard.categories.find((cat) => cat.id === deck.categoryId)?.name ?? ''}
               onBack={() => onViewChange({ name: 'overview' })}
               onNewCard={() => onDialogChange({ kind: 'card', deckId: deck.id })}
