@@ -1,6 +1,34 @@
 package config
 
-import "testing"
+import (
+	"encoding/base64"
+	"testing"
+)
+
+func TestAIConfiguration(t *testing.T) {
+	base := map[string]string{"APP_ORIGIN": "https://app.example.com", "DATABASE_URL": "test", "GITHUB_CLIENT_ID": "id", "GITHUB_CLIENT_SECRET": "secret"}
+	load := func(extra map[string]string) (Config, error) {
+		return Load(func(key string) string {
+			if value, ok := extra[key]; ok {
+				return value
+			}
+			return base[key]
+		})
+	}
+	c, err := load(nil)
+	if err != nil || c.AIEncryptionKey != "" || c.AIModel != "deepseek-flash" {
+		t.Fatal("optional AI disabled config failed")
+	}
+	valid := base64.StdEncoding.EncodeToString(make([]byte, 32))
+	if _, err = load(map[string]string{"ANKI_AI_ENCRYPTION_KEY": valid}); err != nil {
+		t.Fatal(err)
+	}
+	for _, extra := range []map[string]string{{"ANKI_AI_ENCRYPTION_KEY": "bad"}, {"ANKI_AI_ENCRYPTION_KEY": base64.StdEncoding.EncodeToString(make([]byte, 16))}, {"ANKI_AI_MODEL": "arbitrary"}, {"ANKI_AI_ENCRYPTION_KEY_ID": "invalid id"}} {
+		if _, err := load(extra); err == nil {
+			t.Fatal("invalid AI configuration accepted")
+		}
+	}
+}
 
 func TestConfiguration(t *testing.T) {
 	base := map[string]string{"APP_ORIGIN": "https://43.138.216.53/", "DATABASE_URL": "test", "GITHUB_CLIENT_ID": "id", "GITHUB_CLIENT_SECRET": "secret"}

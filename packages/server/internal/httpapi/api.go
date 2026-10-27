@@ -20,6 +20,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Marvel-L/Blog/packages/server/internal/config"
+	"github.com/Marvel-L/Blog/packages/server/internal/deepseek"
 	"github.com/Marvel-L/Blog/packages/server/internal/github"
 	"github.com/Marvel-L/Blog/packages/server/internal/store"
 )
@@ -65,6 +66,7 @@ type API struct {
 	exchange                   github.Exchange
 	sessionCookie, stateCookie string
 	limit                      limiter
+	aiCipher                   *deepseek.Cipher
 }
 
 var tokenPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{43}$`)
@@ -72,6 +74,15 @@ var uuidPattern = regexp.MustCompile(`(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[
 
 func New(c config.Config, db Persistence, exchange github.Exchange) http.Handler {
 	a := &API{config: c, db: db, exchange: exchange, sessionCookie: "dblog_session_dev", stateCookie: "dblog_oauth_dev", limit: limiter{entries: make(map[string]window)}}
+	if c.AIEncryptionKey != "" {
+		a.aiCipher, _ = deepseek.NewCipher(c.AIEncryptionKey)
+	}
+	if c.AIModel == "" {
+		a.config.AIModel = "deepseek-flash"
+	}
+	if c.AIEncryptionKeyID == "" {
+		a.config.AIEncryptionKeyID = "v1"
+	}
 	if c.SecureCookies {
 		a.sessionCookie = "__Host-dblog_session"
 		a.stateCookie = "__Host-dblog_oauth"
@@ -104,6 +115,13 @@ func New(c config.Config, db Persistence, exchange github.Exchange) http.Handler
 	mux.HandleFunc("GET /api/v1/anki/decks/{deckId}/queue", a.ankiQueue)
 	mux.HandleFunc("POST /api/v1/anki/reviews", a.ankiReview)
 	mux.HandleFunc("POST /api/v1/anki/practice", a.ankiPractice)
+	mux.HandleFunc("GET /api/v1/anki/ai/settings", a.ankiAISettings)
+	mux.HandleFunc("PUT /api/v1/anki/ai/settings", a.ankiAISetKey)
+	mux.HandleFunc("DELETE /api/v1/anki/ai/settings", a.ankiAIDeleteKey)
+	mux.HandleFunc("POST /api/v1/anki/cards/{cardId}/ai-checks", a.ankiAICreate)
+	mux.HandleFunc("GET /api/v1/anki/cards/{cardId}/ai-checks", a.ankiAIList)
+	mux.HandleFunc("GET /api/v1/anki/ai-checks/{checkId}", a.ankiAIGet)
+	mux.HandleFunc("DELETE /api/v1/anki/ai-checks/{checkId}", a.ankiAIDelete)
 	mux.HandleFunc("PUT /api/v1/anki/goal", a.ankiSetGoal)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")

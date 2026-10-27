@@ -8,6 +8,7 @@ import { matchesTag } from './anki-tags';
 import { fetchDeckCards, fetchDeckTags, type AnkiTag, type AnkiCard, type AnkiDeckSummary } from './anki-api';
 import { AnkiMarkdown } from './AnkiMarkdown';
 import { AnkiCardCounts } from './AnkiCardCounts';
+import { AnkiAIDialog } from './AnkiAIDialog';
 import { AnkiPracticeActions } from './AnkiPracticeActions';
 
 interface AnkiDeckDetailProps {
@@ -44,6 +45,7 @@ export function AnkiDeckDetail({
   initialTag = null,
   onManageTags,
 }: AnkiDeckDetailProps) {
+  const [aiCard, setAICard] = useState<AnkiCard | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(initialTag);
   const [cards, setCards] = useState<AnkiCard[] | null>(null);
   const [error, setError] = useState('');
@@ -240,13 +242,18 @@ export function AnkiDeckDetail({
                   <div role="heading" aria-level={3} className="min-w-0 flex-1">
                     <AnkiMarkdown content={card.question} />
                   </div>
-                  <button
-                    type="button"
-                    className="shrink-0 rounded-full border border-[#e9edf1] bg-white px-3 py-1.5 text-xs font-medium text-[#202124]"
-                    onClick={() => onEditCard(card)}
-                  >
-                    编辑
-                  </button>
+                  <div className="anki-card-ai-tools">
+                    <button
+                      type="button"
+                      className="shrink-0 rounded-full border border-[#e9edf1] bg-white px-3 py-1.5 text-xs font-medium text-[#202124]"
+                      onClick={() => onEditCard(card)}
+                    >
+                      编辑
+                    </button>
+                    <button type="button" className="anki-card-ai-check" onClick={() => setAICard(card)}>
+                      Ai Check
+                    </button>
+                  </div>
                 </div>
                 <AnkiCardTags tags={card.tags} onSelect={selectTag} />
                 <p className="mt-1 text-xs text-zinc-400">下次到期 {formatDue(card.dueAt)}</p>
@@ -286,6 +293,7 @@ export function AnkiDeckDetail({
           })}
         </ul>
       )}
+      {aiCard && <AnkiAIDialog key={aiCard.id} card={aiCard} onClose={() => setAICard(null)} />}
     </div>
   );
 }

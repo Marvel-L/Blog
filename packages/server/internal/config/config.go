@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/base64"
 	"errors"
 	"net/url"
 	"strconv"
@@ -15,6 +16,7 @@ type Config struct {
 	Port                                        int
 	SecureCookies                               bool
 	TrendAllowedOrigins                         []string
+	AIEncryptionKey, AIEncryptionKeyID, AIModel string
 }
 
 func (c Config) PlannerGitHubEnabled() bool { return c.PlannerGithubToken != "" }
@@ -66,6 +68,27 @@ func Load(get func(string) string) (Config, error) {
 			}
 			c.TrendAllowedOrigins = append(c.TrendAllowedOrigins, origin)
 		}
+	}
+	c.AIEncryptionKey = strings.TrimSpace(get("ANKI_AI_ENCRYPTION_KEY"))
+	c.AIEncryptionKeyID = strings.TrimSpace(get("ANKI_AI_ENCRYPTION_KEY_ID"))
+	if c.AIEncryptionKeyID == "" {
+		c.AIEncryptionKeyID = "v1"
+	}
+	if len(c.AIEncryptionKeyID) > 64 || strings.ContainsAny(c.AIEncryptionKeyID, " \t\r\n") {
+		return c, errors.New("invalid AI encryption key ID")
+	}
+	if c.AIEncryptionKey != "" {
+		key, e := base64.StdEncoding.Strict().DecodeString(c.AIEncryptionKey)
+		if e != nil || len(key) != 32 {
+			return c, errors.New("ANKI_AI_ENCRYPTION_KEY must be base64 of 32 bytes")
+		}
+	}
+	c.AIModel = strings.TrimSpace(get("ANKI_AI_MODEL"))
+	if c.AIModel == "" {
+		c.AIModel = "deepseek-flash"
+	}
+	if c.AIModel != "deepseek-flash" && c.AIModel != "deepseek-v4-pro" {
+		return c, errors.New("unsupported ANKI_AI_MODEL")
 	}
 	c.Port = 3001
 	if p := get("PORT"); p != "" {

@@ -303,6 +303,183 @@ button.anki-tag:focus-visible {
   font-size: 20px;
   font-weight: 600;
 }
+
+/* AI Review only: retain existing card typography, counts and answer controls. */
+.anki-card-ai-tools {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 170px;
+}
+.anki-card-ai-check {
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 1px solid var(--anki-line);
+  border-radius: 24px;
+  background: white;
+  color: var(--anki-accent);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.anki-dialog-panel.anki-ai-dialog {
+  max-width: 64rem;
+}
+.anki-ai-content {
+  padding: 20px;
+  color: var(--anki-ink);
+  font-size: 15px;
+  line-height: 1.8;
+}
+.anki-ai-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid var(--anki-line);
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+.anki-ai-header > div {
+  min-width: 0;
+}
+.anki-ai-header > button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.anki-ai-header h2 {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.anki-ai-content h3 {
+  margin: 18px 0 8px;
+  font-size: 17px;
+  font-weight: 600;
+}
+.anki-ai-content p {
+  margin: 8px 0 12px;
+}
+.anki-ai-subtitle {
+  color: #636b76;
+  font-size: 14px;
+}
+.anki-ai-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 16px 0;
+}
+.anki-ai-primary {
+  background: var(--anki-accent);
+  border-color: var(--anki-accent);
+  color: white;
+}
+.anki-ai-primary:hover {
+  color: white;
+}
+.anki-ai-link {
+  color: var(--anki-accent);
+  min-height: 44px;
+  padding: 8px 4px;
+  font-size: 14px;
+}
+.anki-ai-error {
+  color: #b93838;
+  font-size: 14px;
+}
+.anki-ai-notice {
+  color: #636b76;
+  font-size: 14px;
+}
+.anki-ai-settings label {
+  display: block;
+  margin: 18px 0;
+}
+.anki-ai-settings label > span,
+.anki-ai-copy > span {
+  display: block;
+  margin-bottom: 8px;
+}
+.anki-ai-history-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+}
+.anki-ai-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.anki-ai-history-list button {
+  width: 100%;
+  text-align: left;
+  border-radius: 10px;
+}
+.anki-ai-history-list small {
+  display: block;
+  font-size: 14px;
+  color: #636b76;
+  margin-top: 4px;
+}
+.anki-ai-history-list button[aria-pressed='true'] {
+  border-color: var(--anki-accent);
+  background: #f0f7ff;
+}
+.anki-ai-detail {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.anki-ai-result-head {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--anki-line);
+}
+.anki-ai-score {
+  color: var(--anki-accent);
+  font-size: 44px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.anki-ai-score small {
+  font-size: 16px;
+  color: #636b76;
+}
+.anki-ai-snapshot {
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--anki-line);
+}
+.anki-ai-detail ul {
+  padding-left: 22px;
+  list-style: disc;
+}
+.anki-ai-detail pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 14px;
+  background: var(--anki-soft);
+  margin: 12px 0;
+  font-size: 14px;
+}
+.anki-ai-copy {
+  display: block;
+}
+.anki-ai-copy textarea {
+  min-height: 250px;
+}
+@media (min-width: 768px) {
+  .anki-ai-content {
+    padding: 24px 28px;
+  }
+  .anki-ai-history-layout {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+}
 @media (min-width: 768px) {
   .anki-question {
     font-size: 24px;

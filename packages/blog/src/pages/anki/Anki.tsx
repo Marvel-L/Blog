@@ -16,6 +16,7 @@ import { Link, useNavigate, useHref, useLocation, useSearchParams } from 'react-
 import { cloudRequest, type CloudUser } from '@/cloud/api';
 import { Seo } from '@/components/Seo';
 import { fetchDashboard, isUnauthorized, type AnkiCard, type NormalizedDashboard } from './anki-api';
+import { AnkiAIDialog } from './AnkiAIDialog';
 import { AnkiSyncStatus } from './AnkiSyncStatus';
 import { AnkiReview } from './AnkiReview';
 import { AnkiBrowse } from './AnkiBrowse';
@@ -59,6 +60,7 @@ export default function AnkiPage() {
   const [user, setUser] = useState<CloudUser | null>(null);
   const [accountLoading, setAccountLoading] = useState(true);
   const [accountError, setAccountError] = useState('');
+  const [aiSettingsOpen, setAISettingsOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const logoutRequest = useRef<AbortController | null>(null);
   const accountRequest = useRef<AbortController | null>(null);
@@ -174,6 +176,7 @@ export default function AnkiPage() {
       setDashboard(null);
       setSearchParams((current) => writeAnkiView(current, { name: 'overview' }), { replace: true });
       setDialog(null);
+      setAISettingsOpen(false);
       setPhase('unauthorized');
     };
     window.addEventListener('dblog-account-change', onAccountChange);
@@ -205,6 +208,7 @@ export default function AnkiPage() {
       onLogout={() => void logout()}
       onRetryAccount={refresh}
       authenticated={phase === 'ready'}
+      onAISettings={() => setAISettingsOpen(true)}
     />
   );
 
@@ -287,6 +291,7 @@ export default function AnkiPage() {
         noindex
       />
       {topBar}
+      {aiSettingsOpen && <AnkiAIDialog key={`ai-settings-${accountKey}`} onClose={() => setAISettingsOpen(false)} />}
       <main className="mx-auto w-full max-w-[1100px] px-[22px] pb-[65px] pt-[40px] min-[1000px]:px-[35px] min-[1000px]:pb-[75px] min-[1000px]:pt-[60px]">
         <AnkiSyncStatus key={`sync-${accountKey}`} onSync={refresh} disabled={phase !== 'ready'} />
         {phase === 'loading' || !dashboard ? (
@@ -346,6 +351,7 @@ function AnkiTopBar({
   onLogout,
   onRetryAccount,
   authenticated,
+  onAISettings,
 }: {
   view: AnkiView;
   onNavigate: (view: AnkiView) => void;
@@ -357,6 +363,7 @@ function AnkiTopBar({
   onLogout: () => void;
   onRetryAccount: () => void;
   authenticated: boolean;
+  onAISettings: () => void;
 }) {
   return (
     <header className="border-b bg-white/[.85] backdrop-blur-xl" style={{ borderColor: T.line }}>
@@ -426,6 +433,9 @@ function AnkiTopBar({
             </span>
           ) : user || authenticated ? (
             <>
+              <button type="button" className="min-h-11 text-sm font-medium text-[#087ae9]" onClick={onAISettings}>
+                AI 设置
+              </button>
               <span className="max-w-[180px] truncate text-sm" title={user?.login}>
                 已登录 · {user?.login ?? '用户名暂不可用'}
               </span>

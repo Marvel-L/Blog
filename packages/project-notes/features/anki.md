@@ -2,6 +2,17 @@
 
 ## 当前权威状态
 
+### 2026-10-27 Anki AI Review（本轮开发，未发布）
+
+- **最新交互**：卡片“编辑”右邻增加 Ai Check；点击只打开操作弹窗，提供“开始 Check / 查看 AI 历史”，不立即评分。AI 历史不在卡片上另放入口，不追加到列表末尾。配置保存不自动评分；历史只读、可复制/删除，复制原问题、原答案和 AI 评价。原答案揭示、复习统计与排期保持原链路。
+- **后端**：新增 009 SQL：用户加密 Key、单轮快照、数据库任务队列与请求 receipt；服务端会话授权、Origin/no-store、mutationId 幂等、同卡 active 唯一、用户频率与运行容量约束。Go worker 单轮调用固定 DeepSeek HTTPS 端点，禁止重定向，不自动上游重试；严格 JSON 与 0–100 分校验。超时/结果不确定无得分，保留安全状态。编辑卡片不改历史；删除清空内容并保留短期幂等墓碑，旧 worker 不复活记录。
+- **密钥**：AES-256-GCM，随机 nonce，AAD 绑定用户和配置版本；主密钥仅服务端环境 `ANKI_AI_ENCRYPTION_KEY`，未配置时 AI 不可用但旧 Anki 不受影响。配置详情返回掩码，不回读 Key；替换/删除取消 queued 任务，已发上游不能保证撤回或退款。主密钥轮换需运维重加密，不支持直接遗弃旧密钥；本轮没有实现自动轮换工具。
+- **验证**：新增 8 项前端测试通过；真实隔离 PostgreSQL 下 Go 全包 `-race -count=1` 最后复验通过，覆盖归属/并发/幂等/快照/删除/worker 超时不重试/lease 与配置变化；类型检查通过，全仓 ESLint 0 errors，保留 4 条既有 HeroQuote/RankFlash warnings。正式 React 双端 1440×900 / 390×844 核心流程通过，但 API 为浏览器拦截 fixture，不是真实 OAuth 或真实厂商调用。Go 二进制与 cloud/Pages Vite 客户端编译通过，Pages 裁剪 Anki；未做本轮完整 SSG/SEO 构建。
+- **完整根门禁**：中间版本 `final-full-test.log` 为 148 文件 /1192 项全过，随后 Go 全包通过；最后新增 2 项回归与摘要查询调整后，`accepted-full-test.log` 为 148 文件 /1194 项，1193 通过、1 项既有 `scripts/upload-cloud-release.test.mjs` 在默认 5000ms 超时，Go 串联被跳过；最后 Go 全包已另行独立通过。不得把中间通过当成最新全绿。未调整超时、workers、skip 或修改无关脚本，根门禁未全绿，因此未 commit。
+- **未完成/发布边界**：没有真实 Key 联调，没有生产 OAuth、业务库 009 迁移、push、部署或线上验收。正式使用前需运行新版编号迁移并注入加密主密钥，用户登录后配置自己的 DeepSeek Key；本轮不修改真实 .env 或业务数据库。测试数据库为本轮独立实例，关停后保留工作区文件；原型数据不迁入正式账号。
+- **本次提交与推送授权**：用户获知最新全量根测试仍有上传脚本超时后明确要求 `Commit & Push`，本次依据用户授权破例提交 AI Review 源码、009 迁移、相关测试、最终原型和说明，普通推送当前 `origin/custom`；不包含本机截图、旧原型备份、测试工具及日志，不绕过 Git 钩子、不强推、不部署或迁移业务库。提交前复验类型检查、全仓 ESLint 与 Anki 相关测试；Git 实际结果以提交与推送返回为准，历史门禁失败保持不变。
+- **证据位置**：`anki-ai-review-prototype/formal-ui-evidence/`（真实组件双端截图及 ui-report.json）、`accepted-full-test.log`（最新根测试失败范围）、`final-full-test.log`（中间完整通过），开发说明另存 `anki-ai-review-prototype/Anki-AI-Review-开发说明.md`。
+
 ### 2026-10-27 刷新首帧闪回 Blog / 黑屏修复（本轮）
 
 - **原因已核查**：线上 `/Blog/anki`、query 视图和 login 入口返回与 Blog 首页相同的 HTML；浏览器刷新记录 React #418，地址仍在 Anki。不是实际导航回首页，而是错误的首页静态树被当作 Anki 水合，随后重新生成页面；懒加载占位露出博客底色。

@@ -12,7 +12,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Marvel-L/Blog/packages/server/internal/aireview"
 	"github.com/Marvel-L/Blog/packages/server/internal/config"
+	"github.com/Marvel-L/Blog/packages/server/internal/deepseek"
 	"github.com/Marvel-L/Blog/packages/server/internal/github"
 	"github.com/Marvel-L/Blog/packages/server/internal/httpapi"
 	"github.com/Marvel-L/Blog/packages/server/internal/store"
@@ -83,6 +85,20 @@ func run() error {
 		if err != nil {
 			return err
 		}
+		if c.AIEncryptionKey != "" {
+			cipher, cipherErr := deepseek.NewCipher(c.AIEncryptionKey)
+			if cipherErr != nil {
+				return cipherErr
+			}
+			if err = db.CleanupAI(ctx); err != nil {
+				return err
+			}
+			workerCtx, workerCancel := context.WithCancel(ctx)
+			workerDone := make(chan struct{})
+			worker := aireview.Worker{DB: db, Cipher: cipher, KeyID: c.AIEncryptionKeyID, Client: deepseek.NewClient(nil)}
+			go func() { defer close(workerDone); worker.Run(workerCtx) }()
+			defer func() { workerCancel(); <-workerDone }()
+		}
 		commitPlanner := github.NewPlannerCommitter(c, nil)
 		flushPlanner := func() {
 			deadline, done := context.WithTimeout(ctx, 45*time.Second)
@@ -133,6 +149,9 @@ func run() error {
 			case <-tick.C:
 				deadline, done := context.WithTimeout(ctx, 30*time.Second)
 				err := db.Cleanup(deadline)
+				if err == nil && c.AIEncryptionKey != "" {
+					err = db.CleanupAI(deadline)
+				}
 				done()
 				if err != nil {
 					log.Print("过期数据清理失败，将在下一周期重试")
