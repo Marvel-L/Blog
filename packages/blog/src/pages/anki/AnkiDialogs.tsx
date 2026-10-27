@@ -7,6 +7,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { SlideModal } from '@/components/SlideModal';
+import { AnkiMarkdownEditor } from './AnkiMarkdownEditor';
+import './anki.css';
 import {
   createCard,
   createCategory,
@@ -38,9 +40,9 @@ export function AnkiDialogs({ state, dashboard, onClose, onDone }: AnkiDialogsPr
           : '录入 Q & A 卡片'
         : '每日练习目标';
   return (
-    <SlideModal isOpen onClose={onClose} ariaLabelledby="anki-dialog-title">
+    <SlideModal isOpen onClose={onClose} ariaLabelledby="anki-dialog-title" className="anki-dialog-panel">
       <div className="p-5">
-        <h2 id="anki-dialog-title" className="text-lg font-semibold text-ink dark:text-white">
+        <h2 id="anki-dialog-title" className="text-lg font-semibold text-ink">
           {title}
         </h2>
         {state.kind === 'deck' && <DeckForm dashboard={dashboard} onClose={onClose} onDone={onDone} />}
@@ -54,10 +56,7 @@ export function AnkiDialogs({ state, dashboard, onClose, onDone }: AnkiDialogsPr
 function FieldError({ message }: { message: string }) {
   if (!message) return null;
   return (
-    <div
-      role="alert"
-      className="rounded-surface border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
-    >
+    <div role="alert" className="rounded-surface border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
       {message}
     </div>
   );
@@ -149,26 +148,26 @@ function DeckForm({ dashboard, onClose, onDone }: FormProps) {
   return (
     <form onSubmit={submit} className="mt-4 space-y-3">
       <label className="block">
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">卡片库名称</span>
+        <span className="text-xs text-zinc-500">卡片库名称</span>
         <input
           ref={nameRef}
           value={name}
           onChange={(event) => setName(event.target.value)}
           maxLength={50}
           required
-          className="editorial-input mt-1"
+          className="anki-input mt-1"
           placeholder="例如：Go 并发编程"
         />
       </label>
       <label className="block">
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">所属分类</span>
+        <span className="text-xs text-zinc-500">所属分类</span>
         <input
           value={category}
           onChange={(event) => setCategory(event.target.value)}
           maxLength={30}
           required
           list="anki-category-options"
-          className="editorial-input mt-1"
+          className="anki-input mt-1"
           placeholder="选择已有分类，或输入新分类"
         />
         <datalist id="anki-category-options">
@@ -222,9 +221,10 @@ function CardForm({ state, dashboard, onClose, onDone }: CardFormProps) {
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const q = question.trim();
-    const a = answer.trim();
-    if (!q || !a) {
+    // 校验空白但保留源码缩进/尾部换行，避免破坏缩进代码块等 Markdown 语义。
+    const q = question;
+    const a = answer;
+    if (!q.trim() || !a.trim()) {
       setError('问题和答案不能为空或仅为空格。');
       return;
     }
@@ -260,13 +260,8 @@ function CardForm({ state, dashboard, onClose, onDone }: CardFormProps) {
   return (
     <form onSubmit={submit} className="mt-4 space-y-3">
       <label className="block">
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">所属卡片库</span>
-        <select
-          value={deckId}
-          onChange={(event) => setDeckId(event.target.value)}
-          required
-          className="editorial-input mt-1"
-        >
+        <span className="text-xs text-zinc-500">所属卡片库</span>
+        <select value={deckId} onChange={(event) => setDeckId(event.target.value)} required className="anki-input mt-1">
           {dashboard.decks.length === 0 && <option value="">请先创建卡片库</option>}
           {dashboard.decks.map((deck) => (
             <option key={deck.id} value={deck.id}>
@@ -275,38 +270,32 @@ function CardForm({ state, dashboard, onClose, onDone }: CardFormProps) {
           ))}
         </select>
       </label>
-      <label className="block">
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">Q · 问题</span>
-        <textarea
-          ref={firstRef}
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          maxLength={3000}
-          required
-          rows={3}
-          className="editorial-input mt-1"
-          placeholder="写下一个具体、可回忆的问题"
-        />
-      </label>
-      <label className="block">
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">A · 答案</span>
-        <textarea
-          value={answer}
-          onChange={(event) => setAnswer(event.target.value)}
-          maxLength={10000}
-          required
-          rows={4}
-          className="editorial-input mt-1"
-          placeholder="写下便于核对的答案"
-        />
-      </label>
+      <AnkiMarkdownEditor
+        label="Q · 问题"
+        inputRef={firstRef}
+        value={question}
+        onChange={setQuestion}
+        maxLength={3000}
+        rows={3}
+        placeholder="写下一个具体的问题，可使用 **加粗**、列表或代码块"
+      />
+      <AnkiMarkdownEditor
+        label="A · 答案"
+        value={answer}
+        onChange={setAnswer}
+        maxLength={10000}
+        rows={5}
+        placeholder="写下便于核对的答案，可使用标题、列表、表格或代码块"
+      />
       {editing && (
-        <label className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+        <label className="flex items-center gap-2 text-sm text-zinc-500">
           <input type="checkbox" checked={resetProgress} onChange={(event) => setResetProgress(event.target.checked)} />
           重新学习这张卡片（保留历史记录，默认保留排期）
         </label>
       )}
-      <p className="text-xs text-zinc-400">以纯文本保存；练习和浏览列表中答案默认隐藏。</p>
+      <p className="text-xs text-zinc-400">
+        以 Markdown 源码保存；支持标题、加粗、列表、引用、链接、表格和代码块，不执行 HTML；答案默认隐藏。
+      </p>
       <FieldError message={error} />
       <div className="flex justify-end gap-2 pt-1">
         <button
@@ -359,7 +348,7 @@ function GoalForm({ dashboard, onClose, onDone }: FormProps) {
   return (
     <form onSubmit={submit} className="mt-4 space-y-3">
       <label className="block">
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">每天想练习多少张不同卡片？</span>
+        <span className="text-xs text-zinc-500">每天想练习多少张不同卡片？</span>
         <input
           type="number"
           min={1}
@@ -368,7 +357,7 @@ function GoalForm({ dashboard, onClose, onDone }: FormProps) {
           value={goal}
           onChange={(event) => setGoal(event.target.value)}
           required
-          className="editorial-input mt-1"
+          className="anki-input mt-1"
         />
       </label>
       <p className="text-xs text-zinc-400">目标只影响展示，不限制练习；重复评价同一卡片只计一张完成量。</p>

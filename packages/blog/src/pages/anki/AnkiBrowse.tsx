@@ -9,6 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import { fetchDeckCards, type AnkiCard } from './anki-api';
+import { AnkiMarkdown } from './AnkiMarkdown';
 
 interface AnkiBrowseProps {
   deckId: string;
@@ -67,8 +68,8 @@ export function AnkiBrowse({ deckId, deckName, refreshToken = 0, onExit }: AnkiB
 
   if (error) {
     return (
-      <div className="rounded-surface border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-900">
-        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+      <div className="rounded-surface border border-zinc-200 bg-white p-8 text-center">
+        <p role="alert" className="text-sm text-red-600">
           {error}
         </p>
         <button
@@ -85,15 +86,15 @@ export function AnkiBrowse({ deckId, deckName, refreshToken = 0, onExit }: AnkiB
   if (!cards) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <p className="text-sm text-zinc-400 dark:text-zinc-500">正在加载卡片…</p>
+        <p className="text-sm text-zinc-400">正在加载卡片…</p>
       </div>
     );
   }
 
   if (cards.length === 0) {
     return (
-      <div className="rounded-surface border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="text-lg font-semibold text-ink dark:text-white">这个卡片库还没有卡片</h2>
+      <div className="rounded-surface border border-zinc-200 bg-white p-8 text-center">
+        <h2 className="text-lg font-semibold text-ink">这个卡片库还没有卡片</h2>
         <button
           type="button"
           className="rounded-full border border-[#087ae9] bg-[#087ae9] px-[17px] py-[9px] text-sm font-medium text-white inline-flex items-center justify-center gap-2 whitespace-nowrap mt-5"
@@ -109,7 +110,7 @@ export function AnkiBrowse({ deckId, deckName, refreshToken = 0, onExit }: AnkiB
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between text-sm text-zinc-500 dark:text-zinc-400">
+      <div className="flex items-center justify-between text-sm text-zinc-500">
         <button
           type="button"
           className="rounded-full border border-[#e9edf1] bg-white px-[17px] py-[9px] text-sm font-medium text-[#202124] inline-flex items-center justify-center gap-2 whitespace-nowrap"
@@ -124,19 +125,17 @@ export function AnkiBrowse({ deckId, deckName, refreshToken = 0, onExit }: AnkiB
 
       <p className="text-xs text-zinc-400">不受到期限制 · {deckName}</p>
 
-      <article className="rounded-surface border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 md:p-8">
+      <article className="rounded-surface border border-zinc-200 bg-white p-6 md:p-8">
         <span className="text-xs font-semibold text-sky-600" aria-hidden="true">
           Q
         </span>
-        <h2 className="mt-1 whitespace-pre-wrap text-xl font-semibold leading-relaxed text-ink dark:text-white md:text-2xl">
-          {current.question}
-        </h2>
+        <div role="heading" aria-level={2} className="mt-1">
+          <AnkiMarkdown content={current.question} className="anki-question" />
+        </div>
         {revealed && (
-          <section aria-label="卡片答案" className="mt-6 border-t border-zinc-100 pt-5 dark:border-zinc-800">
+          <section aria-label="卡片答案" className="mt-6 border-t border-zinc-100 pt-5">
             <div className="text-xs font-semibold text-zinc-400">A · 参考答案</div>
-            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-zinc-700 dark:text-zinc-200">
-              {current.answer}
-            </p>
+            <AnkiMarkdown content={current.answer} className="mt-2" />
           </section>
         )}
         <p className="mt-4 text-xs text-zinc-400">{revealed ? '答案已展开' : '答案已隐藏，先试着回忆'}</p>

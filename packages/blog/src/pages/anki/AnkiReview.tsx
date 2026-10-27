@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { hasOpenOverlay } from '@/hooks/useModalOverlay';
+import { AnkiMarkdown } from './AnkiMarkdown';
 import {
   fetchDeckQueue,
   newMutationId,
@@ -312,14 +313,14 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
         <span className="text-xs font-semibold text-sky-600" aria-hidden="true">
           Q
         </span>
-        <h2 className="mt-1 whitespace-pre-wrap text-xl font-semibold leading-relaxed text-ink md:text-2xl">
-          {current.question}
-        </h2>
+        <div role="heading" aria-level={2} className="mt-1">
+          <AnkiMarkdown content={current.question} className="anki-question" />
+        </div>
         {/* 答案未揭示时不渲染进 DOM/可访问树，自评控件仅揭示后可用。 */}
         {revealed && (
           <section aria-label="卡片答案" className="mt-6 border-t border-zinc-100 pt-5">
             <div className="text-xs font-semibold text-zinc-400">A · 参考答案</div>
-            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">{current.answer}</p>
+            <AnkiMarkdown content={current.answer} className="mt-2" />
           </section>
         )}
         <p className="mt-4 text-xs text-zinc-400">

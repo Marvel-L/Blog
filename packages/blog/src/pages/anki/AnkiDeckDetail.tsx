@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { fetchDeckCards, type AnkiCard, type AnkiDeckSummary } from './anki-api';
+import { AnkiMarkdown } from './AnkiMarkdown';
 
 interface AnkiDeckDetailProps {
   deck: AnkiDeckSummary;
@@ -73,7 +74,7 @@ export function AnkiDeckDetail({
         <button type="button" className="text-sm font-medium text-[#087ae9] hover:opacity-80" onClick={onBack}>
           返回卡片库
         </button>
-        <h1 className="mt-3 text-2xl font-bold text-ink dark:text-white">{deck.name}</h1>
+        <h1 className="mt-3 text-2xl font-bold text-ink">{deck.name}</h1>
         <p className="mt-1 text-sm text-zinc-400">{categoryName || '未分类'}</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <button type="button" className="text-sm font-medium text-[#087ae9] hover:opacity-80" onClick={onNewCard}>
@@ -98,26 +99,23 @@ export function AnkiDeckDetail({
         </div>
       </div>
 
-      <section
-        aria-label="学习进度"
-        className="rounded-surface border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
-      >
-        <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
+      <section aria-label="学习进度" className="rounded-surface border border-zinc-200 bg-white p-4">
+        <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-zinc-500">
           <span>
-            共 <strong className="text-ink dark:text-white">{deck.total}</strong> 张
+            共 <strong className="text-ink">{deck.total}</strong> 张
           </span>
           <span>
-            已学 <strong className="text-ink dark:text-white">{deck.learned}</strong>
+            已学 <strong className="text-ink">{deck.learned}</strong>
           </span>
           <span>
-            熟练 <strong className="text-ink dark:text-white">{deck.stable}</strong>
+            熟练 <strong className="text-ink">{deck.stable}</strong>
           </span>
           <span>
-            待练 <strong className="text-ink dark:text-white">{deck.due}</strong>
+            待练 <strong className="text-ink">{deck.due}</strong>
           </span>
         </div>
         <div
-          className="mt-3 h-1 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800"
+          className="mt-3 h-1 overflow-hidden rounded-full bg-zinc-100"
           role="progressbar"
           aria-label="已学覆盖率"
           aria-valuemin={0}
@@ -129,15 +127,15 @@ export function AnkiDeckDetail({
       </section>
 
       {error ? (
-        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+        <p role="alert" className="text-sm text-red-600">
           {error}
         </p>
       ) : !cards ? (
-        <p className="text-sm text-zinc-400 dark:text-zinc-500">正在加载卡片…</p>
+        <p className="text-sm text-zinc-400">正在加载卡片…</p>
       ) : cards.length === 0 ? (
-        <div className="rounded-surface border border-dashed border-zinc-300 p-8 text-center dark:border-zinc-700">
-          <h2 className="text-base font-semibold text-ink dark:text-white">这个卡片库还没有卡片</h2>
-          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">从一个明确的问题开始记录。</p>
+        <div className="rounded-surface border border-dashed border-zinc-300 p-8 text-center">
+          <h2 className="text-base font-semibold text-ink">这个卡片库还没有卡片</h2>
+          <p className="mt-2 text-sm text-zinc-500">从一个明确的问题开始记录。</p>
           <button
             type="button"
             className="rounded-full border border-[#087ae9] bg-[#087ae9] px-[17px] py-[9px] text-sm font-medium text-white inline-flex items-center justify-center gap-2 whitespace-nowrap mt-4"
@@ -151,12 +149,11 @@ export function AnkiDeckDetail({
           {cards.map((card) => {
             const isOpen = openAnswer.has(card.id);
             return (
-              <li
-                key={card.id}
-                className="rounded-surface border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
-              >
+              <li key={card.id} className="rounded-surface border border-zinc-200 bg-white p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <h3 className="whitespace-pre-wrap text-sm font-medium text-ink dark:text-white">{card.question}</h3>
+                  <div role="heading" aria-level={3} className="min-w-0 flex-1">
+                    <AnkiMarkdown content={card.question} />
+                  </div>
                   <button
                     type="button"
                     className="shrink-0 rounded-full border border-[#e9edf1] bg-white px-3 py-1.5 text-xs font-medium text-[#202124]"
@@ -177,9 +174,9 @@ export function AnkiDeckDetail({
                   {isOpen ? '收起答案' : '查看答案'}
                 </button>
                 {isOpen && (
-                  <p className="mt-2 whitespace-pre-wrap border-t border-zinc-100 pt-2 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-300">
-                    {card.answer}
-                  </p>
+                  <section aria-label="卡片答案" className="mt-2 border-t border-zinc-100 pt-2">
+                    <AnkiMarkdown content={card.answer} />
+                  </section>
                 )}
               </li>
             );

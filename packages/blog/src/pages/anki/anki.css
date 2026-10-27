@@ -1,0 +1,174 @@
+/* Anki 是独立浅色学习面；不修改 html.dark 或博客主题。弹层经 portal 挂到 body，单独隔离。 */
+.anki-surface,
+.anki-dialog-panel {
+  color-scheme: light;
+  --anki-ink: #202124;
+  --anki-muted: #777d86;
+  --anki-line: #e9edf1;
+  --anki-accent: #087ae9;
+  --anki-soft: #f5f7fa;
+  --anki-surface: #fff;
+}
+
+/* 使用已有弹层 className 扩展点，不改变其他业务的 SlideModal。 */
+.anki-dialog-panel.anki-dialog-panel {
+  background: var(--anki-surface);
+  color: var(--anki-ink);
+  border-color: var(--anki-line);
+  max-width: 48rem;
+}
+.anki-dialog-panel > div:first-child > div {
+  background: var(--anki-line);
+}
+
+.anki-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 16px;
+  border: 1px solid var(--anki-line, #e9edf1);
+  border-radius: 10px;
+  background: var(--anki-surface, #fff);
+  color: var(--anki-ink, #202124);
+  color-scheme: light;
+  font-size: 16px;
+  line-height: 1.65;
+  resize: vertical;
+}
+.anki-input::placeholder {
+  color: var(--anki-muted, #777d86);
+}
+.anki-input:focus-visible {
+  outline: 2px solid var(--anki-accent, #087ae9);
+  outline-offset: 2px;
+}
+.anki-preview {
+  min-height: 120px;
+  padding: 16px;
+  border: 1px solid var(--anki-line, #e9edf1);
+  border-radius: 10px;
+  background: var(--anki-surface, #fff);
+}
+
+.anki-markdown {
+  min-width: 0;
+  color: var(--anki-ink, #202124);
+  font-size: 14px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.anki-markdown > :first-child {
+  margin-top: 0;
+}
+.anki-markdown > :last-child {
+  margin-bottom: 0;
+}
+.anki-markdown p {
+  margin: 0.6em 0;
+  white-space: pre-wrap;
+}
+.anki-markdown h1,
+.anki-markdown h2,
+.anki-markdown h3,
+.anki-markdown h4,
+.anki-markdown h5,
+.anki-markdown h6 {
+  margin: 1em 0 0.4em;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.anki-markdown h1 {
+  font-size: 1.5em;
+}
+.anki-markdown h2 {
+  font-size: 1.3em;
+}
+.anki-markdown h3 {
+  font-size: 1.15em;
+}
+.anki-markdown ul,
+.anki-markdown ol {
+  margin: 0.6em 0;
+  padding-left: 1.6em;
+}
+.anki-markdown ul {
+  list-style: disc;
+}
+.anki-markdown ol {
+  list-style: decimal;
+}
+.anki-markdown li {
+  margin: 0.25em 0;
+}
+.anki-markdown .contains-task-list {
+  list-style: none;
+  padding-left: 0;
+}
+.anki-markdown input[type='checkbox'] {
+  margin-right: 0.5em;
+}
+.anki-markdown a {
+  color: var(--anki-accent, #087ae9);
+  text-decoration: underline;
+}
+.anki-markdown blockquote {
+  margin: 0.8em 0;
+  padding: 4px 14px;
+  border-left: 3px solid var(--anki-line, #e9edf1);
+  color: #525965;
+  background: var(--anki-soft, #f5f7fa);
+}
+.anki-markdown code {
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  background: var(--anki-soft, #f5f7fa);
+  font-size: 0.9em;
+}
+.anki-markdown pre {
+  max-width: 100%;
+  margin: 0.8em 0;
+  padding: 16px;
+  overflow-x: auto;
+  border-radius: 8px;
+  background: var(--anki-soft, #f5f7fa);
+}
+.anki-markdown pre code {
+  padding: 0;
+  background: transparent;
+  white-space: pre;
+}
+.anki-markdown-table {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 0.8em 0;
+}
+.anki-markdown table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.anki-markdown th,
+.anki-markdown td {
+  padding: 8px 12px;
+  border: 1px solid var(--anki-line, #e9edf1);
+  text-align: left;
+}
+.anki-markdown th {
+  background: var(--anki-soft, #f5f7fa);
+  font-weight: 600;
+}
+.anki-markdown hr {
+  margin: 1em 0;
+  border-color: var(--anki-line, #e9edf1);
+}
+.anki-question {
+  font-size: 20px;
+  font-weight: 600;
+}
+@media (min-width: 768px) {
+  .anki-question {
+    font-size: 24px;
+  }
+  .anki-input {
+    font-size: 14px;
+  }
+}

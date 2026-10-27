@@ -144,7 +144,7 @@ export const AnkiTrendLine: React.FC<AnkiTrendLineProps> = ({ days }) => {
       {tip && (
         <div
           role="tooltip"
-          className="pointer-events-none fixed z-modal -translate-x-1/2 rounded-surface border border-zinc-200 bg-white px-2.5 py-1 text-xs text-zinc-700 shadow-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+          className="pointer-events-none fixed z-modal -translate-x-1/2 rounded-surface border border-zinc-200 bg-white px-2.5 py-1 text-xs text-zinc-700 shadow-sm"
           style={{ left: tip.x, top: tip.y - 34 }}
         >
           {tip.text}

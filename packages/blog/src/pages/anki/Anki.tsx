@@ -22,6 +22,7 @@ import { AnkiBrowse } from './AnkiBrowse';
 import { AnkiDeckDetail } from './AnkiDeckDetail';
 import { AnkiStats } from './AnkiStats';
 import { AnkiDialogs, type AnkiDialogState } from './AnkiDialogs';
+import './anki.css';
 
 type AnkiView =
   | { name: 'overview' }
@@ -213,7 +214,7 @@ export default function AnkiPage() {
 
   if (phase === 'unauthorized' || (explicitLogin && phase === 'error' && !user)) {
     return (
-      <div className="min-h-screen bg-white" style={{ color: T.ink }}>
+      <div className="anki-surface min-h-screen bg-white" style={{ color: T.ink }}>
         <Seo title="Anki 记忆卡片" noindex />
         {topBar}
         <main className="mx-auto flex min-h-[60vh] w-full max-w-[1100px] flex-col items-center justify-center px-6 py-16 text-center">
@@ -251,7 +252,7 @@ export default function AnkiPage() {
 
   if (phase === 'error') {
     return (
-      <div className="min-h-screen bg-white" style={{ color: T.ink }}>
+      <div className="anki-surface min-h-screen bg-white" style={{ color: T.ink }}>
         <Seo title="Anki 记忆卡片" noindex />
         {topBar}
         <main className="mx-auto flex min-h-[60vh] w-full max-w-[1100px] flex-col items-center justify-center px-6 py-16 text-center">
@@ -283,7 +284,7 @@ export default function AnkiPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white" style={{ color: T.ink }}>
+    <div className="anki-surface min-h-screen bg-white" style={{ color: T.ink }}>
       <Seo
         title="Anki 记忆卡片"
         description="按分类整理 Q & A 卡片，到期主动回忆并自评，让知识在合适的时间再次出现。"
