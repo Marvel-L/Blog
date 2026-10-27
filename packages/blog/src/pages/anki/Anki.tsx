@@ -284,7 +284,10 @@ export default function AnkiPage() {
   }
 
   return (
-    <div className="anki-surface min-h-screen bg-white" style={{ color: T.ink }}>
+    <div
+      className={`anki-surface min-h-screen bg-white${view.name === 'browse' ? ' anki-browse-surface' : ''}`}
+      style={{ color: T.ink }}
+    >
       <Seo
         title="Anki 记忆卡片"
         description="按分类整理 Q & A 卡片，到期主动回忆并自评，让知识在合适的时间再次出现。登录后查看自己的卡片库、练习进度与每日统计。"
@@ -292,7 +295,9 @@ export default function AnkiPage() {
       />
       {topBar}
       {aiSettingsOpen && <AnkiAIDialog key={`ai-settings-${accountKey}`} onClose={() => setAISettingsOpen(false)} />}
-      <main className="mx-auto w-full max-w-[1100px] px-[22px] pb-[65px] pt-[40px] min-[1000px]:px-[35px] min-[1000px]:pb-[75px] min-[1000px]:pt-[60px]">
+      <main
+        className={`mx-auto w-full max-w-[1100px] px-[22px] pb-[65px] pt-[40px] min-[1000px]:px-[35px] min-[1000px]:pb-[75px] min-[1000px]:pt-[60px]${view.name === 'browse' ? ' anki-browse-main' : ''}`}
+      >
         <AnkiSyncStatus key={`sync-${accountKey}`} onSync={refresh} disabled={phase !== 'ready'} />
         {phase === 'loading' || !dashboard ? (
           <div className="flex min-h-[40vh] items-center justify-center">
@@ -595,7 +600,7 @@ function AnkiWorkspace({
         />
       )}
 
-      {view.name !== 'drafts' && (
+      {view.name !== 'drafts' && view.name !== 'browse' && (
         <button
           type="button"
           className="mt-6 min-h-11 text-sm text-[#087ae9]"

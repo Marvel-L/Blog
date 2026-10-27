@@ -7,7 +7,8 @@
  * - 不发起任何写请求：不自评、不改排期、不计入每日进度。
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight, RotateCcw, Shuffle } from 'lucide-react';
 import { fetchDeckCards, type AnkiCard } from './anki-api';
 import { AnkiMarkdown } from './AnkiMarkdown';
 import { AnkiCardTags } from './AnkiTags';
@@ -36,6 +37,13 @@ export function AnkiBrowse({ deckId, deckName, refreshToken = 0, tag = null, onE
   const [error, setError] = useState('');
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
+  const [motion, setMotion] = useState({ kind: 'idle', sequence: 0 });
+  const cardRef = useRef<HTMLElement>(null);
+
+  // 切卡仅滚动当前卡牌，不影响页面或复习状态。
+  useEffect(() => {
+    cardRef.current?.scrollTo?.({ top: 0, behavior: 'instant' });
+  }, [index, motion.sequence]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -63,9 +71,12 @@ export function AnkiBrowse({ deckId, deckName, refreshToken = 0, tag = null, onE
     setCards(shuffle(cards));
     setIndex(0);
     setRevealed(false);
+    setMotion((value) => ({ kind: 'shuffle', sequence: value.sequence + 1 }));
   };
 
   const goTo = (next: number) => {
+    if (!cards || next < 0 || next >= cards.length) return;
+    setMotion((value) => ({ kind: next > index ? 'next' : 'previous', sequence: value.sequence + 1 }));
     setIndex(next);
     setRevealed(false);
   };
@@ -115,77 +126,71 @@ export function AnkiBrowse({ deckId, deckName, refreshToken = 0, tag = null, onE
   const current = cards[index];
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between text-sm text-zinc-500">
-        <button
-          type="button"
-          className="rounded-full border border-[#e9edf1] bg-white px-[17px] py-[9px] text-sm font-medium text-[#202124] inline-flex items-center justify-center gap-2 whitespace-nowrap"
-          onClick={onExit}
-        >
-          返回卡片库
+    <div className="anki-browse" aria-label="沉浸式随机浏览">
+      <div className="anki-browse-toolbar">
+        <button type="button" className="anki-browse-exit" onClick={onExit}>
+          <ArrowLeft size={16} aria-hidden="true" /> 返回卡片库
         </button>
-        <span aria-live="polite">
-          随机浏览 · {index + 1} / {cards.length}
-        </span>
+        <div className="anki-browse-context">
+          <span>
+            {deckName}
+            {tag !== null ? ` · ${tag || '无标签'}` : ''}
+          </span>
+          <span aria-live="polite" className="tabular-nums">
+            随机浏览 · {index + 1} / {cards.length}
+          </span>
+        </div>
+        <button type="button" className="anki-browse-shuffle" onClick={reshuffle}>
+          <Shuffle size={16} aria-hidden="true" /> 重新洗牌
+        </button>
       </div>
 
-      <p className="text-xs text-zinc-400">
-        不受到期限制 · {deckName}
-        {tag !== null ? ` · ${tag || '无标签'}` : ''}
-      </p>
-
-      <article className="rounded-surface border border-zinc-200 bg-white p-6 md:p-8">
-        <span className="text-xs font-semibold text-sky-600" aria-hidden="true">
-          Q
-        </span>
-        <div role="heading" aria-level={2} className="mt-1">
-          <AnkiMarkdown content={current.question} className="anki-question" />
+      <div className="anki-browse-stage">
+        <div key={motion.sequence} className="anki-browse-stack" data-motion={motion.kind}>
+          <span className="anki-browse-layer anki-browse-layer-back" aria-hidden="true" />
+          <span className="anki-browse-layer anki-browse-layer-front" aria-hidden="true" />
+          <article ref={cardRef} className="anki-browse-card" aria-label="当前卡牌">
+            <div className="anki-browse-card-head">
+              <span className="anki-browse-question-label">Q · 试着回忆</span>
+              <span className="tabular-nums">{String(index + 1).padStart(2, '0')}</span>
+            </div>
+            <div className="anki-browse-content">
+              <div role="heading" aria-level={2}>
+                <AnkiMarkdown content={current.question} className="anki-question" />
+              </div>
+              {revealed && (
+                <section aria-label="卡片答案" className="anki-browse-answer">
+                  <div className="anki-browse-answer-label">A · 参考答案</div>
+                  <AnkiMarkdown content={current.answer} className="mt-3" />
+                </section>
+              )}
+            </div>
+            <div className="anki-browse-card-foot">
+              <AnkiCardTags tags={current.tags} />
+              <AnkiCardCounts card={current} />
+              <p className="mt-4 text-xs text-zinc-400">{revealed ? '答案已展开' : '答案已隐藏，先试着回忆'}</p>
+            </div>
+          </article>
         </div>
-        {revealed && (
-          <section aria-label="卡片答案" className="mt-6 border-t border-zinc-100 pt-5">
-            <div className="text-xs font-semibold text-zinc-400">A · 参考答案</div>
-            <AnkiMarkdown content={current.answer} className="mt-2" />
-          </section>
-        )}
-        <AnkiCardTags tags={current.tags} />
-        <AnkiCardCounts card={current} />
-        <p className="mt-4 text-xs text-zinc-400">{revealed ? '答案已展开' : '答案已隐藏，先试着回忆'}</p>
-      </article>
+      </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <button
-          type="button"
-          className="rounded-full border border-[#e9edf1] bg-white px-[17px] py-[9px] text-sm font-medium text-[#202124] inline-flex items-center justify-center gap-2 whitespace-nowrap"
-          disabled={index === 0}
-          onClick={() => goTo(index - 1)}
-        >
-          上一张
+      <div className="anki-browse-controls">
+        <button type="button" className="anki-browse-step" disabled={index === 0} onClick={() => goTo(index - 1)}>
+          <ArrowLeft size={18} aria-hidden="true" /> 上一张
+        </button>
+        <button type="button" className="anki-browse-reveal" onClick={() => setRevealed((value) => !value)}>
+          <RotateCcw size={17} aria-hidden="true" /> {revealed ? '收起答案' : '显示答案'}
         </button>
         <button
           type="button"
-          className="rounded-full border border-[#087ae9] bg-[#087ae9] px-[17px] py-[9px] text-sm font-medium text-white inline-flex items-center justify-center gap-2 whitespace-nowrap"
-          onClick={() => setRevealed((value) => !value)}
-        >
-          {revealed ? '收起答案' : '显示答案'}
-        </button>
-        <button
-          type="button"
-          className="rounded-full border border-[#e9edf1] bg-white px-[17px] py-[9px] text-sm font-medium text-[#202124] inline-flex items-center justify-center gap-2 whitespace-nowrap"
+          className="anki-browse-step"
           disabled={index >= cards.length - 1}
           onClick={() => goTo(index + 1)}
         >
-          下一张
-        </button>
-        <button
-          type="button"
-          className="rounded-full border border-[#e9edf1] bg-white px-[17px] py-[9px] text-sm font-medium text-[#202124] inline-flex items-center justify-center gap-2 whitespace-nowrap"
-          onClick={reshuffle}
-        >
-          重新洗牌
+          下一张 <ArrowRight size={18} aria-hidden="true" />
         </button>
       </div>
-
-      <p className="text-center text-xs text-zinc-400">自由查看全部卡片，不改变复习排期，也不计入每日练习进度。</p>
+      <p className="anki-browse-note">自由查看全部卡片，不改变复习排期，也不计入每日练习进度。</p>
     </div>
   );
 }

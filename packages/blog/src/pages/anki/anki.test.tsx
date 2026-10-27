@@ -371,6 +371,8 @@ describe('Anki 账号与同步反馈回归', () => {
   it('手动同步只拉取云端并更新统计，显示最近确认和事件触发策略', async () => {
     mount();
     await screen.findByText('我的卡片库');
+    expect(screen.queryByRole('button', { name: '手动同步' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /^云端同步：/ }));
     expect(await screen.findByText(/最近确认：/)).not.toHaveTextContent('尚未收到云端确认');
     expect(screen.getByText(/下次同步：保存或评价时立即上传/)).toHaveTextContent('无定时同步任务');
     const count = request.mock.calls.filter(([url]) => String(url).endsWith('/dashboard')).length;
@@ -389,6 +391,7 @@ describe('Anki 账号与同步反馈回归', () => {
   it('手动同步失败保留旧数据、错误提示和原确认时间，重试后恢复', async () => {
     mount();
     await screen.findByText('我的卡片库');
+    fireEvent.click(screen.getByRole('button', { name: /^云端同步：/ }));
     await waitFor(() => expect(screen.getByRole('button', { name: '手动同步' })).toBeEnabled());
     const confirmed = screen.getByText(/最近确认：/).textContent;
     const original = request.getMockImplementation()!;
@@ -413,6 +416,7 @@ describe('Anki 账号与同步反馈回归', () => {
     await screen.findByText('Q1?');
     fireEvent.click(screen.getByRole('button', { name: '显示答案' }));
     fireEvent.click(screen.getByRole('button', { name: /^正确/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^云端同步：/ }));
     await screen.findByText(/保存或评价未收到云端确认/);
     fireEvent.click(screen.getByRole('button', { name: '手动同步' }));
     await waitFor(() => expect(screen.getByRole('button', { name: '手动同步' })).toBeEnabled());
@@ -434,6 +438,7 @@ describe('Anki 账号与同步反馈回归', () => {
         ? Promise.resolve(jsonResponse({ cards: [makeCard('remote-card', '其他设备新增?')] }))
         : original(input, init),
     );
+    fireEvent.click(screen.getByRole('button', { name: /^云端同步：/ }));
     await waitFor(() => expect(screen.getByRole('button', { name: '手动同步' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: '手动同步' }));
     expect(await screen.findByText('其他设备新增?')).toBeInTheDocument();
