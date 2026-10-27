@@ -40,7 +40,12 @@ export function AnkiDialogs({ state, dashboard, onClose, onDone }: AnkiDialogsPr
           : '录入 Q & A 卡片'
         : '每日练习目标';
   return (
-    <SlideModal isOpen onClose={onClose} ariaLabelledby="anki-dialog-title" className="anki-dialog-panel">
+    <SlideModal
+      isOpen
+      onClose={onClose}
+      ariaLabelledby="anki-dialog-title"
+      className={`anki-dialog-panel ${state.kind === 'card' ? 'anki-card-dialog' : ''}`}
+    >
       <div className="p-5">
         <h2 id="anki-dialog-title" className="text-lg font-semibold text-ink">
           {title}
@@ -258,7 +263,7 @@ function CardForm({ state, dashboard, onClose, onDone }: CardFormProps) {
   };
 
   return (
-    <form onSubmit={submit} className="mt-4 space-y-3">
+    <form onSubmit={submit} className="anki-card-form mt-4 space-y-5">
       <label className="block">
         <span className="text-xs text-zinc-500">所属卡片库</span>
         <select value={deckId} onChange={(event) => setDeckId(event.target.value)} required className="anki-input mt-1">
@@ -276,7 +281,7 @@ function CardForm({ state, dashboard, onClose, onDone }: CardFormProps) {
         value={question}
         onChange={setQuestion}
         maxLength={3000}
-        rows={3}
+        rows={7}
         placeholder="写下一个具体的问题，可使用 **加粗**、列表或代码块"
       />
       <AnkiMarkdownEditor
@@ -284,7 +289,7 @@ function CardForm({ state, dashboard, onClose, onDone }: CardFormProps) {
         value={answer}
         onChange={setAnswer}
         maxLength={10000}
-        rows={5}
+        rows={14}
         placeholder="写下便于核对的答案，可使用标题、列表、表格或代码块"
       />
       {editing && (

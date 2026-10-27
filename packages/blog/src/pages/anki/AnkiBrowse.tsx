@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react';
 import { fetchDeckCards, type AnkiCard } from './anki-api';
 import { AnkiMarkdown } from './AnkiMarkdown';
+import { AnkiCardCounts } from './AnkiCardCounts';
 
 interface AnkiBrowseProps {
   deckId: string;
@@ -138,6 +139,7 @@ export function AnkiBrowse({ deckId, deckName, refreshToken = 0, onExit }: AnkiB
             <AnkiMarkdown content={current.answer} className="mt-2" />
           </section>
         )}
+        <AnkiCardCounts card={current} />
         <p className="mt-4 text-xs text-zinc-400">{revealed ? '答案已展开' : '答案已隐藏，先试着回忆'}</p>
       </article>
 

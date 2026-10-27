@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { hasOpenOverlay } from '@/hooks/useModalOverlay';
 import { AnkiMarkdown } from './AnkiMarkdown';
+import { AnkiCardCounts } from './AnkiCardCounts';
 import {
   fetchDeckQueue,
   newMutationId,
@@ -323,6 +324,7 @@ export function AnkiReview({ decks, deckId, onExit, onSessionSettled }: AnkiRevi
             <AnkiMarkdown content={current.answer} className="mt-2" />
           </section>
         )}
+        <AnkiCardCounts card={current} />
         <p className="mt-4 text-xs text-zinc-400">
           {revealed ? '已揭示答案，请根据回忆情况评价' : '答案已隐藏，先试着回忆'}
         </p>

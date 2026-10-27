@@ -50,16 +50,21 @@ type AnkiDeckStats struct {
 	Due     int `json:"due"`
 }
 type AnkiCard struct {
-	ID           string    `json:"id"`
-	DeckID       string    `json:"deckId"`
-	Question     string    `json:"question"`
-	Answer       string    `json:"answer"`
-	DueAt        time.Time `json:"dueAt"`
-	IntervalDays int       `json:"intervalDays"`
-	Repetitions  int       `json:"repetitions"`
-	EaseFactor   float64   `json:"easeFactor"`
-	ReviewCount  int       `json:"reviewCount"`
-	Version      int       `json:"version"`
+	ID            string    `json:"id"`
+	DeckID        string    `json:"deckId"`
+	Question      string    `json:"question"`
+	Answer        string    `json:"answer"`
+	DueAt         time.Time `json:"dueAt"`
+	IntervalDays  int       `json:"intervalDays"`
+	Repetitions   int       `json:"repetitions"`
+	EaseFactor    float64   `json:"easeFactor"`
+	ReviewCount   int       `json:"reviewCount"`
+	Version       int       `json:"version"`
+	PracticeCount int       `json:"practiceCount"`
+	CorrectCount  int       `json:"correctCount"`
+	HardCount     int       `json:"hardCount"`
+	WrongCount    int       `json:"wrongCount"`
+	CustomCount   int       `json:"customCount"`
 }
 type AnkiHistoryDay struct {
 	Date        string `json:"date"`
@@ -163,11 +168,11 @@ func Previews(intervalDays, repetitions int, easeFactor float64) (days int) {
 
 func scanCard(row pgx.Row) (AnkiCard, error) {
 	var c AnkiCard
-	err := row.Scan(&c.ID, &c.DeckID, &c.Question, &c.Answer, &c.DueAt, &c.IntervalDays, &c.Repetitions, &c.EaseFactor, &c.ReviewCount, &c.Version)
+	err := row.Scan(scanCardScans(&c)...)
 	return c, err
 }
 
-const ankiCardColumns = `id::text, deck_id::text, question, answer, due_at, interval_days, repetitions, ease_factor, review_count, version`
+const ankiCardColumns = `id::text, deck_id::text, question, answer, due_at, interval_days, repetitions, ease_factor, review_count, version, practice_count, correct_count, hard_count, wrong_count, custom_count`
 
 func (s *Store) CreateAnkiCategory(ctx context.Context, userID, name string) (AnkiCategory, error) {
 	var c AnkiCategory
@@ -316,6 +321,15 @@ func (s *Store) AnkiQueue(ctx context.Context, userID, deckID string) ([]AnkiCar
 // 异 payload（含跨卡复用 mutationId、同卡异提交版本）返回 ErrMutationReuse。
 // 调度/日桶时间一律取锁后的 DB clock_timestamp()，避免应用时钟漂移与跨锁等待。
 func (s *Store) ReviewAnkiCard(ctx context.Context, userID, cardID string, version int, mutationID, rating string, customDays *int) (AnkiCard, error) {
+	return s.reviewAnkiCard(ctx, userID, cardID, version, mutationID, rating, customDays, "due")
+}
+
+// PracticeAnkiCard 是用户主动揭示答案后的正式练习，允许提前，仍校验归属、版本与幂等摘要。
+func (s *Store) PracticeAnkiCard(ctx context.Context, userID, cardID string, version int, mutationID, rating string) (AnkiCard, error) {
+	return s.reviewAnkiCard(ctx, userID, cardID, version, mutationID, rating, nil, "practice")
+}
+
+func (s *Store) reviewAnkiCard(ctx context.Context, userID, cardID string, version int, mutationID, rating string, customDays *int, mode string) (AnkiCard, error) {
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return AnkiCard{}, err
@@ -344,13 +358,14 @@ func (s *Store) ReviewAnkiCard(ctx context.Context, userID, cardID string, versi
 	var priorVersion int
 	var priorRating string
 	var priorCustom *int
-	err = tx.QueryRow(ctx, "SELECT card_id::text,card_version,rating,custom_days FROM anki_reviews WHERE user_id=$1 AND mutation_id=$2", userID, mutationID).Scan(&priorCard, &priorVersion, &priorRating, &priorCustom)
+	var priorMode string
+	err = tx.QueryRow(ctx, "SELECT card_id::text,card_version,rating,custom_days,review_mode FROM anki_reviews WHERE user_id=$1 AND mutation_id=$2", userID, mutationID).Scan(&priorCard, &priorVersion, &priorRating, &priorCustom, &priorMode)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return AnkiCard{}, err
 	}
 	replayed := errors.Is(err, pgx.ErrNoRows) == false
 	if replayed {
-		same := priorCard == cardID && priorVersion == version && priorRating == effRating(rating, customDays) &&
+		same := priorMode == mode && priorCard == cardID && priorVersion == version && priorRating == effRating(rating, customDays) &&
 			((priorCustom == nil && customDays == nil) || (priorCustom != nil && customDays != nil && *priorCustom == *customDays))
 		if !same {
 			return AnkiCard{}, ErrMutationReuse
@@ -359,7 +374,7 @@ func (s *Store) ReviewAnkiCard(ctx context.Context, userID, cardID string, versi
 		return c, tx.Commit(ctx)
 	}
 	// 未到期守卫：合法重放已在上面放行；新评价必须 c.DueAt<=dbNow，拒绝提前自评（含伪造直接请求）。
-	if c.DueAt.After(dbNow) {
+	if mode == "due" && c.DueAt.After(dbNow) {
 		return AnkiCard{}, ErrAnkiNotDue
 	}
 	if c.Version != version {
@@ -387,14 +402,19 @@ func (s *Store) ReviewAnkiCard(ctx context.Context, userID, cardID string, versi
 		}
 		goal = AnkiDefaultGoal
 	}
-	err = tx.QueryRow(ctx, `UPDATE anki_cards SET due_at=$3,interval_days=$4,repetitions=$5,ease_factor=$6,review_count=review_count+1,version=version+1
+	err = tx.QueryRow(ctx, `UPDATE anki_cards SET due_at=$3,interval_days=$4,repetitions=$5,ease_factor=$6,review_count=review_count+1,version=version+1,
+	 practice_count=practice_count+1,
+	 correct_count=correct_count+CASE WHEN $7='correct' THEN 1 ELSE 0 END,
+	 hard_count=hard_count+CASE WHEN $7='hard' THEN 1 ELSE 0 END,
+	 wrong_count=wrong_count+CASE WHEN $7='wrong' THEN 1 ELSE 0 END,
+	 custom_count=custom_count+CASE WHEN $7='custom' THEN 1 ELSE 0 END
 	 WHERE id=$1 AND user_id=$2 RETURNING `+ankiCardColumns,
-		cardID, userID, sched.dueAt, sched.intervalDays, sched.repetitions, sched.easeFactor).Scan(scanCardScans(&c)...)
+		cardID, userID, sched.dueAt, sched.intervalDays, sched.repetitions, sched.easeFactor, effRating).Scan(scanCardScans(&c)...)
 	if err != nil {
 		return AnkiCard{}, err
 	}
-	if _, err = tx.Exec(ctx, `INSERT INTO anki_reviews(user_id,mutation_id,card_id,card_version,rating,custom_days,review_date,deck_id_snapshot) VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,
-		userID, mutationID, cardID, version, effRating, customDays, today, c.DeckID); err != nil {
+	if _, err = tx.Exec(ctx, `INSERT INTO anki_reviews(user_id,mutation_id,card_id,card_version,rating,custom_days,review_date,deck_id_snapshot,review_mode) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+		userID, mutationID, cardID, version, effRating, customDays, today, c.DeckID, mode); err != nil {
 		return AnkiCard{}, err
 	}
 	// 当日聚合：reviews 恒 +1；unique_cards 仅在当日首次评价此卡时 +1；goal 仅在新建日行快照。
@@ -505,5 +525,5 @@ func (s *Store) AnkiDashboard(ctx context.Context, userID string, historyDays in
 
 // scanCardScans 返回按 ankiCardColumns 顺序的扫描目标（便于 QueryRow/Scan 复用）。
 func scanCardScans(c *AnkiCard) []any {
-	return []any{&c.ID, &c.DeckID, &c.Question, &c.Answer, &c.DueAt, &c.IntervalDays, &c.Repetitions, &c.EaseFactor, &c.ReviewCount, &c.Version}
+	return []any{&c.ID, &c.DeckID, &c.Question, &c.Answer, &c.DueAt, &c.IntervalDays, &c.Repetitions, &c.EaseFactor, &c.ReviewCount, &c.Version, &c.PracticeCount, &c.CorrectCount, &c.HardCount, &c.WrongCount, &c.CustomCount}
 }

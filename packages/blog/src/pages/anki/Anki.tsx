@@ -536,6 +536,7 @@ function AnkiWorkspace({
               onEditCard={(card: AnkiCard) => onDialogChange({ kind: 'card', card })}
               onBrowse={() => onViewChange({ name: 'browse', deckId: deck.id })}
               onPractice={() => onViewChange({ name: 'review', deckId: deck.id })}
+              onRecorded={refresh}
             />
           );
         })()}

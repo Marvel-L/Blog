@@ -59,6 +59,14 @@ describe('Anki Markdown 安全渲染', () => {
     expect(screen.getByText('[图片：图片]')).toBeInTheDocument();
   });
 
+  it('硬换行与软换行均只换一行，不追加空白；代码缩进原样保留', () => {
+    const source = '分析 :  \nInterface 正文\n下一行\n\n```go\n    fmt.Println("code")\n```';
+    const { container } = render(<AnkiMarkdown content={source} />);
+    const paragraph = container.querySelector('p')!;
+    expect(paragraph.innerHTML).toBe('分析 :<br>Interface 正文<br>下一行');
+    expect(container.querySelector('pre code')?.textContent).toBe('    fmt.Println("code")\n');
+  });
+
   it('正常 HTTPS 和 mailto 链接可用，隔离新窗口权限', () => {
     render(<AnkiMarkdown content={'[文档](https://example.com/docs) [邮件](mailto:me@example.com)'} />);
     expect(screen.getByRole('link', { name: '文档' })).toHaveAttribute('href', 'https://example.com/docs');
@@ -76,7 +84,7 @@ describe('Anki Markdown 安全渲染', () => {
 });
 
 describe('新建与编辑 Markdown 源码', () => {
-  it.each([false, true])('编辑=%s：切换预览保留草稿，提交源码而不是 HTML，默认保留排期', async (editing) => {
+  it.each([false, true])('编辑=%s：输入与预览实时同步，提交源码而不是 HTML，默认保留排期', async (editing) => {
     const request = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify(card)));
     vi.stubGlobal('fetch', request);
     const done = vi.fn();
@@ -90,9 +98,11 @@ describe('新建与编辑 Markdown 源码', () => {
     );
     fireEvent.change(screen.getByLabelText('Q · 问题'), { target: { value: '**我的问题**' } });
     fireEvent.change(screen.getByLabelText('A · 答案'), { target: { value: markdown } });
-    fireEvent.click(screen.getByRole('button', { name: '预览 Markdown · A · 答案' }));
+    expect(screen.queryByRole('button', { name: /预览 Markdown/ })).not.toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'A · 答案 Markdown 预览' })).toHaveTextContent('答案标题');
-    fireEvent.click(screen.getByRole('button', { name: '继续编辑 · A · 答案' }));
+    fireEvent.change(screen.getByLabelText('A · 答案'), { target: { value: `${markdown}\n\n实时新增` } });
+    expect(screen.getByRole('region', { name: 'A · 答案 Markdown 预览' })).toHaveTextContent('实时新增');
+    fireEvent.change(screen.getByLabelText('A · 答案'), { target: { value: markdown } });
     expect(screen.getByLabelText('A · 答案')).toHaveValue(markdown);
     fireEvent.click(screen.getByRole('button', { name: '保存卡片' }));
     await waitFor(() => expect(done).toHaveBeenCalled());
@@ -112,8 +122,7 @@ describe('新建与编辑 Markdown 源码', () => {
     );
     fireEvent.change(screen.getByLabelText('Q · 问题'), { target: { value: ' ' } });
     fireEvent.change(screen.getByLabelText('A · 答案'), { target: { value: ' ' } });
-    fireEvent.click(screen.getByRole('button', { name: '预览 Markdown · A · 答案' }));
-    expect(screen.getByText('还没有内容，请先编辑。')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'A · 答案 Markdown 预览' })).toHaveTextContent('还没有内容，请先编辑。');
     fireEvent.submit(screen.getByRole('button', { name: '保存卡片' }).closest('form')!);
     expect(screen.getByRole('alert')).toHaveTextContent('不能为空');
     expect(request).not.toHaveBeenCalled();

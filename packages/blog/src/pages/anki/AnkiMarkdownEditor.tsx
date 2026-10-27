@@ -1,7 +1,7 @@
-import { useId, useState, type RefObject } from 'react';
+import { useId, type RefObject } from 'react';
 import { AnkiMarkdown } from './AnkiMarkdown';
 
-/** 直接编辑 Markdown 源码，切换预览不丢失草稿；预览态保留原生表单校验。 */
+/** 源码与预览始终并存，输入即时同步；不修改源码、不发网络请求。 */
 export function AnkiMarkdownEditor({
   label,
   value,
@@ -20,51 +20,39 @@ export function AnkiMarkdownEditor({
   inputRef?: RefObject<HTMLTextAreaElement | null>;
 }) {
   const id = useId();
-  const [preview, setPreview] = useState(false);
   return (
-    <div>
-      <div className="mb-1 flex items-center justify-between gap-3">
-        <label htmlFor={id} className="text-xs text-zinc-500">
-          {label}
+    <section className="anki-editor-field" aria-label={`${label} 编辑与实时预览`}>
+      <div className="anki-editor-column">
+        <label htmlFor={id} className="anki-editor-label">
+          {label} · Markdown 源码
         </label>
-        <button
-          type="button"
-          aria-pressed={preview}
-          aria-label={`${preview ? '继续编辑' : '预览 Markdown'} · ${label}`}
-          aria-controls={preview ? `${id}-preview` : undefined}
-          className="min-h-9 text-xs font-medium text-sky-600"
-          onClick={() => setPreview((current) => !current)}
-        >
-          {preview ? '继续编辑' : '预览 Markdown'}
-          <span className="sr-only"> · {label}</span>
-        </button>
+        <textarea
+          id={id}
+          ref={inputRef}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          maxLength={maxLength}
+          required
+          rows={rows}
+          className="anki-input anki-editor-source"
+          placeholder={placeholder}
+          aria-describedby={`${id}-hint`}
+          aria-label={label}
+        />
+        <p id={`${id}-hint`} className="mt-1 text-xs text-zinc-400">
+          {value.length}/{maxLength} · 输入后自动预览
+        </p>
       </div>
-      <textarea
-        id={id}
-        ref={inputRef}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        maxLength={maxLength}
-        required
-        rows={rows}
-        className={preview ? 'sr-only' : 'anki-input font-mono'}
-        placeholder={placeholder}
-        aria-describedby={`${id}-hint`}
-        tabIndex={preview ? -1 : undefined}
-        onInvalid={() => setPreview(false)}
-      />
-      {preview && (
-        <div id={`${id}-preview`} role="region" aria-label={`${label} Markdown 预览`} className="anki-preview">
+      <div className="anki-editor-column">
+        <span className="anki-editor-label">{label} · 实时预览</span>
+        <div role="region" aria-label={`${label} Markdown 预览`} className="anki-preview" aria-live="off">
           {value.trim() ? (
             <AnkiMarkdown content={value} />
           ) : (
             <p className="text-sm text-zinc-400">还没有内容，请先编辑。</p>
           )}
         </div>
-      )}
-      <p id={`${id}-hint`} className="mt-1 text-xs text-zinc-400">
-        支持 Markdown · {value.length}/{maxLength}
-      </p>
-    </div>
+      </div>
+    </section>
   );
 }

@@ -2,9 +2,11 @@
  * 卡片库详情：学习进度 + 全部卡片（默认仅显示 Q，答案展开式收起，编辑保留排期）。
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { fetchDeckCards, type AnkiCard, type AnkiDeckSummary } from './anki-api';
 import { AnkiMarkdown } from './AnkiMarkdown';
+import { AnkiCardCounts } from './AnkiCardCounts';
+import { AnkiPracticeActions } from './AnkiPracticeActions';
 
 interface AnkiDeckDetailProps {
   deck: AnkiDeckSummary;
@@ -15,6 +17,7 @@ interface AnkiDeckDetailProps {
   onEditCard: (card: AnkiCard) => void;
   onBrowse: () => void;
   onPractice: () => void;
+  onRecorded?: () => void;
 }
 
 const formatDue = (dueAt: string): string => {
@@ -33,22 +36,26 @@ export function AnkiDeckDetail({
   onEditCard,
   onBrowse,
   onPractice,
+  onRecorded,
 }: AnkiDeckDetailProps) {
   const [cards, setCards] = useState<AnkiCard[] | null>(null);
   const [error, setError] = useState('');
   const [openAnswer, setOpenAnswer] = useState<Set<string>>(new Set());
+  const [recordMessage, setRecordMessage] = useState('');
+  const generation = useRef(0);
 
   useEffect(() => {
     const controller = new AbortController();
+    const currentGeneration = ++generation.current;
     let cancelled = false;
     fetchDeckCards(deck.id, controller.signal)
       .then((loaded) => {
-        if (cancelled) return;
+        if (cancelled || currentGeneration !== generation.current) return;
         setCards(loaded);
         setError('');
       })
       .catch(() => {
-        if (cancelled || controller.signal.aborted) return;
+        if (cancelled || controller.signal.aborted || currentGeneration !== generation.current) return;
         setError('卡片加载失败，请重试。');
       });
     return () => {
@@ -126,6 +133,11 @@ export function AnkiDeckDetail({
         </div>
       </section>
 
+      {recordMessage && (
+        <p role="status" className="text-sm text-sky-700">
+          {recordMessage}
+        </p>
+      )}
       {error ? (
         <p role="alert" className="text-sm text-red-600">
           {error}
@@ -162,9 +174,8 @@ export function AnkiDeckDetail({
                     编辑
                   </button>
                 </div>
-                <p className="mt-1 text-xs text-zinc-400">
-                  下次到期 {formatDue(card.dueAt)} · 已评价 {card.reviewCount} 次
-                </p>
+                <p className="mt-1 text-xs text-zinc-400">下次到期 {formatDue(card.dueAt)}</p>
+                <AnkiCardCounts card={card} />
                 <button
                   type="button"
                   className="mt-2 rounded-full border border-[#e9edf1] bg-white px-3 py-1.5 text-xs font-medium text-[#202124]"
@@ -176,6 +187,23 @@ export function AnkiDeckDetail({
                 {isOpen && (
                   <section aria-label="卡片答案" className="mt-2 border-t border-zinc-100 pt-2">
                     <AnkiMarkdown content={card.answer} />
+                    <AnkiPracticeActions
+                      key={`${card.id}-${card.version}`}
+                      card={card}
+                      onRecorded={(updated) => {
+                        generation.current += 1;
+                        setCards(
+                          (current) => current?.map((item) => (item.id === updated.id ? updated : item)) ?? null,
+                        );
+                        setOpenAnswer((current) => {
+                          const next = new Set(current);
+                          next.delete(updated.id);
+                          return next;
+                        });
+                        setRecordMessage('练习已记录，下次复习安排和结果次数已更新。');
+                        onRecorded?.();
+                      }}
+                    />
                   </section>
                 )}
               </li>

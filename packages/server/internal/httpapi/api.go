@@ -51,6 +51,7 @@ type Persistence interface {
 	UpdateAnkiCard(context.Context, string, string, string, string, string, bool, int) (store.AnkiCard, error)
 	AnkiQueue(context.Context, string, string) ([]store.AnkiCard, time.Time, error)
 	ReviewAnkiCard(context.Context, string, string, int, string, string, *int) (store.AnkiCard, error)
+	PracticeAnkiCard(context.Context, string, string, int, string, string) (store.AnkiCard, error)
 	AnkiGoal(context.Context, string) (int, error)
 	SetAnkiGoal(context.Context, string, int) (int, error)
 }
@@ -94,6 +95,7 @@ func New(c config.Config, db Persistence, exchange github.Exchange) http.Handler
 	mux.HandleFunc("PATCH /api/v1/anki/cards/{cardId}", a.ankiPatchCard)
 	mux.HandleFunc("GET /api/v1/anki/decks/{deckId}/queue", a.ankiQueue)
 	mux.HandleFunc("POST /api/v1/anki/reviews", a.ankiReview)
+	mux.HandleFunc("POST /api/v1/anki/practice", a.ankiPractice)
 	mux.HandleFunc("PUT /api/v1/anki/goal", a.ankiSetGoal)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")

@@ -307,6 +307,31 @@ func (a *API) ankiReview(w http.ResponseWriter, r *http.Request) {
 	respond(w, 200, map[string]any{"card": c})
 }
 
+func (a *API) ankiPractice(w http.ResponseWriter, r *http.Request) {
+	u, ok := a.ankiUser(w, r)
+	if !ok {
+		return
+	}
+	raw, ok := jsonBody(w, r, 4096)
+	if !ok {
+		return
+	}
+	m, err := fields(raw, "cardId", "version", "mutationId", "rating")
+	cardID, _ := text(m["cardId"])
+	mutationID, _ := text(m["mutationId"])
+	version, valid := ankiInt(m["version"], 1, 9007199254740990)
+	rating, _ := text(m["rating"])
+	if err != nil || !valid || !uuidPattern.MatchString(cardID) || !uuidPattern.MatchString(mutationID) || (rating != "correct" && rating != "hard" && rating != "wrong") {
+		failure(w, 400)
+		return
+	}
+	c, err := a.db.PracticeAnkiCard(r.Context(), u.ID, cardID, version, strings.ToLower(mutationID), rating)
+	if ankiError(w, err) {
+		return
+	}
+	respond(w, 200, map[string]any{"card": c})
+}
+
 func (a *API) ankiSetGoal(w http.ResponseWriter, r *http.Request) {
 	u, ok := a.ankiUser(w, r)
 	if !ok {

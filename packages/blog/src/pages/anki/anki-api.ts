@@ -14,7 +14,8 @@
  *   POST   /anki/decks/{deckId}/cards      { question, answer } => card
  *   PATCH  /anki/cards/{cardId}            { question, answer, resetProgress, version } => card
  *   GET    /anki/decks/{deckId}/queue      到期队列（服务端快照）
- *   POST   /anki/reviews                   { cardId, version, mutationId, rating?, customDays? } => { card }
+ *   POST   /anki/reviews                   到期练习 { cardId, version, mutationId, rating?, customDays? } => { card }
+ *   POST   /anki/practice                  主动练习（允许提前）{ cardId, version, mutationId, rating } => { card }
  *   PUT    /anki/goal                      { goal } => { goal }
  */
 import { cloudRequest } from '@/cloud/api';
@@ -97,6 +98,12 @@ export interface AnkiCard {
   easeFactor: number;
   reviewCount: number;
   version: number;
+  /** 终身次数由服务端历史回填，旧服务未升级时不伪造 0。 */
+  practiceCount?: number;
+  correctCount?: number;
+  hardCount?: number;
+  wrongCount?: number;
+  customCount?: number;
 }
 
 export type AnkiRating = 'wrong' | 'hard' | 'correct';
@@ -195,6 +202,11 @@ const normalizeCard = (raw: Record<string, unknown>): AnkiCard => ({
   easeFactor: NUMBER(raw.easeFactor),
   reviewCount: NUMBER(raw.reviewCount),
   version: NUMBER(raw.version),
+  practiceCount: typeof raw.practiceCount === 'number' ? NUMBER(raw.practiceCount) : undefined,
+  correctCount: typeof raw.correctCount === 'number' ? NUMBER(raw.correctCount) : undefined,
+  hardCount: typeof raw.hardCount === 'number' ? NUMBER(raw.hardCount) : undefined,
+  wrongCount: typeof raw.wrongCount === 'number' ? NUMBER(raw.wrongCount) : undefined,
+  customCount: typeof raw.customCount === 'number' ? NUMBER(raw.customCount) : undefined,
 });
 
 const normalizeCardList = (raw: unknown): AnkiCard[] => {
@@ -270,6 +282,13 @@ export const fetchDeckQueue = (deckId: string, signal?: AbortSignal) =>
 
 export const submitReview = (body: AnkiReviewRequest, signal?: AbortSignal) =>
   ankiRequest<{ card: unknown }>('/anki/reviews', {
+    method: 'POST',
+    body: JSON.stringify(body),
+    signal,
+  }).then((data) => normalizeCard(data.card as Record<string, unknown>));
+
+export const submitPractice = (body: AnkiReviewRequest & { rating: AnkiRating }, signal?: AbortSignal) =>
+  ankiRequest<{ card: unknown }>('/anki/practice', {
     method: 'POST',
     body: JSON.stringify(body),
     signal,
