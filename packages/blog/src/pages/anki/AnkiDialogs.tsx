@@ -10,6 +10,7 @@ import { SlideModal } from '@/components/SlideModal';
 import { AnkiMarkdownEditor } from './AnkiMarkdownEditor';
 import { AnkiTagPicker } from './AnkiTagPicker';
 import { AnkiTagManager } from './AnkiTagManager';
+import { saveAnkiDraft, removeAnkiDraft, type AnkiDraft } from './anki-drafts';
 import './anki.css';
 import {
   createCard,
@@ -24,19 +25,20 @@ import {
 
 export type AnkiDialogState =
   | { kind: 'deck' }
-  | { kind: 'card'; deckId?: string; card?: AnkiCard }
+  | { kind: 'card'; deckId?: string; card?: AnkiCard; draft?: AnkiDraft }
   | { kind: 'goal' }
   | { kind: 'tags'; deckId: string };
 
 interface AnkiDialogsProps {
   state: AnkiDialogState | null;
+  userId?: string;
   dashboard: NormalizedDashboard;
   onClose: () => void;
   onDone: (message: string) => void;
   onTagsChanged?: () => void;
 }
 
-export function AnkiDialogs({ state, dashboard, onClose, onDone, onTagsChanged }: AnkiDialogsProps) {
+export function AnkiDialogs({ state, userId, dashboard, onClose, onDone, onTagsChanged }: AnkiDialogsProps) {
   if (!state) return null;
   const title =
     state.kind === 'deck'
@@ -60,7 +62,16 @@ export function AnkiDialogs({ state, dashboard, onClose, onDone, onTagsChanged }
           {title}
         </h2>
         {state.kind === 'deck' && <DeckForm dashboard={dashboard} onClose={onClose} onDone={onDone} />}
-        {state.kind === 'card' && <CardForm state={state} dashboard={dashboard} onClose={onClose} onDone={onDone} />}
+        {state.kind === 'card' && (
+          <CardForm
+            key={state.draft?.id ?? state.card?.id ?? 'new'}
+            state={state}
+            userId={userId}
+            dashboard={dashboard}
+            onClose={onClose}
+            onDone={onDone}
+          />
+        )}
         {state.kind === 'tags' && (
           <>
             <AnkiTagManager key={state.deckId} deckId={state.deckId} onChanged={() => onTagsChanged?.()} />
@@ -221,20 +232,27 @@ function DeckForm({ dashboard, onClose, onDone }: FormProps) {
 
 interface CardFormProps {
   state: Extract<AnkiDialogState, { kind: 'card' }>;
+  userId?: string;
   dashboard: NormalizedDashboard;
   onClose: () => void;
   onDone: (message: string) => void;
 }
 
-function CardForm({ state, dashboard, onClose, onDone }: CardFormProps) {
+function CardForm({ state, userId, dashboard, onClose, onDone }: CardFormProps) {
   const editing = state.card;
-  const [deckId, setDeckId] = useState(editing?.deckId ?? state.deckId ?? dashboard.decks[0]?.id ?? '');
-  const [question, setQuestion] = useState(editing?.question ?? '');
-  const [answer, setAnswer] = useState(editing?.answer ?? '');
-  const [tags, setTags] = useState<string[]>(editing?.tags ?? []);
+  const [deckId, setDeckId] = useState(
+    state.draft?.deckId ?? editing?.deckId ?? state.deckId ?? dashboard.decks[0]?.id ?? '',
+  );
+  const [question, setQuestion] = useState(state.draft?.question ?? editing?.question ?? '');
+  const [answer, setAnswer] = useState(state.draft?.answer ?? editing?.answer ?? '');
+  const [tags, setTags] = useState<string[]>(state.draft?.tags ?? editing?.tags ?? []);
   const [tagsReady, setTagsReady] = useState(false);
-  const [resetProgress, setResetProgress] = useState(false);
+  const [resetProgress, setResetProgress] = useState(state.draft?.resetProgress ?? false);
   const [error, setError] = useState('');
+  const [draftMessage, setDraftMessage] = useState('');
+  const draftId = useRef(state.draft?.id ?? '');
+  const draftStatus = useRef<AnkiDraft['status']>(state.draft?.status ?? 'pending');
+  const confirmed = useRef(false);
   const [busy, setBusy] = useState(false);
   const request = useFormRequest();
   const firstRef = useRef<HTMLTextAreaElement>(null);
@@ -242,6 +260,38 @@ function CardForm({ state, dashboard, onClose, onDone }: CardFormProps) {
   useEffect(() => {
     firstRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    if (!userId || confirmed.current || (!question.trim() && !answer.trim())) return;
+    if (
+      !state.draft &&
+      !draftId.current &&
+      editing &&
+      deckId === editing.deckId &&
+      question === editing.question &&
+      answer === editing.answer &&
+      !resetProgress &&
+      JSON.stringify(tags) === JSON.stringify(editing.tags ?? [])
+    )
+      return;
+    if (!draftId.current) draftId.current = crypto.randomUUID();
+    try {
+      saveAnkiDraft(userId, {
+        id: draftId.current,
+        deckId,
+        question,
+        answer,
+        tags,
+        resetProgress,
+        editing,
+        status: draftStatus.current,
+        updatedAt: Date.now(),
+      });
+      setDraftMessage('已保留本机草稿；云端确认保存成功后才清除。');
+    } catch {
+      setDraftMessage('本机草稿保存失败，请勿关闭或刷新页面，以免丢失内容。');
+    }
+  }, [userId, question, answer, deckId, tags, resetProgress, editing, state.draft]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -268,6 +318,16 @@ function CardForm({ state, dashboard, onClose, onDone }: CardFormProps) {
     if (!signal) return;
     setBusy(true);
     setError('');
+    const clearConfirmedDraft = () => {
+      confirmed.current = true;
+      if (!userId || !draftId.current) return '';
+      try {
+        removeAnkiDraft(userId, draftId.current);
+        return '';
+      } catch {
+        return '本机草稿清除失败，请勿重复提交已保存的内容。';
+      }
+    };
     try {
       if (editing) {
         await updateCard(
@@ -275,14 +335,38 @@ function CardForm({ state, dashboard, onClose, onDone }: CardFormProps) {
           { deckId, question: q, answer: a, tags, resetProgress, version: editing.version },
           signal,
         );
-        if (request.active())
-          onDone(resetProgress ? '卡片已保存，已重新学习，历史记录保留。' : '卡片已保存，复习排期已保留。');
+        if (request.active()) {
+          const warning = clearConfirmedDraft();
+          onDone((resetProgress ? '卡片已保存，已重新学习，历史记录保留。' : '卡片已保存，复习排期已保留。') + warning);
+        }
       } else {
         await createCard(deckId, q, a, signal, tags);
-        if (request.active()) onDone('卡片已录入。');
+        if (request.active()) onDone('卡片已录入。' + clearConfirmedDraft());
       }
     } catch (cause) {
-      if (request.active()) setError(cause instanceof Error ? cause.message : '保存失败，请重试。');
+      if (request.active()) {
+        const message = cause instanceof Error ? cause.message : '保存失败，请重试。';
+        if (userId) {
+          if (!draftId.current) draftId.current = crypto.randomUUID();
+          draftStatus.current = 'failed';
+          try {
+            saveAnkiDraft(userId, {
+              id: draftId.current,
+              deckId,
+              question: q,
+              answer: a,
+              tags,
+              resetProgress,
+              editing,
+              status: 'failed',
+              updatedAt: Date.now(),
+            });
+            setError(`${message}。内容已保留在「卡片草稿」，可稍后继续编辑。`);
+          } catch {
+            setError(`${message}。本机草稿保存也失败，请勿关闭或刷新页面。`);
+          }
+        } else setError(`${message}。尚未确认账号，草稿未落盘，请勿关闭或刷新页面。`);
+      }
     } finally {
       request.finish();
       if (request.active()) setBusy(false);
@@ -291,53 +375,64 @@ function CardForm({ state, dashboard, onClose, onDone }: CardFormProps) {
 
   return (
     <form onSubmit={submit} className="anki-card-form mt-4 space-y-5">
-      <label className="block">
-        <span className="text-xs text-zinc-500">所属卡片库</span>
-        <select
-          value={deckId}
-          onChange={(event) => {
-            setDeckId(event.target.value);
-            setTags([]);
-            setTagsReady(false);
-          }}
-          required
-          className="anki-input mt-1"
-        >
-          {dashboard.decks.length === 0 && <option value="">请先创建卡片库</option>}
-          {dashboard.decks.map((deck) => (
-            <option key={deck.id} value={deck.id}>
-              {deck.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <AnkiTagPicker deckId={deckId} value={tags} onChange={setTags} disabled={busy} onReady={setTagsReady} />
-      <AnkiMarkdownEditor
-        label="Q · 问题"
-        inputRef={firstRef}
-        value={question}
-        onChange={setQuestion}
-        maxLength={3000}
-        rows={7}
-        placeholder="写下一个具体的问题，可使用 **加粗**、列表或代码块"
-      />
-      <AnkiMarkdownEditor
-        label="A · 答案"
-        value={answer}
-        onChange={setAnswer}
-        maxLength={10000}
-        rows={14}
-        placeholder="写下便于核对的答案，可使用标题、列表、表格或代码块"
-      />
-      {editing && (
-        <label className="flex items-center gap-2 text-sm text-zinc-500">
-          <input type="checkbox" checked={resetProgress} onChange={(event) => setResetProgress(event.target.checked)} />
-          重新学习这张卡片（保留历史记录，默认保留排期）
+      <fieldset disabled={busy} className="space-y-5 border-0 p-0 min-w-0">
+        <label className="block">
+          <span className="text-xs text-zinc-500">所属卡片库</span>
+          <select
+            value={deckId}
+            onChange={(event) => {
+              setDeckId(event.target.value);
+              setTags([]);
+              setTagsReady(false);
+            }}
+            required
+            className="anki-input mt-1"
+          >
+            {dashboard.decks.length === 0 && <option value="">请先创建卡片库</option>}
+            {dashboard.decks.map((deck) => (
+              <option key={deck.id} value={deck.id}>
+                {deck.name}
+              </option>
+            ))}
+          </select>
         </label>
-      )}
+        <AnkiTagPicker deckId={deckId} value={tags} onChange={setTags} disabled={busy} onReady={setTagsReady} />
+        <AnkiMarkdownEditor
+          label="Q · 问题"
+          inputRef={firstRef}
+          value={question}
+          onChange={setQuestion}
+          maxLength={3000}
+          rows={7}
+          placeholder="写下一个具体的问题，可使用 **加粗**、列表或代码块"
+        />
+        <AnkiMarkdownEditor
+          label="A · 答案"
+          value={answer}
+          onChange={setAnswer}
+          maxLength={10000}
+          rows={14}
+          placeholder="写下便于核对的答案，可使用标题、列表、表格或代码块"
+        />
+        {editing && (
+          <label className="flex items-center gap-2 text-sm text-zinc-500">
+            <input
+              type="checkbox"
+              checked={resetProgress}
+              onChange={(event) => setResetProgress(event.target.checked)}
+            />
+            重新学习这张卡片（保留历史记录，默认保留排期）
+          </label>
+        )}
+      </fieldset>
       <p className="text-xs text-zinc-400">
         以 Markdown 源码保存；支持标题、加粗、==高亮==、列表、引用、链接、表格和代码块，不执行 HTML；答案默认隐藏。
       </p>
+      {draftMessage && (
+        <p role="status" className="text-xs text-zinc-500">
+          {draftMessage}
+        </p>
+      )}
       <FieldError message={error} />
       <div className="flex justify-end gap-2 pt-1">
         <button

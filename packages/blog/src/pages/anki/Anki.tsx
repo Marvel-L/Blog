@@ -12,7 +12,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useHref, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useHref, useLocation, useSearchParams } from 'react-router-dom';
 import { cloudRequest, type CloudUser } from '@/cloud/api';
 import { Seo } from '@/components/Seo';
 import { fetchDashboard, isUnauthorized, type AnkiCard, type NormalizedDashboard } from './anki-api';
@@ -22,14 +22,9 @@ import { AnkiBrowse } from './AnkiBrowse';
 import { AnkiDeckDetail } from './AnkiDeckDetail';
 import { AnkiStats } from './AnkiStats';
 import { AnkiDialogs, type AnkiDialogState } from './AnkiDialogs';
+import { AnkiDrafts } from './AnkiDrafts';
+import { readAnkiView, writeAnkiView, type AnkiView } from './anki-view';
 import './anki.css';
-
-type AnkiView =
-  | { name: 'overview' }
-  | { name: 'stats' }
-  | { name: 'review'; deckId: string | null; tag?: string | null }
-  | { name: 'browse'; deckId: string; tag?: string | null }
-  | { name: 'deck'; deckId: string; tag?: string | null };
 
 type Phase = 'loading' | 'ready' | 'unauthorized' | 'error';
 
@@ -52,7 +47,8 @@ export default function AnkiPage() {
   const [phase, setPhase] = useState<Phase>('loading');
   const [errorMessage, setErrorMessage] = useState('');
   const [dashboard, setDashboard] = useState<NormalizedDashboard | null>(null);
-  const [view, setView] = useState<AnkiView>({ name: 'overview' });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view = useMemo(() => readAnkiView(searchParams), [searchParams]);
   const [dialog, setDialog] = useState<AnkiDialogState | null>(null);
   const [toast, setToast] = useState('');
   const [reloadToken, setReloadToken] = useState(0);
@@ -176,21 +172,21 @@ export default function AnkiPage() {
       setToast('');
       setAccountKey((key) => key + 1);
       setDashboard(null);
-      setView({ name: 'overview' });
+      setSearchParams((current) => writeAnkiView(current, { name: 'overview' }), { replace: true });
       setDialog(null);
       setPhase('unauthorized');
     };
     window.addEventListener('dblog-account-change', onAccountChange);
     return () => window.removeEventListener('dblog-account-change', onAccountChange);
-  }, []);
+  }, [setSearchParams]);
 
   const refresh = useCallback(() => setReloadToken((token) => token + 1), []);
   const navigate = useCallback(
     (next: AnkiView) => {
       if (view.name === 'review' && next.name !== 'review') refresh();
-      setView(next);
+      setSearchParams((current) => writeAnkiView(current, next));
     },
-    [view.name, refresh],
+    [view.name, refresh, setSearchParams],
   );
 
   useEffect(() => {
@@ -303,6 +299,7 @@ export default function AnkiPage() {
           <AnkiWorkspace
             key={`workspace-${accountKey}`}
             dashboard={dashboard}
+            userId={user?.id}
             refreshToken={reloadToken}
             view={view}
             onViewChange={navigate}
@@ -473,6 +470,7 @@ function AnkiTopBar({
 
 interface WorkspaceProps {
   dashboard: NormalizedDashboard;
+  userId?: string;
   refreshToken: number;
   view: AnkiView;
   onViewChange: (view: AnkiView) => void;
@@ -484,6 +482,7 @@ interface WorkspaceProps {
 
 function AnkiWorkspace({
   dashboard,
+  userId,
   refreshToken,
   view,
   onViewChange,
@@ -497,6 +496,11 @@ function AnkiWorkspace({
     dashboard.decks.forEach((deck) => map.set(deck.id, deck));
     return map;
   }, [dashboard]);
+
+  useEffect(() => {
+    if ((view.name === 'deck' || view.name === 'browse') && !deckById.has(view.deckId))
+      onViewChange({ name: 'overview' });
+  }, [view, deckById, onViewChange]);
 
   return (
     <>
@@ -525,10 +529,7 @@ function AnkiWorkspace({
       {view.name === 'deck' &&
         (() => {
           const deck = deckById.get(view.deckId);
-          if (!deck) {
-            onViewChange({ name: 'overview' });
-            return null;
-          }
+          if (!deck) return null;
           return (
             <AnkiDeckDetail
               key={deck.id}
@@ -555,6 +556,15 @@ function AnkiWorkspace({
         />
       )}
 
+      {view.name === 'drafts' && (
+        <AnkiDrafts
+          userId={userId}
+          dashboard={dashboard}
+          onBack={() => onViewChange({ name: 'overview' })}
+          onResume={(draft) => onDialogChange({ kind: 'card', deckId: draft.deckId, card: draft.editing, draft })}
+        />
+      )}
+
       {view.name === 'overview' && (
         <AnkiOverview
           dashboard={dashboard}
@@ -574,8 +584,18 @@ function AnkiWorkspace({
         />
       )}
 
+      {view.name !== 'drafts' && (
+        <button
+          type="button"
+          className="mt-6 min-h-11 text-sm text-[#087ae9]"
+          onClick={() => onViewChange({ name: 'drafts' })}
+        >
+          卡片草稿
+        </button>
+      )}
       <AnkiDialogs
         state={dialog}
+        userId={userId}
         dashboard={dashboard}
         onTagsChanged={refresh}
         onClose={() => onDialogChange(null)}
