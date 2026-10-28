@@ -38,6 +38,7 @@ async function fixture(size = 5 * 1024 * 1024) {
     PATH: `${bin}:${process.env.PATH}`,
     TEST_REMOTE: remote,
     TEST_LOG: path.join(root, 'publish.json'),
+    TEST_PARTS: path.join(root, 'parts.jsonl'),
     CLOUD_SSH_KEY_FILE: path.join(root, 'key'),
     CLOUD_SSH_KNOWN_HOSTS_FILE: path.join(root, 'known_hosts'),
   };
@@ -69,6 +70,7 @@ const args = process.argv.slice(2);
 const source = args.at(-2);
 const part = path.basename(source);
 if (part === process.env.TEST_FAIL_PART) process.exit(1);
+fs.appendFileSync(process.env.TEST_PARTS, JSON.stringify({ part, bytes: fs.statSync(source).size }) + '\\n');
 const destination = args.at(-1).split(':').slice(1).join(':').replace('/home/ubuntu/dblog-deploy', process.env.TEST_REMOTE);
 // Finish out of order to exercise ordered assembly.
 setTimeout(() => {
@@ -87,9 +89,36 @@ setTimeout(() => {
 }
 
 describe('cloud release upload', () => {
+  it('balances a small delta across eight parts while preserving its verified contents', async () => {
+    const options = await fixture(2600000);
+    const result = await run('bash', [script, commit, options.archive], { env: options.env });
+    const parts = (await readFile(options.env.TEST_PARTS, 'utf8')).trim().split('\n').map(JSON.parse);
+    expect(parts).toHaveLength(8);
+    const sizes = parts.map(({ bytes }) => bytes);
+    expect(Math.max(...sizes)).toBeLessThan(400000);
+    expect(Math.max(...sizes) - Math.min(...sizes)).toBeLessThan(8);
+    expect(result.stdout).toMatch(/\[deploy-upload\] bytes=\d+ part-bytes=\d+ parts=8 connections<=8/);
+    const delta = path.join(options.root, 'balanced-delta');
+    await mkdir(delta);
+    await run('tar', ['-xzf', path.join(options.remote, `${commit}.tar.gz`), '-C', delta]);
+    expect((await readFile(path.join(delta, 'dist/payload.bin'))).equals(options.data)).toBe(true);
+    expect(JSON.parse(await readFile(options.env.TEST_LOG, 'utf8'))).toMatchObject({ archiveExists: true });
+  });
+
+  it('keeps a tiny delta on one connection', async () => {
+    const options = await fixture(17);
+    await run('bash', [script, commit, options.archive], { env: options.env });
+    const parts = (await readFile(options.env.TEST_PARTS, 'utf8')).trim().split('\n').map(JSON.parse);
+    expect(parts).toHaveLength(1);
+    expect(parts[0].bytes).toBeLessThan(262144);
+  });
+
   it('reassembles more than one batch in order and publishes only the verified archive', async () => {
     const options = await fixture(18 * 1024 * 1024 + 17);
     await run('bash', [script, commit, options.archive], { env: options.env });
+    const parts = (await readFile(options.env.TEST_PARTS, 'utf8')).trim().split('\n').map(JSON.parse);
+    expect(parts.length).toBeGreaterThan(8);
+    expect(Math.max(...parts.map(({ bytes }) => bytes))).toBe(2097152);
     const delta = path.join(options.root, 'uploaded-delta');
     await mkdir(delta);
     await run('tar', ['-xzf', path.join(options.remote, `${commit}.tar.gz`), '-C', delta]);

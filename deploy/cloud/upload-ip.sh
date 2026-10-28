@@ -70,7 +70,17 @@ stage 'prepare verified delta'
 
 digest=$(checksum "$archive")
 ssh "${options[@]}" "$host" "umask 077; mkdir -p '$remote'"
-split -b 2097152 "$archive" "$parts/part-"
+# Balance small deltas across connections instead of leaving one 2 MiB part
+# on the critical path. Keep tiny transfers and full-release batches bounded.
+max_parallel=8
+archive_bytes=$(wc -c < "$archive")
+part_bytes=$(((archive_bytes + max_parallel - 1) / max_parallel))
+((part_bytes >= 262144)) || part_bytes=262144
+((part_bytes <= 2097152)) || part_bytes=2097152
+part_count=$(((archive_bytes + part_bytes - 1) / part_bytes))
+printf '[deploy-upload] bytes=%d part-bytes=%d parts=%d connections<=%d\n' \
+  "$archive_bytes" "$part_bytes" "$part_count" "$max_parallel"
+split -b "$part_bytes" "$archive" "$parts/part-"
 wait_batch() {
   local failed=0 pid
   for pid in $pids; do wait "$pid" || failed=1; done
@@ -78,12 +88,12 @@ wait_batch() {
   count=0
   [[ $failed == 0 ]] || return 1
 }
-# Bound connections to eight; a small delta normally needs only one connection.
+# Bound connections to eight; tiny archives still use only one connection.
 for part in "$parts"/part-*; do
   scp "${options[@]}" "$part" "$host:$remote/$(basename "$part")" &
   pids="$pids $!"
   count=$((count + 1))
-  if [[ $count == 8 ]]; then wait_batch; fi
+  if [[ $count == "$max_parallel" ]]; then wait_batch; fi
 done
 wait_batch
 stage 'upload delta parts'
