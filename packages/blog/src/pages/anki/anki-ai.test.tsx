@@ -36,8 +36,9 @@ const record: AICheck = {
 };
 const response = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
-const fixture = (options: { configured?: boolean; failure?: boolean } = {}) => {
-  let list = [record];
+const fixture = (options: { configured?: boolean; failure?: boolean; check?: AICheck } = {}) => {
+  const check = options.check ?? record;
+  let list = [check];
   const request = vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
     const url = String(input);
     if (url.endsWith('/tags')) return response({ tags: [] });
@@ -51,14 +52,14 @@ const fixture = (options: { configured?: boolean; failure?: boolean } = {}) => {
       });
     if (init?.method === 'POST') {
       if (options.failure) return response({ error: { code: 'CARD_VERSION_CONFLICT', message: '卡片已更新' } }, 409);
-      return response({ check: { ...record, id: 'new-check' } }, 202);
+      return response({ check: { ...check, id: 'new-check' } }, 202);
     }
     if (init?.method === 'DELETE') {
       list = [];
       return new Response(null, { status: 204 });
     }
     if (url.includes('?limit=')) return response({ checks: list, nextCursor: '' });
-    return response({ check: record });
+    return response({ check });
   });
   vi.stubGlobal('fetch', request);
   return request;
@@ -87,6 +88,76 @@ describe('Anki AI Check', () => {
     fireEvent.click(screen.getByRole('button', { name: '删除此记录' }));
     await screen.findByText('当前 AI 记录已删除，其余记录与复习进度保留。');
     expect(request.mock.calls.filter(([, init]) => init?.method === 'DELETE')).toHaveLength(1);
+  });
+  it.each(['review', 'history'] as const)('%s 评价渲染重点、换行和列表，复制保留 Markdown 源码', async (view) => {
+    const check: AICheck = {
+      ...record,
+      result: {
+        score: 72,
+        summary: '结论：==覆盖常见场景==；关键判断：聚合函数本身不会导致索引失效',
+        strengths: ['正确点：==基于成本选择索引==；理由：优化器比较访问路径的成本'],
+        issues: [
+          '原文：使用聚合函数\n问题：【错误】聚合函数本身不会导致索引失效\n修正：==对索引列使用函数== 可能影响索引定位',
+        ],
+        suggestions: [
+          '修正版回答：\n1. 检查 ==最左前缀==。\n2. 检查执行计划。\n\n```sql\nSELECT * FROM t WHERE status = 1;\n-- ==代码不高亮==\n```',
+          '改进建议：用 `a == b` 这样的代码表达式区分运算符与重点标记。',
+        ],
+      },
+    };
+    const request = fixture({ check });
+    const copy = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText: copy } });
+    const { container } = render(<AnkiAIDialog card={card} onClose={vi.fn()} />);
+    const start = await screen.findByRole('button', { name: '开始 Check' });
+    await waitFor(() => expect(start).toBeEnabled());
+    fireEvent.click(view === 'history' ? screen.getByRole('button', { name: '查看 AI 历史' }) : start);
+    await screen.findByText('覆盖常见场景', { selector: 'mark' });
+    expect(container.querySelector('.anki-ai-result-head mark')).toHaveTextContent('覆盖常见场景');
+    for (const [heading, highlight] of [
+      ['回答优点', '基于成本选择索引'],
+      ['存在的问题', '对索引列使用函数'],
+      ['明确建议', '最左前缀'],
+    ]) {
+      const section = screen.getByRole('heading', { name: heading }).closest('section')!;
+      expect(within(section).getByText(highlight, { selector: 'mark' })).toBeInTheDocument();
+    }
+    const issues = screen.getByRole('heading', { name: '存在的问题' }).closest('section')!;
+    expect(issues.querySelectorAll('br')).toHaveLength(2);
+    const suggestions = screen.getByRole('heading', { name: '明确建议' }).closest('section')!;
+    expect(suggestions.querySelectorAll('ol > li')).toHaveLength(2);
+    expect(suggestions.querySelector('pre code')).toHaveTextContent('-- ==代码不高亮==');
+    expect(suggestions.querySelector('code mark')).toBeNull();
+    expect(within(suggestions).getByText('a == b', { selector: 'code' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '复制本轮问答' }));
+    await waitFor(() => expect(copy).toHaveBeenCalledTimes(1));
+    expect(copy.mock.calls[0][0]).toContain('==最左前缀==');
+    expect(copy.mock.calls[0][0]).toContain('原文：使用聚合函数\n问题：【错误】');
+    expect(request.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(view === 'history' ? 0 : 1);
+  });
+  it('AI 历史中的高亮内容不执行 HTML、危险链接或加载远程图片', async () => {
+    fixture({
+      check: {
+        ...record,
+        result: {
+          ...record.result!,
+          summary: '==安全评价== <img src=x onerror=alert(1)>',
+          strengths: ['==[危险链接](javascript:alert%281%29)=='],
+          issues: ['<script>alert(1)</script>\n\n==纠正内容=='],
+          suggestions: ['![远程图片](https://example.com/tracker.png)\n\n==保留重点=='],
+        },
+      },
+    });
+    const { container } = render(<AnkiAIDialog card={card} onClose={vi.fn()} />);
+    await screen.findByRole('button', { name: '开始 Check' });
+    fireEvent.click(screen.getByRole('button', { name: '查看 AI 历史' }));
+    await screen.findByText('安全评价', { selector: 'mark' });
+    const detail = container.querySelector('.anki-ai-detail')!;
+    expect(detail.querySelector('script,img,iframe,a,[onerror],[onclick]')).toBeNull();
+    expect(within(detail as HTMLElement).getByText('危险链接', { selector: 'mark span' })).toBeInTheDocument();
+    expect(within(detail as HTMLElement).getByText('纠正内容', { selector: 'mark' })).toBeInTheDocument();
+    expect(within(detail as HTMLElement).getByText('保留重点', { selector: 'mark' })).toBeInTheDocument();
+    expect(within(detail as HTMLElement).getByText('[图片：远程图片]')).toBeInTheDocument();
   });
   it('仅点击开始才 POST，双击只有一条且不提交问题、答案或历史', async () => {
     const request = fixture();

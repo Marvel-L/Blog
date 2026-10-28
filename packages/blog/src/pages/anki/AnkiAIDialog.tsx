@@ -490,7 +490,7 @@ export function AnkiAIDialog({ card, onClose }: Props) {
                           {selected.score}
                           <small> / 100</small>
                         </strong>
-                        <p>{selected.result.summary}</p>
+                        <AnkiMarkdown content={selected.result.summary} />
                       </div>
                     ) : (
                       <p role="status" className="anki-ai-error">
@@ -513,7 +513,9 @@ export function AnkiAIDialog({ card, onClose }: Props) {
                             <h3>{['回答优点', '存在的问题', '明确建议'][index]}</h3>
                             <ul>
                               {selected.result![name].map((text, i) => (
-                                <li key={i}>{text}</li>
+                                <li key={i}>
+                                  <AnkiMarkdown content={text} />
+                                </li>
                               ))}
                               {!selected.result![name].length && <li>无</li>}
                             </ul>
