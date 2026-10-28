@@ -29,6 +29,9 @@ export default tseslint.config(
       'public/',
       // 依赖与本地工具目录
       'node_modules/',
+      // 用户授权：仅排除原型验收安装的第三方依赖与历史源码备份，正式源码仍检查。
+      'anki-prototype/_check_deps/**',
+      'about-radar-prototype/_backup/**',
       '.zcode/',
       '.trash/',
       '.vscode/',

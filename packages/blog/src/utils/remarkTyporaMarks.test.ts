@@ -17,6 +17,16 @@ const toHtml = (markdown: string) =>
     .toString();
 
 describe('remarkTyporaMarks', () => {
+  it('三等号、嵌套、转义和 Setext 标题保留语义', () => {
+    expect(toHtml('===**粗体**与*斜体*===')).toContain('<mark><strong>粗体</strong>与<em>斜体</em></mark>');
+    expect(toHtml('==双== 与 ===三===')).toContain('<mark>三</mark>');
+    expect(toHtml('a === b')).not.toContain('<mark>');
+    expect(toHtml('`===代码===`')).toContain('<code>===代码===</code>');
+    expect(toHtml('```js\nconst a = b === c;\n===原样===\n```')).not.toContain('<mark>');
+    expect(toHtml('标题\n===')).toContain('<h1>标题</h1>');
+    expect(toHtml('\\===转义\\===')).not.toContain('<mark>');
+    expect(toHtml('===不成对==')).not.toContain('<mark>');
+  });
   it('把 ++text++ 渲染为下划线 ins', () => {
     expect(toHtml('开始 ++未来规划++ 了')).toContain('<ins>未来规划</ins>');
   });

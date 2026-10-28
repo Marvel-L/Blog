@@ -30,6 +30,8 @@ import { listMarkdownFiles } from './lib/list-markdown-files.mjs';
 import { runCompressContentImagesCli, writeImageCompressReport } from './compress-content-images.mjs';
 import { copyContentImages } from './lib/copy-content-images.mjs';
 import { BOOKS_ROOT, loadBookPackages, writeBookData } from './lib/book-content.mjs';
+import { loadAbilityData, writeAbilityData, copyAbilityImages } from './lib/ability-content.mjs';
+import { getAbilityRoutes } from '../packages/blog/src/abilities/ability-core.mjs';
 
 const logger = createBuildLogger('gen:data');
 logger.start('Generate site data');
@@ -108,6 +110,10 @@ if (!fs.existsSync(OUTPUT_JSON_DIR)) {
 if (!fs.existsSync(PUBLIC_DIR)) {
   fs.mkdirSync(PUBLIC_DIR, { recursive: true });
 }
+
+const abilityData = loadAbilityData();
+writeAbilityData(abilityData);
+copyAbilityImages();
 
 const validateDateString = (value) => {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -986,6 +992,12 @@ const generateSitemap = () => {
           .split('T')[0]
       : new Date().toISOString().split('T')[0];
   const staticPages = [
+    ...getAbilityRoutes(abilityData).map((path) => ({
+      path,
+      changefreq: 'monthly',
+      priority: '0.5',
+      lastmod: latestPostDate,
+    })),
     ...getBookRoutes(bookPackages).map((path) => ({
       path,
       changefreq: 'weekly',

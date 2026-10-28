@@ -4,6 +4,7 @@
 
 import 'dotenv/config';
 import { getBookRoutes } from '@d-blog/blog/books-core';
+import { getAbilityRoutes } from '../packages/blog/src/abilities/ability-core.mjs';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
@@ -450,6 +451,9 @@ export const runSsg = async ({
   };
 
   const staticPages = [
+    ...getAbilityRoutes(JSON.parse(fs.readFileSync(path.join(__dirname, '../generated/abilities.json'), 'utf8'))).map(
+      (path) => ({ path, schemaFromSeo: true, schemaType: 'WebPage' }),
+    ),
     ...getAnkiStaticPages(process.env.VITE_DEPLOY_TARGET),
     ...getBookRoutes(books).map((path) => ({ path, schemaFromSeo: true, schemaType: 'CollectionPage' })),
     {

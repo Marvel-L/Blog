@@ -1,0 +1,1790 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>关于页 · 能力雷达图 Demo</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath fill='%234870ad' d='M20 2 37 13 31 34 9 34 3 13Z'/%3E%3Cpath fill='%23eef3fa' d='M20 8 31 15 27 28 13 28 9 15Z'/%3E%3C/svg%3E"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      :root {
+        --paper: #fffefa;
+        --page: #f2f0e9;
+        --ink: #27272a;
+        --muted: #66666e;
+        --line: #d4d4d8;
+        --soft: #f7f7f5;
+        --accent: #4870ad;
+        --hover: #f0f3f6;
+        --border-active: #4870ad;
+        color-scheme: light;
+      }
+      html.dark {
+        --paper: #18181b;
+        --page: #0a0a0a;
+        --ink: #f4f4f5;
+        --muted: #a1a1aa;
+        --line: #3f3f46;
+        --soft: #202024;
+        --accent: #9ab9e8;
+        --hover: #272d37;
+        --border-active: #9ab9e8;
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        background: var(--page);
+        color: var(--ink);
+        font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+        font-size: 16px;
+        line-height: 1.7;
+        -webkit-font-smoothing: antialiased;
+      }
+      button,
+      input,
+      textarea,
+      select {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+      }
+      button,
+      a,
+      input,
+      textarea,
+      select {
+        touch-action: manipulation;
+      }
+      button:disabled {
+        cursor: default;
+        opacity: 0.5;
+      }
+      button:focus-visible,
+      a:focus-visible,
+      input:focus-visible,
+      textarea:focus-visible,
+      select:focus-visible,
+      summary:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+      a {
+        color: var(--accent);
+      }
+      button {
+        border: 1px solid var(--line);
+        background: var(--paper);
+        color: var(--ink);
+        border-radius: 8px;
+        min-height: 44px;
+        padding: 8px 14px;
+      }
+      button:hover:not(:disabled) {
+        background: var(--hover);
+        border-color: var(--muted);
+      }
+      .quiet {
+        border-color: transparent;
+        background: transparent;
+      }
+      .small {
+        font-size: 14px;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      [hidden] {
+        display: none !important;
+      }
+      .site-bar {
+        border-bottom: 1px solid var(--line);
+        background: var(--paper);
+      }
+      .site-bar-inner {
+        max-width: 940px;
+        margin: auto;
+        padding: 14px 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+      .brand {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--ink);
+        text-decoration: none;
+      }
+      .demo-note {
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .tools {
+        display: flex;
+        gap: 4px;
+      }
+      .tools button {
+        padding: 7px 10px;
+      }
+      .page {
+        max-width: 936px;
+        margin: auto;
+        padding: 32px 16px 48px;
+      }
+      .page-heading h1 {
+        font-size: 32px;
+        line-height: 1.25;
+        letter-spacing: -1px;
+        margin: 0 0 12px;
+      }
+      .profile-line {
+        margin: 0 0 28px;
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .profile-line strong {
+        color: var(--ink);
+      }
+      .radar-section {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--paper);
+        overflow: visible;
+      }
+      .section-head {
+        padding: 22px 18px 12px;
+      }
+      .section-head h2 {
+        font-size: 24px;
+        line-height: 1.4;
+        margin: 0 0 5px;
+      }
+      .section-head p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 17px;
+        list-style: none;
+        margin: 14px 0 0;
+        padding: 0;
+        font-size: 14px;
+      }
+      .legend li {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .legend i {
+        font-style: normal;
+        color: var(--c);
+        font-weight: 750;
+        border: 1px solid color-mix(in srgb, var(--c) 35%, transparent);
+        border-radius: 5px;
+        width: 24px;
+        height: 26px;
+        text-align: center;
+        background: color-mix(in srgb, var(--c) 9%, var(--paper));
+      }
+      .legend span {
+        color: var(--muted);
+      }
+      .radar-toolbar {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        padding: 0 18px 8px;
+        flex-wrap: wrap;
+      }
+      .segmented {
+        display: inline-flex;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 3px;
+        gap: 2px;
+      }
+      .segmented button {
+        font-size: 14px;
+        border: 0;
+        min-height: 36px;
+        padding: 5px 10px;
+        background: transparent;
+      }
+      .segmented button[aria-pressed='true'] {
+        background: var(--ink);
+        color: var(--paper);
+      }
+      .dataset-note {
+        font-size: 14px;
+        color: var(--muted);
+        margin-left: auto;
+      }
+      .chart-wrap {
+        width: 100%;
+        position: relative;
+        padding: 0 6px;
+      }
+      .chart {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-width: 700px;
+        margin: auto;
+        overflow: visible;
+      }
+      .axis-label {
+        position: absolute;
+        z-index: 2;
+        transform: translate(-50%, -50%);
+        border: 0;
+        background: transparent;
+        font-weight: 600;
+        font-size: 14px;
+        white-space: nowrap;
+        padding: 6px 5px;
+        min-height: 44px;
+      }
+      .axis-label:hover:not(:disabled) {
+        background: var(--hover);
+        border: 0;
+      }
+      .axis-label[aria-pressed='true'] {
+        color: var(--accent);
+        background: var(--hover);
+        border-radius: 8px;
+      }
+      .chart-space {
+        position: relative;
+        max-width: 700px;
+        margin: auto;
+        aspect-ratio: 700 / 530;
+      }
+      .chart-space .chart {
+        position: absolute;
+        inset: 0;
+      }
+      .chart-caption {
+        margin: 0;
+        padding: 0 18px 18px;
+        text-align: center;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .chart-caption span {
+        display: inline-block;
+      }
+      .selection-line {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        border-top: 1px solid var(--line);
+        padding: 17px 18px;
+      }
+      .selection-line h3 {
+        margin: 0;
+        font-size: 19px;
+      }
+      .level-badge {
+        font-size: 14px;
+        font-weight: 700;
+        padding: 3px 10px;
+        border: 1px solid color-mix(in srgb, var(--c) 38%, transparent);
+        background: color-mix(in srgb, var(--c) 9%, var(--paper));
+        color: var(--c);
+        border-radius: 6px;
+      }
+      .selection-line button {
+        margin-left: auto;
+        font-size: 14px;
+      }
+      .dimension-description {
+        font-size: 14px;
+        color: var(--muted);
+        margin: 0;
+        padding: 0 18px 18px;
+      }
+      .explorer {
+        border-top: 1px solid var(--line);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .files {
+        padding: 18px;
+        border-bottom: 1px solid var(--line);
+        background: var(--soft);
+        border-radius: 0 0 0 14px;
+      }
+      .files h4 {
+        font-size: 14px;
+        margin: 0 0 10px;
+        color: var(--muted);
+        font-weight: 500;
+      }
+      .file-button {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid transparent;
+        width: 100%;
+        text-align: left;
+        min-height: 64px;
+        padding: 9px 11px;
+        margin: 3px 0;
+        background: transparent;
+        line-height: 1.5;
+      }
+      .file-button[aria-pressed='true'] {
+        border-color: var(--line);
+        background: var(--paper);
+      }
+      .file-icon {
+        width: 25px;
+        height: 30px;
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .file-name {
+        display: block;
+        font-size: 15px;
+        font-weight: 600;
+        word-break: break-word;
+      }
+      .file-description {
+        display: block;
+        font-size: 14px;
+        color: var(--muted);
+        font-weight: 400;
+      }
+      .file-letter {
+        margin-left: auto;
+        color: var(--c);
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .preview-area {
+        padding: 20px 18px;
+        min-width: 0;
+      }
+      .preview-empty {
+        color: var(--muted);
+        font-size: 15px;
+        padding: 12px 0;
+      }
+      .preview-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 22px;
+        font-size: 14px;
+      }
+      .preview-meta strong {
+        font-weight: 500;
+        overflow-wrap: anywhere;
+      }
+      .preview-meta button {
+        font-size: 14px;
+      }
+      .preview-notice {
+        font-size: 14px;
+        color: var(--muted);
+        margin: 0 0 20px;
+      }
+      .post-prose {
+        font-size: 16px;
+        line-height: 1.8;
+        overflow-wrap: break-word;
+        color: var(--ink);
+      }
+      .post-prose h1 {
+        font-size: 1.8em;
+        line-height: 1.4;
+        margin: 0 0 0.8em;
+      }
+      .post-prose h2 {
+        font-size: 1.45em;
+        line-height: 1.4;
+        margin: 1.6em 0 0.65em;
+      }
+      .post-prose h3 {
+        font-size: 1.2em;
+      }
+      .post-prose p {
+        margin: 0 0 1em;
+      }
+      .post-prose ul,
+      .post-prose ol {
+        padding-left: 1.5em;
+      }
+      .post-prose li {
+        margin: 0.3em 0;
+      }
+      .post-prose blockquote {
+        margin: 1.2em 0;
+        padding: 8px 15px;
+        border-left: 3px solid var(--line);
+        color: var(--muted);
+        font-style: italic;
+      }
+      .post-prose code {
+        font-family: 'Resume Mono', ui-monospace, monospace;
+        font-size: 0.86em;
+        background: var(--soft);
+        padding: 2px 5px;
+        border-radius: 4px;
+      }
+      .post-prose pre {
+        padding: 16px;
+        background: var(--soft);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: auto;
+        white-space: pre;
+        max-width: 100%;
+        font-size: 14px;
+      }
+      .post-prose pre code {
+        padding: 0;
+        background: none;
+        font-size: inherit;
+        white-space: pre;
+      }
+      .post-prose mark {
+        background: #ffe58a;
+        color: #292524;
+        padding: 1px 3px;
+        border-radius: 3px;
+        box-decoration-break: clone;
+      }
+      .dark .post-prose mark {
+        background: #796016;
+        color: #fff8dd;
+      }
+      .post-prose ins {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      .post-prose img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 6px;
+      }
+      .post-prose figure {
+        margin: 1em 0;
+      }
+      .post-prose figure[data-size='small'] {
+        width: 40%;
+        margin-inline: auto;
+      }
+      .post-prose figure[data-size='medium'] {
+        width: 65%;
+        margin-inline: auto;
+      }
+      .post-prose .markdown-image-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .post-prose .markdown-image-row figure {
+        flex: 1;
+        min-width: 80px;
+      }
+      .post-prose hr {
+        border: 0;
+        border-top: 1px solid var(--line);
+        margin: 2em 0;
+      }
+      .post-prose table {
+        width: 100%;
+        display: block;
+        overflow: auto;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      .post-prose th,
+      .post-prose td {
+        border: 1px solid var(--line);
+        padding: 8px 12px;
+      }
+      .hljs-keyword,
+      .hljs-selector-tag,
+      .hljs-literal {
+        color: #8c3970;
+      }
+      .hljs-string,
+      .hljs-title,
+      .hljs-built_in {
+        color: #316959;
+      }
+      .hljs-comment {
+        color: #777;
+      }
+      .dark .hljs-keyword {
+        color: #e7a9d5;
+      }
+      .dark .hljs-string,
+      .dark .hljs-title {
+        color: #9acfbc;
+      }
+      .settings {
+        margin-top: 16px;
+        border-top: 1px solid var(--line);
+        padding: 16px 18px;
+      }
+      .settings summary {
+        font-size: 14px;
+        color: var(--muted);
+        cursor: pointer;
+        padding: 4px 0;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+      }
+      .settings summary::before {
+        content: '＋';
+        margin-right: 8px;
+      }
+      .settings[open] summary::before {
+        content: '−';
+      }
+      .settings-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 20px;
+        padding-top: 12px;
+      }
+      .config-editor label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+      .config-editor textarea {
+        width: 100%;
+        min-height: 250px;
+        resize: vertical;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: var(--paper);
+        color: var(--ink);
+        font-size: 16px;
+        line-height: 1.6;
+        font-family: ui-monospace, monospace;
+      }
+      .button-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+      .button-row button {
+        font-size: 14px;
+      }
+      .primary {
+        background: var(--ink);
+        color: var(--paper);
+        border-color: var(--ink);
+      }
+      .primary:hover:not(:disabled) {
+        background: var(--ink);
+        opacity: 0.85;
+        color: var(--paper);
+      }
+      .file-manager p {
+        font-size: 14px;
+        color: var(--muted);
+        margin: 0 0 12px;
+      }
+      .file-manager pre {
+        font-size: 14px;
+        line-height: 1.7;
+        overflow: auto;
+        background: var(--soft);
+        padding: 12px;
+        border-radius: 8px;
+        white-space: pre;
+      }
+      .status {
+        font-size: 14px;
+        min-height: 22px;
+        margin: 10px 0 0;
+        color: var(--accent);
+        overflow-wrap: anywhere;
+      }
+      .status.error {
+        color: #c33d3d;
+      }
+      .subscription {
+        margin-top: 24px;
+        background: var(--soft);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 20px;
+      }
+      .subscription h2 {
+        font-size: 18px;
+        margin: 0 0 6px;
+      }
+      .subscription p {
+        font-size: 14px;
+        color: var(--muted);
+        margin: 0 0 14px;
+      }
+      .subscription a {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        border: 1px solid var(--line);
+        padding: 7px 15px;
+        border-radius: 8px;
+        text-decoration: none;
+        color: var(--ink);
+        background: var(--paper);
+        font-size: 14px;
+      }
+      .page-end {
+        font-size: 14px;
+        color: var(--muted);
+        margin: 22px 0 0;
+        text-align: center;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      } /* INLINE_RESUME_STYLES */
+      @media (min-width: 600px) {
+        .page {
+          padding: 40px 24px 60px;
+        }
+        .page-heading h1 {
+          font-size: 40px;
+        }
+        .section-head {
+          padding: 26px 28px 16px;
+        }
+        .radar-toolbar {
+          padding-inline: 28px;
+        }
+        .axis-label {
+          font-size: 16px;
+          padding: 7px 12px;
+        }
+        .chart-caption {
+          padding-bottom: 24px;
+        }
+        .selection-line {
+          padding: 18px 28px;
+        }
+        .dimension-description {
+          padding-inline: 28px;
+        }
+        .settings {
+          padding-inline: 28px;
+        }
+        .settings-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .site-bar-inner {
+          padding-inline: 24px;
+        }
+      }
+      @media (min-width: 768px) {
+        .explorer {
+          grid-template-columns: 210px minmax(0, 1fr);
+        }
+        .files {
+          border-bottom: 0;
+          border-right: 1px solid var(--line);
+        }
+        .preview-area {
+          padding: 24px 28px;
+        }
+        .post-prose {
+          font-size: 18px;
+        }
+      }
+      @media (max-width: 430px) {
+        .dataset-note {
+          margin-left: 0;
+          width: 100%;
+        }
+        .legend {
+          gap: 8px 13px;
+        }
+        .legend li {
+          min-width: 83px;
+        }
+        .demo-note {
+          display: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          scroll-behavior: auto !important;
+          transition: none !important;
+          animation: none !important;
+        }
+      }
+      @media print {
+        .site-bar,
+        .radar-toolbar,
+        .settings,
+        .subscription,
+        .tools,
+        .page-end,
+        .preview-meta button {
+          display: none;
+        }
+        .page {
+          padding: 0;
+        }
+        body {
+          background: #fff;
+          color: #000;
+        }
+        .radar-section {
+          border: 0;
+        }
+        .post-prose mark {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .explorer {
+          display: block;
+        }
+        .files {
+          display: none;
+        }
+      }
+      .file-button {
+        text-decoration: none;
+        color: var(--ink);
+        border-radius: 8px;
+      }
+      .file-button:hover {
+        background: var(--hover);
+        border-color: var(--line);
+      }
+      .file-button:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      #file-dialog {
+        width: min(520px, calc(100% - 32px));
+        max-height: 80dvh;
+        overflow: auto;
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        color: var(--ink);
+        background: var(--paper);
+      }
+      #file-dialog::backdrop {
+        background: rgb(15 18 25 / 0.4);
+      }
+      .dialog-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .dialog-head h2 {
+        font-size: 22px;
+        margin: 0;
+      }
+      #file-dialog .dimension-description {
+        padding: 12px 0;
+      }
+      #file-dialog #file-source {
+        margin: 12px 0 0;
+      }
+      .reader-page {
+        padding: 0;
+      }
+      .reader-nav {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 18px;
+        margin-bottom: 26px;
+      }
+      .reader-back {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        color: var(--ink);
+        text-decoration: none;
+        padding: 6px 0;
+      }
+      .reader-back::before {
+        content: '‹';
+        font-size: 24px;
+        padding-right: 9px;
+      }
+      .axis-label .axis-grade {
+        color: var(--grade-color);
+        font-weight: 750;
+      }
+      .axis-label {
+        padding-inline: 4px;
+      }
+      @media (min-width: 600px) {
+        .reader-page {
+          padding: 8px 20px;
+        }
+      }
+      @media (max-width: 599px) {
+        .axis-label {
+          font-size: 14px;
+        }
+      }
+      @media print {
+        .reader-nav,
+        #file-dialog {
+          display: none;
+        }
+      }
+      .radar-glass-panel {
+        fill: url(#glass-tint);
+        stroke: rgb(98 164 190 / 0.35);
+        stroke-width: 1.4;
+        stroke-linejoin: round;
+      }
+      .glass-rim {
+        fill: none;
+        stroke: url(#glass-rim);
+        stroke-width: 2;
+        stroke-linejoin: round;
+        pointer-events: none;
+      }
+      .glass-reflection {
+        fill: url(#glass-reflection);
+        stroke: none;
+        pointer-events: none;
+      }
+      .dark .radar-glass-panel {
+        stroke: rgb(163 213 234 / 0.44);
+      }
+      .node-core {
+        animation: node-breathe 3.6s ease-in-out infinite;
+        animation-delay: var(--node-delay, 0s);
+      }
+      .node-halo {
+        animation: halo-breathe 3.6s ease-in-out infinite;
+        animation-delay: var(--node-delay, 0s);
+        transform-box: fill-box;
+        transform-origin: center;
+        pointer-events: none;
+      }
+      @keyframes node-breathe {
+        0%,
+        100% {
+          opacity: 0.58;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+      @keyframes halo-breathe {
+        0%,
+        100% {
+          opacity: 0.22;
+          transform: scale(0.9);
+        }
+        50% {
+          opacity: 0.68;
+          transform: scale(1.3);
+        }
+      }
+      #radar[data-motion='off'] .node-core,
+      #radar[data-motion='off'] .node-halo {
+        animation: none;
+      }
+      #radar[data-motion='off'] .node-core {
+        opacity: 1;
+      }
+      #radar[data-motion='off'] .node-halo {
+        opacity: 0.4;
+        transform: none;
+      }
+      #radar[data-idle='true'] .node-core,
+      #radar[data-idle='true'] .node-halo {
+        animation-play-state: paused;
+      }
+      #motion-toggle {
+        font-size: 14px;
+        padding: 6px 10px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .node-core,
+        .node-halo {
+          animation: none !important;
+        }
+        .node-core {
+          opacity: 1;
+        }
+        .node-halo {
+          opacity: 0.4;
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-bar">
+      <div class="site-bar-inner">
+        <a class="brand" href="https://43.138.216.53/Blog/" target="_blank" rel="noopener noreferrer">Blog / Marvel-L</a
+        ><span class="demo-note">关于页局部演示 · 尚未上线</span>
+        <div class="tools">
+          <button
+            id="typography"
+            type="button"
+            aria-label="Resume 排版"
+            aria-pressed="true"
+            title="开启或关闭现有 Aa 排版"
+          >
+            Aa 排版</button
+          ><button id="theme" type="button" aria-label="切换深色模式" aria-pressed="false">深色</button>
+        </div>
+      </div>
+    </header>
+    <main class="page site-shell" data-typography="resume">
+      <div id="overview">
+        <header class="page-heading">
+          <h1>关于我</h1>
+          <p class="profile-line"><strong>Marvel-L</strong>　你好！我是 Marvel-L，感谢你能来光临我的 Blog。</p>
+        </header>
+        <section class="radar-section" aria-labelledby="radar-heading">
+          <div class="section-head">
+            <h2 id="radar-heading">能力雷达</h2>
+          </div>
+          <div class="radar-toolbar">
+            <div class="segmented" aria-label="演示数据">
+              <button id="all-newbie" type="button" aria-pressed="true">全 N</button
+              ><button id="mixed" type="button" aria-pressed="false">混合等级示例</button>
+            </div>
+            <button id="motion-toggle" type="button" aria-pressed="true" aria-label="节点呼吸闪烁">关闭闪烁</button>
+            <span id="dataset-note" class="dataset-note">默认 N · 未提供真实自评</span>
+          </div>
+          <div class="chart-wrap">
+            <div id="chart-space" class="chart-space">
+              <svg
+                id="radar"
+                class="chart"
+                viewBox="0 0 700 530"
+                role="img"
+                aria-label="九维能力雷达图，默认全部为 Newbie"
+              >
+                <title>九维能力雷达图</title>
+                <desc>点击周围的维度名称，查看对应 Markdown 文件。等级由 N、G、B、V、O、R 从内到外排列。</desc>
+              </svg>
+              <div id="axis-labels"></div>
+            </div>
+          </div>
+          <details class="settings" id="settings">
+            <summary>演示配置与本地文件管理</summary>
+            <div class="settings-grid">
+              <div class="config-editor">
+                <label for="config-json">config.json · 修改后点击应用</label
+                ><textarea id="config-json" spellcheck="false" aria-describedby="config-description"></textarea>
+                <p id="config-description" class="small muted">
+                  只接受九个维度与 N / G / B / V / O / R。当前等级不从历史 Markdown 推断。
+                </p>
+                <div class="button-row">
+                  <button id="apply-config" type="button" class="primary">应用配置</button
+                  ><button id="export-config" type="button">导出 config.json</button
+                  ><button id="import-config" type="button">导入配置</button>
+                </div>
+                <input id="config-file" type="file" accept=".json,application/json" hidden />
+              </div>
+              <div class="file-manager">
+                <p>每个维度是一个独立目录，自己维护当前自评与各阶段记录。以下路径仅示意；此 Demo 不修改磁盘文件。</p>
+                <pre>
+能力记录/
+├── config.json
+├── 算法/
+│   ├── Index.md
+│   ├── Stage1.md
+│   └── Stage2.md
+└── 语言广度/
+    ├── Index.md
+    └── ...</pre>
+                <div class="button-row">
+                  <button id="import-folder" type="button">选择能力记录目录</button
+                  ><button id="restore-demo" type="button">恢复演示记录</button>
+                </div>
+                <input id="folder-files" type="file" webkitdirectory multiple hidden />
+                <p style="margin-top: 12px">
+                  目录选择后读取 config.json 与各维度下的 .md。内容仅用于本地预览，不上传、不保存到线上。
+                </p>
+              </div>
+            </div>
+            <p id="status" class="status" role="status" aria-live="polite"></p>
+          </details>
+        </section>
+        <aside class="subscription" aria-labelledby="subscription-heading">
+          <h2 id="subscription-heading">订阅新文章提醒</h2>
+          <p>在 GitHub Issue 中点击 Subscribe，即可接收 D-blog 的更新通知。</p>
+          <a href="https://github.com/ououduck/D-blog/issues/6" target="_blank" rel="noopener noreferrer">前往订阅</a>
+        </aside>
+        <p class="page-end">HTML Demo：确认视觉与交互后，再接入正式关于页。当前所有阶段正文均为格式示例。</p>
+      </div>
+      <section id="reader-page" class="reader-page" aria-label="能力记录阅读页" hidden>
+        <header class="reader-nav">
+          <a id="back-to-radar" class="reader-back" href="#/about">返回能力雷达</a
+          ><span id="reader-dimension" class="muted small"></span>
+        </header>
+        <div id="preview">
+          <div class="preview-meta">
+            <strong id="preview-path"></strong
+            ><button id="source-toggle" type="button" aria-pressed="false">查看 Markdown 原文</button>
+          </div>
+          <p id="preview-notice" class="preview-notice"></p>
+          <p id="reader-error" role="alert" hidden></p>
+          <article id="article" class="post-prose prose" tabindex="-1"></article>
+          <pre id="raw-source" hidden style="white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px"></pre>
+        </div>
+      </section>
+      <dialog id="file-dialog" aria-labelledby="selected-title">
+        <div class="dialog-head">
+          <h2 id="selected-title"></h2>
+          <button id="close-detail" type="button" aria-label="关闭文档列表">关闭</button>
+        </div>
+        <p id="dimension-description" class="dimension-description"></p>
+        <div id="file-list"></div>
+        <p id="file-source" class="small muted"></p>
+      </dialog>
+      <p id="live" class="sr-only" aria-live="polite"></p>
+      <noscript
+        ><p>
+          需要启用 JavaScript
+          才能使用交互雷达图。维度为算法、语言广度、语言深度、业务的广度、业务的深度、技术的广度、技术的深度、AI、学历。
+        </p></noscript
+      >
+    </main>
+    <script>
+      /* INLINE_MARKDOWN_BUNDLE */
+    </script>
+    <script>
+      (function () {
+        'use strict';
+        try {
+          const $ = (id) => document.getElementById(id);
+          if (!$('radar')) return;
+          const DIMENSIONS = [
+            ['算法', '是否熟悉基础算法、常见题型与 LeetCode 100。'],
+            ['语言广度', '是否熟悉 Golang、Java、C++、前端；停留在会用。'],
+            ['语言深度', '是否用某一个语言开发过完整项目，了解数据结构，知道优缺点；融会贯通。'],
+            ['业务的广度', '是否熟悉广告、交易、合同、履约、信用、金融、搜推；熟悉并知道业务模式。'],
+            ['业务的深度', '是否了解金融管理方式，如快照与对账；知道合同状态流转，熟悉支付如何实现。'],
+            ['技术的广度', '是否了解 CI/CD、部署、问题排查、常见开发模型、性能优化与各种中间件。'],
+            ['技术的深度', '是否知道并实现不同的 CI/CD 方式，知道如何选择各种数据库。'],
+            ['AI', '是否知道 AI 的概念、用过 AI、搭建过 AI 相关内容，以及如何看待 Vibe 与 harness。'],
+            ['学历', '学历背景由作者自行解释，不预设与其他维度的换算标准。'],
+          ];
+          const GRADES = {
+            N: { name: 'Newbie', rank: 1, color: '#777e89' },
+            G: { name: 'Green', rank: 2, color: '#2a9465' },
+            B: { name: 'Blue', rank: 3, color: '#3875cb' },
+            V: { name: 'Violet', rank: 4, color: '#9554c2' },
+            O: { name: 'Orange', rank: 5, color: '#c27c24' },
+            R: { name: 'Red', rank: 6, color: '#d55259' },
+          };
+          const KEYS = DIMENSIONS.map((item) => item[0]);
+          const ALL_N = Object.fromEntries(KEYS.map((key) => [key, 'N']));
+          const MIXED = Object.fromEntries(
+            KEYS.map((key, i) => [key, ['N', 'B', 'V', 'G', 'B', 'O', 'V', 'R', 'G'][i]]),
+          );
+          let config = { ...ALL_N },
+            selected = null,
+            activeFile = null,
+            dataset = 'all',
+            generation = 0;
+          let filesAreDemo = true,
+            sourceVisible = false,
+            returnFocus = null;
+          const DEMO_FILES = Object.fromEntries(
+            DIMENSIONS.map(([title, description]) => [
+              title,
+              [
+                {
+                  name: 'Index.md',
+                  grade: null,
+                  caption: '当前自评说明',
+                  content: `# ${title}：当前自评\n\n> 格式示例，不是作者的真实经历。当前等级以 config.json 为准。\n\n## 为什么给自己这个等级\n\n${description}\n\n===这里由作者解释自评依据，而不是由系统代打分。===\n\n## 记录可以怎么写\n\n- **做过什么**：记录可以验证的实践与项目。\n- **掌握到哪一步**：说明目前能独立完成的事情。\n- **还差什么**：保留没有掌握的内容与下一步计划。\n\n## 排版与高亮示例\n\n支持 ===三等号高亮===、==双等号高亮== 与 ++下划线++。\n\n===高亮中的 **粗体** 与 *斜体* 也可以同时保留。===\n\n代码里的等号不会被误处理：\n\n\`\`\`javascript\nconst same = left === right;\n// ===这里只是代码，不是高亮===\n\`\`\`\n\n当前等级只存一个字母：\n\n\`\`\`json\n{ "${title}": "N" }\n\`\`\`\n\n---\n\nAa 开关沿用文章的 Resume 排版。关闭后恢复普通正文样式。`,
+                },
+                {
+                  name: 'Stage1.md',
+                  grade: 'V',
+                  caption: '阶段记录 · 为什么是 V',
+                  content: `# ${title}：Stage1\n\n> 示例阶段。V 仅表示这份历史记录里的等级，不是当前自评。\n\n## 这个阶段为什么是 V\n\n===由作者补充当时的实践、证据与判断。===\n\n1. 当时的目标是什么。\n2. 完成了哪些可验证的事情。\n3. 为什么认为达到 Violet。\n\n## 回看这个阶段\n\n历史记录保持原样，文件按 Index、Stage1、Stage2 顺序展示，**不按等级高低重排**。`,
+                },
+                {
+                  name: 'Stage2.md',
+                  grade: 'G',
+                  caption: '阶段记录 · 为什么是 G',
+                  content: `# ${title}：Stage2\n\n> 示例阶段。G 仅属于这份记录；Stage2 不强制比 Stage1 等级更高。\n\n## 这个阶段为什么是 G\n\n===作者可以记录标准变化、重新评估或新的学习方向。===\n\n- 不把文件名当作等级计算规则。\n- 不把历史阶段自动覆盖到 config.json。\n- 每个阶段的原因由作者自己解释。\n\n## 下一步\n\n++把具体计划与证据写在这里。++`,
+                },
+              ],
+            ]),
+          );
+          let records = DEMO_FILES;
+          let readerDimension = null;
+          let modalRestoreScroll = 0;
+          function status(message, error = false) {
+            $('status').textContent = message;
+            $('status').classList.toggle('error', error);
+          }
+          function announce(message) {
+            $('live').textContent = message;
+          }
+          function validateConfig(value) {
+            if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('配置必须是 JSON 对象。');
+            const unknown = Object.keys(value).filter((key) => !KEYS.includes(key));
+            if (unknown.length) throw new Error('未知维度：' + unknown.join('、'));
+            const missing = KEYS.filter((key) => !Object.hasOwn(value, key));
+            if (missing.length) throw new Error('缺少维度：' + missing.join('、'));
+            for (const key of KEYS)
+              if (typeof value[key] !== 'string' || !Object.hasOwn(GRADES, value[key]))
+                throw new Error(key + ' 仅接受 N / G / B / V / O / R。');
+            return Object.fromEntries(KEYS.map((key) => [key, value[key]]));
+          }
+          const NS = 'http://www.w3.org/2000/svg';
+          function svgNode(tag, attributes, parent) {
+            const node = document.createElementNS(NS, tag);
+            for (const [name, value] of Object.entries(attributes)) node.setAttribute(name, String(value));
+            if (parent) parent.append(node);
+            return node;
+          }
+          const CX = 350,
+            CY = 262,
+            RADIUS = 176;
+          function point(i, radius) {
+            const angle = ((-90 + i * 40) * Math.PI) / 180;
+            return [CX + radius * Math.cos(angle), CY + radius * Math.sin(angle)];
+          }
+          function points(radius) {
+            return KEYS.map((_, i) => point(i, radius).join(',')).join(' ');
+          }
+          function drawRadar() {
+            const activeDimension = document.activeElement?.dataset.dimension;
+            const svg = $('radar');
+            while (svg.childNodes.length > 2) svg.removeChild(svg.lastChild);
+            svg.setAttribute('aria-label', '九维能力雷达图：' + KEYS.map((k) => k + ' ' + config[k]).join('，'));
+            const darkGlass = document.documentElement.classList.contains('dark');
+            const defs = svgNode('defs', {}, svg);
+            const tint = svgNode(
+              'linearGradient',
+              { id: 'glass-tint', x1: '0%', y1: '0%', x2: '85%', y2: '100%' },
+              defs,
+            );
+            [
+              ['0%', '#f8feff', darkGlass ? 0.22 : 0.36],
+              ['32%', '#d3f0f6', darkGlass ? 0.12 : 0.16],
+              ['72%', '#9fc9dc', darkGlass ? 0.17 : 0.23],
+              ['100%', '#c2e8ed', darkGlass ? 0.08 : 0.1],
+            ].forEach(([offset, color, opacity]) =>
+              svgNode('stop', { offset, 'stop-color': color, 'stop-opacity': opacity }, tint),
+            );
+            const rim = svgNode(
+              'linearGradient',
+              { id: 'glass-rim', x1: '10%', y1: '0%', x2: '85%', y2: '100%' },
+              defs,
+            );
+            [
+              ['0%', '#ffffff', 0.95],
+              ['42%', '#d9f3fa', 0.56],
+              ['70%', '#689eb6', 0.15],
+              ['100%', '#edfaff', 0.7],
+            ].forEach(([offset, color, opacity]) =>
+              svgNode('stop', { offset, 'stop-color': color, 'stop-opacity': opacity }, rim),
+            );
+            const reflection = svgNode(
+              'linearGradient',
+              { id: 'glass-reflection', x1: '0%', y1: '0%', x2: '0%', y2: '100%' },
+              defs,
+            );
+            [
+              ['0%', '#ffffff', darkGlass ? 0.25 : 0.45],
+              ['48%', '#ffffff', 0.09],
+              ['100%', '#ffffff', 0],
+            ].forEach(([offset, color, opacity]) =>
+              svgNode('stop', { offset, 'stop-color': color, 'stop-opacity': opacity }, reflection),
+            );
+            // 网格穿过透明冰蓝玻璃，六种等级色只用于节点及轴旁字母。
+            for (let level = 6; level >= 1; level--) {
+              svgNode(
+                'polygon',
+                {
+                  points: points((RADIUS * level) / 6),
+                  fill: 'none',
+                  stroke: 'currentColor',
+                  'stroke-opacity': level === 6 ? 0.2 : 0.1,
+                  'stroke-width': 1,
+                },
+                svg,
+              );
+            }
+            for (let i = 0; i < KEYS.length; i++) {
+              const p = point(i, RADIUS);
+              svgNode(
+                'line',
+                {
+                  x1: CX,
+                  y1: CY,
+                  x2: p[0],
+                  y2: p[1],
+                  stroke: 'currentColor',
+                  'stroke-opacity': 0.14,
+                  'stroke-width': 1,
+                },
+                svg,
+              );
+            }
+            const vertices = KEYS.map((key, i) => point(i, (RADIUS * GRADES[config[key]].rank) / 6));
+            svgNode(
+              'polygon',
+              {
+                'data-shape': 'ability-area',
+                points: vertices.map((p) => p.join(',')).join(' '),
+                class: 'radar-glass-panel',
+                fill: 'url(#glass-tint)',
+              },
+              svg,
+            );
+            const glassClip = svgNode('clipPath', { id: 'glass-clip' }, defs);
+            svgNode('polygon', { points: vertices.map((p) => p.join(',')).join(' ') }, glassClip);
+            svgNode(
+              'path',
+              {
+                class: 'glass-reflection',
+                d: 'M 120 60 L 590 60 L 570 214 Q 360 335 130 175 Z',
+                'clip-path': 'url(#glass-clip)',
+              },
+              svg,
+            );
+            svgNode('polygon', { class: 'glass-rim', points: vertices.map((p) => p.join(',')).join(' ') }, svg);
+            const labelHost = $('axis-labels');
+            labelHost.replaceChildren();
+            for (let i = 0; i < KEYS.length; i++) {
+              const key = KEYS[i],
+                p = vertices[i],
+                grade = GRADES[config[key]];
+              svgNode(
+                'circle',
+                {
+                  class: 'node-halo',
+                  style: '--node-delay:' + -i * 0.32 + 's',
+                  cx: p[0],
+                  cy: p[1],
+                  r: key === selected ? 13 : 9,
+                  fill: grade.color,
+                  'fill-opacity': key === selected ? 0.38 : 0.28,
+                },
+                svg,
+              );
+              svgNode(
+                'circle',
+                {
+                  'data-node': key,
+                  class: 'node-core',
+                  style: '--node-delay:' + -i * 0.32 + 's',
+                  cx: p[0],
+                  cy: p[1],
+                  r: 5.5,
+                  fill: grade.color,
+                  stroke: 'var(--paper)',
+                  'stroke-width': 1.8,
+                },
+                svg,
+              );
+              // 节点热区不抢走相邻点：标题按钮是键盘与移动端等价入口。
+              const hit = svgNode(
+                'circle',
+                { cx: p[0], cy: p[1], r: 9, fill: 'transparent', cursor: 'pointer', 'aria-hidden': 'true' },
+                svg,
+              );
+              hit.addEventListener('click', () => chooseDimension(key));
+              const pos = point(i, RADIUS + 66),
+                button = document.createElement('button');
+              button.type = 'button';
+              button.className = 'axis-label';
+              button.append(document.createTextNode(key));
+              const gradeText = document.createElement('span');
+              gradeText.className = 'axis-grade';
+              gradeText.textContent = '(' + config[key] + ')';
+              button.append(gradeText);
+              button.style.setProperty('--grade-color', grade.color);
+              button.style.left = (pos[0] / 700) * 100 + '%';
+              button.style.top = 'clamp(24px,' + (pos[1] / 530) * 100 + '%,calc(100% - 24px))';
+              button.dataset.dimension = key;
+              button.setAttribute('aria-pressed', String(selected === key));
+              button.setAttribute('aria-haspopup', 'dialog');
+              button.setAttribute('aria-controls', 'file-dialog');
+              button.setAttribute('aria-label', key + '，当前 ' + config[key] + '，查看记录');
+              button.addEventListener('click', () => {
+                returnFocus = key;
+                chooseDimension(key);
+              });
+              labelHost.append(button);
+            }
+            $('config-json').value = JSON.stringify(config, null, 2);
+            $('all-newbie').setAttribute('aria-pressed', String(dataset === 'all'));
+            $('mixed').setAttribute('aria-pressed', String(dataset === 'mixed'));
+            $('dataset-note').textContent =
+              dataset === 'all'
+                ? '默认 N · 未提供真实自评'
+                : dataset === 'mixed'
+                  ? '仅为配色与交互示例'
+                  : '已应用自定义配置';
+            if (selected && $('file-dialog').open) {
+              updateSelected();
+              renderFileList();
+            }
+            if (activeDimension) {
+              const nextButton = [...$('axis-labels').children].find(
+                (button) => button.dataset.dimension === activeDimension,
+              );
+              if (nextButton) nextButton.focus({ preventScroll: true });
+            }
+          }
+          function updateSelected() {
+            $('selected-title').textContent = selected + '(' + config[selected] + ')';
+            $('dimension-description').textContent = DIMENSIONS.find((item) => item[0] === selected)[1];
+          }
+          function restoreAxisFocus(key) {
+            const button = [...$('axis-labels').children].find((el) => el.dataset.dimension === key);
+            if (button && !$('overview').hidden) button.focus({ preventScroll: true });
+          }
+          function closeDetail(restore = true) {
+            const key = returnFocus || selected;
+            if ($('file-dialog').open) $('file-dialog').close();
+            selected = null;
+            drawRadar();
+            document.documentElement.style.overflow = '';
+            if (restore) restoreAxisFocus(key);
+          }
+          function chooseDimension(key) {
+            if ($('file-dialog').open && selected === key) {
+              closeDetail();
+              return;
+            }
+            selected = key;
+            returnFocus = key;
+            modalRestoreScroll = window.scrollY;
+            drawRadar();
+            updateSelected();
+            renderFileList();
+            if (!$('file-dialog').open) $('file-dialog').showModal();
+            document.documentElement.style.overflow = 'hidden';
+            const first = $('file-list').querySelector('a');
+            if (first) first.focus({ preventScroll: true });
+            else $('close-detail').focus({ preventScroll: true });
+            announce('已打开' + key + '的文档列表');
+          }
+          function fileGrade(file) {
+            return file.name.toLowerCase() === 'index.md' ? config[selected] : file.grade;
+          }
+          function renderFileList() {
+            const host = $('file-list');
+            host.replaceChildren();
+            const list = records[selected] || [];
+            $('file-source').textContent = filesAreDemo ? '示例记录 · 非真实经历' : '本地目录 · 只读预览';
+            if (!list.length) {
+              const p = document.createElement('p');
+              p.className = 'small muted';
+              p.textContent = '这个维度暂无 Markdown 文件。';
+              host.append(p);
+              return;
+            }
+            for (const file of list) {
+              const button = document.createElement('a');
+              button.href = documentRoute(selected, file.name);
+              button.className = 'file-button';
+              button.dataset.file = file.name;
+              const icon = document.createElement('span');
+              icon.className = 'file-icon';
+              icon.textContent = 'md';
+              icon.setAttribute('aria-hidden', 'true');
+              const text = document.createElement('span'),
+                name = document.createElement('span'),
+                caption = document.createElement('span');
+              name.className = 'file-name';
+              name.textContent = file.name;
+              caption.className = 'file-description';
+              caption.textContent =
+                file.caption || (file.name.toLowerCase() === 'index.md' ? '当前自评说明' : '作者维护的阶段记录');
+              text.append(name, caption);
+              button.append(icon, text);
+              const code = fileGrade(file);
+              if (code) {
+                const letter = document.createElement('span');
+                letter.className = 'file-letter';
+                letter.style.setProperty('--c', GRADES[code].color);
+                letter.textContent = code;
+                button.append(letter);
+              }
+              button.addEventListener('click', (event) => {
+                if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
+                const dimension = selected;
+                const route = documentRoute(dimension, file.name);
+                closeDetail(false);
+                if (location.hash === route) renderRoute();
+                else location.hash = route;
+              });
+              host.append(button);
+            }
+          }
+          function openFile(file, dimension) {
+            try {
+              if (typeof window.RadarMarkdown !== 'function') throw new Error('Markdown 预览组件未加载。');
+              const html = window.RadarMarkdown(file.content);
+              activeFile = file.name;
+              sourceVisible = false;
+              $('article').innerHTML = html;
+              // 渲染后只增加外链安全属性；净化结果不拼接用户 HTML。
+              for (const anchor of $('article').querySelectorAll('a')) {
+                anchor.target = '_blank';
+                anchor.rel = 'noopener noreferrer';
+              }
+              $('raw-source').textContent = file.content;
+              $('raw-source').hidden = true;
+              $('article').hidden = false;
+              $('source-toggle').textContent = '查看 Markdown 原文';
+              $('source-toggle').setAttribute('aria-pressed', 'false');
+              $('preview-path').textContent = dimension + ' / ' + file.name;
+              $('preview-notice').textContent = filesAreDemo
+                ? '格式示例 · 本文不是作者的真实自评'
+                : '本地 Markdown · 只读预览，未上传';
+              $('reader-error').hidden = true;
+              document.title = dimension + ' / ' + file.name + ' · 能力记录 Demo';
+              announce('正在阅读' + dimension + ' / ' + file.name);
+              $('article').focus({ preventScroll: true });
+            } catch (error) {
+              $('reader-error').hidden = false;
+              $('reader-error').textContent = '预览失败：' + error.message;
+              $('article').replaceChildren();
+            }
+          }
+          function documentRoute(dimension, name) {
+            return '#/read/' + encodeURIComponent(dimension) + '/' + encodeURIComponent(name);
+          }
+          function renderRoute() {
+            let parts;
+            try {
+              parts = (location.hash || '#/about')
+                .slice(1)
+                .split('/')
+                .filter(Boolean)
+                .map((part) => decodeURIComponent(part));
+            } catch (_error) {
+              parts = ['invalid'];
+            }
+            closeDetail(false);
+            const reading = parts[0] === 'read';
+            const validOverview = parts.length === 1 && parts[0] === 'about';
+            $('overview').hidden = reading || !validOverview;
+            $('reader-page').hidden = validOverview;
+            if (validOverview) {
+              readerDimension = null;
+              activeFile = null;
+              document.title = '关于页 · 能力雷达图 Demo';
+              window.scrollTo({ top: modalRestoreScroll, behavior: 'auto' });
+              if (returnFocus) restoreAxisFocus(returnFocus);
+              return;
+            }
+            readerDimension = parts[1];
+            const file =
+              reading && parts.length === 3 && KEYS.includes(readerDimension)
+                ? (records[readerDimension] || []).find((item) => item.name === parts[2])
+                : null;
+            $('reader-dimension').textContent = KEYS.includes(readerDimension)
+              ? readerDimension + '(' + config[readerDimension] + ')'
+              : '';
+            $('article').replaceChildren();
+            $('raw-source').textContent = '';
+            sourceVisible = false;
+            $('article').hidden = false;
+            $('raw-source').hidden = true;
+            if (file) {
+              openFile(file, readerDimension);
+            } else {
+              activeFile = null;
+              $('preview-path').textContent = '文档未找到';
+              $('preview-notice').textContent = '';
+              $('reader-error').hidden = false;
+              $('reader-error').textContent = '这个文档不存在，或本地文件尚未导入。可以返回雷达图重新选择。';
+              document.title = '文档未找到 · 能力记录 Demo';
+            }
+            window.scrollTo({ top: 0, behavior: 'auto' });
+          }
+          window.addEventListener('hashchange', renderRoute);
+          $('file-dialog').addEventListener('cancel', (event) => {
+            event.preventDefault();
+            closeDetail();
+          });
+          $('file-dialog').addEventListener('click', (event) => {
+            if (event.target === $('file-dialog')) {
+              const r = $('file-dialog').getBoundingClientRect();
+              if (
+                event.clientX < r.left ||
+                event.clientX > r.right ||
+                event.clientY < r.top ||
+                event.clientY > r.bottom
+              )
+                closeDetail();
+            }
+          });
+          function setConfig(next, note, type = 'custom') {
+            const validated = validateConfig(next);
+            generation++;
+            config = validated;
+            dataset = type;
+            drawRadar();
+            status(note);
+            announce(note);
+          }
+          $('all-newbie').addEventListener('click', () => setConfig(ALL_N, '已恢复全 N，未填写真实自评。', 'all'));
+          $('mixed').addEventListener('click', () =>
+            setConfig(MIXED, '已应用混合等级示例，不代表作者真实能力。', 'mixed'),
+          );
+          $('close-detail').addEventListener('click', closeDetail);
+          $('apply-config').addEventListener('click', () => {
+            try {
+              generation++;
+              setConfig(JSON.parse($('config-json').value), '已应用配置，仅影响本次 Demo。');
+            } catch (error) {
+              status(error.message, true);
+            }
+          });
+          $('source-toggle').addEventListener('click', () => {
+            sourceVisible = !sourceVisible;
+            $('raw-source').hidden = !sourceVisible;
+            $('article').hidden = sourceVisible;
+            $('source-toggle').textContent = sourceVisible ? '返回正文预览' : '查看 Markdown 原文';
+            $('source-toggle').setAttribute('aria-pressed', String(sourceVisible));
+          });
+          let typography = true;
+          try {
+            typography = localStorage.getItem('about-radar-demo-typography') !== 'false';
+          } catch (_error) {
+            /* 不影响当前页面 */
+          }
+          function applyTypography() {
+            document.querySelector('.site-shell').dataset.typography = typography ? 'resume' : 'default';
+            $('typography').setAttribute('aria-pressed', String(typography));
+            $('typography').title = typography ? '关闭 Aa 排版，恢复普通正文' : '开启文章 Aa 排版';
+          }
+          applyTypography();
+          $('typography').addEventListener('click', () => {
+            typography = !typography;
+            applyTypography();
+            try {
+              localStorage.setItem('about-radar-demo-typography', String(typography));
+            } catch (_error) {
+              status('排版已切换，但浏览器阻止保存偏好。');
+            }
+            announce(typography ? '已开启 Aa 排版' : '已关闭 Aa 排版');
+          });
+          let dark = false;
+          try {
+            const stored = localStorage.getItem('about-radar-demo-theme');
+            dark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme:dark)').matches;
+          } catch (_error) {
+            dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+          }
+          function applyTheme() {
+            document.documentElement.classList.toggle('dark', dark);
+            $('theme').textContent = dark ? '浅色' : '深色';
+            $('theme').setAttribute('aria-pressed', String(dark));
+            $('theme').setAttribute('aria-label', dark ? '切换浅色模式' : '切换深色模式');
+            drawRadar();
+          }
+          $('theme').addEventListener('click', () => {
+            dark = !dark;
+            applyTheme();
+            try {
+              localStorage.setItem('about-radar-demo-theme', dark ? 'dark' : 'light');
+            } catch (_error) {
+              status('主题已切换，但浏览器阻止保存偏好。');
+            }
+          });
+          $('export-config').addEventListener('click', () => {
+            try {
+              const blob = new Blob([JSON.stringify(config, null, 2) + '\n'], { type: 'application/json' }),
+                url = URL.createObjectURL(blob),
+                a = document.createElement('a');
+              a.href = url;
+              a.download = 'config.json';
+              a.click();
+              setTimeout(() => URL.revokeObjectURL(url), 1000);
+              status('已导出 config.json，下载文件保留当前九个维度。');
+            } catch (error) {
+              status('导出失败：' + error.message, true);
+            }
+          });
+          $('import-config').addEventListener('click', () => {
+            $('config-file').value = '';
+            $('config-file').click();
+          });
+          $('config-file').addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const ticket = ++generation;
+            try {
+              if (file.size > 100000) throw new Error('配置文件超过 100 KB。');
+              const text = await file.text();
+              if (ticket !== generation) return;
+              setConfig(JSON.parse(text), '已导入配置，只更新当前 Demo。');
+            } catch (error) {
+              if (ticket === generation) status('导入失败：' + error.message, true);
+            }
+          });
+          $('import-folder').addEventListener('click', () => {
+            $('folder-files').value = '';
+            $('folder-files').click();
+          });
+          $('folder-files').addEventListener('change', async (event) => {
+            const list = [...event.target.files];
+            if (!list.length) return;
+            const ticket = ++generation;
+            try {
+              const parsed = list.map((file) => ({ file, parts: (file.webkitRelativePath || file.name).split('/') }));
+              const configs = parsed.filter((item) => item.parts.length === 2 && item.parts[1] === 'config.json');
+              if (configs.length !== 1) throw new Error('所选目录根部必须有且仅有一个 config.json。');
+              if (configs[0].file.size > 100000) throw new Error('config.json 超过 100 KB。');
+              const nextConfig = validateConfig(JSON.parse(await configs[0].file.text()));
+              const mdFiles = parsed.filter(
+                (item) => item.parts.length === 3 && KEYS.includes(item.parts[1]) && /\.md$/i.test(item.parts[2]),
+              );
+              if (mdFiles.length > 200) throw new Error('Demo 最多读取 200 个 Markdown 文件。');
+              if (mdFiles.some((item) => item.file.size > 1000000))
+                throw new Error('单篇 Markdown 请控制在 1 MB 以内。');
+              if (mdFiles.reduce((sum, item) => sum + item.file.size, 0) > 10000000)
+                throw new Error('Markdown 总体积请控制在 10 MB 以内。');
+              const nextRecords = Object.fromEntries(KEYS.map((key) => [key, []]));
+              await Promise.all(
+                mdFiles.map(async (item) => {
+                  const content = await item.file.text();
+                  nextRecords[item.parts[1]].push({ name: item.parts[2], content, grade: null });
+                }),
+              );
+              for (const items of Object.values(nextRecords))
+                items.sort((a, b) =>
+                  a.name.toLowerCase() === 'index.md'
+                    ? -1
+                    : b.name.toLowerCase() === 'index.md'
+                      ? 1
+                      : a.name.localeCompare(b.name, 'zh-CN', { numeric: true }),
+                );
+              if (ticket !== generation) return;
+              records = nextRecords;
+              filesAreDemo = false;
+              activeFile = null;
+              $('article').replaceChildren();
+              $('raw-source').textContent = '';
+              setConfig(nextConfig, '已读取本地配置与 ' + mdFiles.length + ' 个 Markdown 文件；未上传。');
+            } catch (error) {
+              if (ticket === generation) status('目录读取失败：' + error.message + ' 已保留原配置和记录。', true);
+            }
+          });
+          $('restore-demo').addEventListener('click', () => {
+            generation++;
+            records = DEMO_FILES;
+            filesAreDemo = true;
+            activeFile = null;
+            $('article').replaceChildren();
+            $('raw-source').textContent = '';
+            setConfig(ALL_N, '已恢复示例记录与全 N 配置。', 'all');
+          });
+          document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && selected) {
+              event.preventDefault();
+              closeDetail();
+            }
+          });
+          const motionMedia = window.matchMedia('(prefers-reduced-motion:reduce)');
+          let motionEnabled = true;
+          let radarVisible = true;
+          function applyMotion() {
+            const enabled = motionEnabled && !motionMedia.matches;
+            $('radar').dataset.motion = enabled ? 'on' : 'off';
+            $('radar').dataset.idle = String(!radarVisible || document.hidden);
+            $('motion-toggle').setAttribute('aria-pressed', String(enabled));
+            $('motion-toggle').disabled = motionMedia.matches;
+            $('motion-toggle').textContent = motionMedia.matches ? '系统已关闭动效' : enabled ? '关闭闪烁' : '开启闪烁';
+          }
+          $('motion-toggle').addEventListener('click', () => {
+            motionEnabled = !motionEnabled;
+            applyMotion();
+            announce(motionEnabled ? '已开启节点呼吸闪烁' : '已关闭节点闪烁');
+          });
+          motionMedia.addEventListener('change', applyMotion);
+          document.addEventListener('visibilitychange', applyMotion);
+          const motionObserver =
+            typeof IntersectionObserver === 'function'
+              ? new IntersectionObserver(
+                  (entries) => {
+                    radarVisible = entries[0]?.isIntersecting !== false;
+                    applyMotion();
+                  },
+                  { threshold: 0.05 },
+                )
+              : null;
+          if (motionObserver) motionObserver.observe($('chart-space'));
+          window.addEventListener(
+            'pagehide',
+            () => {
+              if (motionObserver) motionObserver.disconnect();
+              motionMedia.removeEventListener('change', applyMotion);
+              document.removeEventListener('visibilitychange', applyMotion);
+            },
+            { once: true },
+          );
+          applyMotion();
+          applyTheme();
+          renderRoute();
+        } catch (error) {
+          const message = document.getElementById('status');
+          if (message) {
+            message.textContent = '演示初始化失败：' + error.message;
+            message.classList.add('error');
+            document.getElementById('settings').open = true;
+          }
+          console.error(error);
+        }
+      })();
+    </script>
+  </body>
+</html>

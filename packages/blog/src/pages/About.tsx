@@ -9,6 +9,7 @@ import { Seo, buildSiteSchemas } from '../components/Seo';
 import { ProgressiveImage } from '@/components/ProgressiveImage';
 import { Surface } from '@/components/ui/Surface';
 import { IssueSubscriptionCard } from '@/components/IssueSubscriptionCard';
+import { AbilityRadar } from '@/abilities/AbilityRadar';
 
 // 关于页描述：Seo meta 与站点级/ProfilePage schema 共用同一文案，保证一致。
 const aboutPageDescription = '关于Marvel-L：Golang初级开发。';
@@ -141,6 +142,7 @@ export const About = () => {
         </Surface>
       </div>
 
+      <AbilityRadar />
       <div className="mt-6 md:mt-8">
         <IssueSubscriptionCard />
       </div>

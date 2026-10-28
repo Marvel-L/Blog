@@ -1,6 +1,6 @@
 /**
  * Typora 风格行内标记的 micromark / mdast 扩展（构建脚本与客户端共用）：
- * `++下划线++` → <ins>，`==高亮==` → <mark>。
+ * `++下划线++` → <ins>，`==高亮==` / `===高亮===` → <mark>。
  *
  * 机制对齐 GFM 删除线（~~text~~）：在 tokenizer 层识别成对分隔符，因此可与
  * **粗体** / *斜体* 嵌套；未成对的 `C++`、`a == b` 保持原样。
@@ -13,7 +13,6 @@ const PLUS_SIGN = 43;
 const EQUALS_TO = 61;
 const ATTENTION_SIDE_AFTER = 2;
 const DATA = 'data';
-const CHARACTER_ESCAPE = 'characterEscape';
 
 const createMarkerConstruct = ({ name, markerCode, sequenceTemporary, sequence, wrap, wrapText }) => {
   const tokenizer = {
@@ -89,13 +88,13 @@ const createMarkerConstruct = ({ name, markerCode, sequenceTemporary, sequence, 
 
   function tokenizeMarker(effects, ok, nok) {
     const previous = this.previous;
-    const events = this.events;
     let size = 0;
 
     return start;
 
     function start(code) {
-      if (previous === markerCode && events.length > 0 && events[events.length - 1][1].type !== CHARACTER_ESCAPE) {
+      // 连续标记被转义了首字符时，后续标记不能重新组成高亮。
+      if (previous === markerCode) {
         return nok(code);
       }
 
@@ -107,7 +106,7 @@ const createMarkerConstruct = ({ name, markerCode, sequenceTemporary, sequence, 
       const before = classifyCharacter(previous);
 
       if (code === markerCode) {
-        if (size > 1) return nok(code);
+        if (size > (markerCode === EQUALS_TO ? 2 : 1)) return nok(code);
         effects.consume(code);
         size += 1;
         return more;

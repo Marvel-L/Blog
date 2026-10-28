@@ -5,6 +5,7 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 // Eager CSS keeps pre-rendered books styled before the lazy page hydrates.
 import './books/books.css';
+import './abilities/abilities.css';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { flushSync } from 'react-dom';
@@ -26,6 +27,7 @@ const AnkiPage =
 
 const Post = lazy(() => import('./pages/Post').then((m) => ({ default: m.Post })));
 const About = lazy(pageLoaders['/about']);
+const AbilityDocument = lazy(() => import('./pages/AbilityDocument').then((m) => ({ default: m.AbilityDocumentPage })));
 const BookPage = lazy(pageLoaders['/book']);
 const ArchivePage = lazy(pageLoaders['/archive']);
 const Stats = lazy(pageLoaders['/stats']);
@@ -183,6 +185,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/shuoshuo/:id" element={<ShuoShuoDetailPage />} />
           <Route path="/guestbook" element={<GuestbookPage />} />
           <Route path="/about" element={<About />} />
+          <Route path="/about/ability/:dimension/:filename" element={<AbilityDocument />} />
           <Route path="/accumulate" element={<AccumulatePage />} />
           <Route path="/cover" element={<CoverGenerator />} />
           <Route path="/watermark" element={<Watermark />} />
