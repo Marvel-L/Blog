@@ -4,7 +4,6 @@ title: 最大公约数
 excerpt: 最大公约数
 category: 算法
 tags:
-  - 日常
   - 数论
   - 约数
 author: Marvel-L

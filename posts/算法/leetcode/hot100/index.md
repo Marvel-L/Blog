@@ -141,3 +141,9 @@ func majorityElement(nums []int) (ans int) {
 题目链接 : https://leetcode.cn/problems/binary-tree-right-side-view/description/?envType=study-plan-v2&envId=top-100-liked
 
 给定一个二叉树的 根节点 root，想象自己站在它的右侧，按照从顶部到底部的顺序，返回从右侧所能看到的节点值。
+
+# 56.合并区间
+
+题目链接 : https://leetcode.cn/problems/merge-intervals/description/?envType=study-plan-v2&envId=top-100-liked
+
+以数组 intervals 表示若干个区间的集合，其中单个区间为 intervals[i] = [starti, endi] 。请你合并所有重叠的区间，并返回 一个不重叠的区间数组，该数组需恰好覆盖输入中的所有区间 。
