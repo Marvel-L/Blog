@@ -147,3 +147,63 @@ func majorityElement(nums []int) (ans int) {
 题目链接 : https://leetcode.cn/problems/merge-intervals/description/?envType=study-plan-v2&envId=top-100-liked
 
 以数组 intervals 表示若干个区间的集合，其中单个区间为 intervals[i] = [starti, endi] 。请你合并所有重叠的区间，并返回 一个不重叠的区间数组，该数组需恰好覆盖输入中的所有区间 。
+
+# 54. 螺旋矩阵
+
+题目链接
+https://leetcode.cn/problems/spiral-matrix/description/?envType=study-plan-v2&envId=top-100-liked
+
+给你一个 m 行 n 列的矩阵 matrix ，请按照 顺时针螺旋顺序 ，返回矩阵中的所有元素。
+
+![img_1.png](img_1.png) {.samll}
+
+## 难点
+
+1. 个人认为 ==st数组初始化有点复杂==
+2. 以及如何保证能够走完
+
+## 思路
+
+1. 一开始以为要用 queue 进行，但是发现可以直接使用 `for` 进行
+
+2. 每次走的时候 统计对应的步数
+
+3. 其他的模拟即可
+
+## Code 
+
+```go
+var (
+    dx = []int{0,1,0,-1}
+    dy = []int{1,0,-1,0}
+)
+
+func spiralOrder(matrix [][]int) []int {
+    st := make([][]bool, len(matrix))
+    for i := 0 ; i < len(matrix) ; i ++  {
+        st[i] = make([]bool, len(matrix[i]))
+    }
+
+    n := len(matrix)
+    m := len(matrix[0])
+    alls := n * m 
+
+    idx , dir, x , y := 0 , 0, 0, 0 
+    res := make([]int,0)
+
+    for idx < alls {
+        idx ++ 
+        st[x][y] = true 
+        res = append(res, matrix[x][y])
+        sx := dx[dir] + x
+        sy := dy[dir] + y 
+        if (sx >= n || sx < 0 ) || (sy >= m || sy < 0) || st[sx][sy] == true  {
+            dir ++ 
+            dir = dir % 4
+        }
+        x = dx[dir] + x
+        y = dy[dir] + y 
+    }
+    return res 
+}
+```
