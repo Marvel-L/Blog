@@ -38,6 +38,36 @@ describe('能力雷达', () => {
     expect(abilityPoint(0, 6)).toEqual([350, 86]);
     expect(() => abilityDocumentRoute('学历', '../bad.md')).toThrow();
   });
+  it('精简后的九维配置可直接使用，标题、节点与弹窗一致', async () => {
+    const config = validateAbilityConfig({
+      算法: 'N',
+      语言广度: 'N',
+      语言深度: 'N',
+      业务广度: 'N',
+      业务深度: 'N',
+      技术广度: 'N',
+      技术深度: 'N',
+      AI: 'N',
+      学历: 'G',
+    });
+    const { container } = render(
+      <MemoryRouter>
+        <AbilityRadar data={{ config, documents: [] }} />
+      </MemoryRouter>,
+    );
+    expect(container.querySelectorAll('.ability-axis')).toHaveLength(9);
+    expect(container.querySelectorAll('[data-node]')).toHaveLength(9);
+    for (const title of ['业务广度', '业务深度', '技术广度', '技术深度']) {
+      const axis = screen.getByRole('button', { name: `${title}，当前 N，查看文档` });
+      expect(axis).toHaveAttribute('data-dimension', title);
+      expect(axis).toHaveTextContent(`${title}(N)`);
+      expect(container.querySelector(`[data-node="${title}"]`)).not.toBeNull();
+      fireEvent.click(axis);
+      expect(await screen.findByRole('dialog')).toHaveTextContent(`${title}(N)`);
+      fireEvent.keyDown(window, { key: 'Escape' });
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    }
+  });
   it('弹窗列出文档，点击进入独立路由并释放滚动锁', async () => {
     render(
       <MemoryRouter>

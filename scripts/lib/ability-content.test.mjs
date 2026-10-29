@@ -33,6 +33,22 @@ describe('能力内容构建', () => {
     writeAbilityData(data, output);
     expect(JSON.parse(fs.readFileSync(output, 'utf8'))).toEqual(data);
   });
+  it('精简维度名称用于配置、同名目录与文档路由', () => {
+    const root = fixture();
+    const titles = ['业务广度', '业务深度', '技术广度', '技术深度'];
+    const config = Object.fromEntries(titles.map((title) => [title, 'N']));
+    fs.writeFileSync(path.join(root, 'config.json'), JSON.stringify(config));
+    for (const title of titles) {
+      fs.mkdirSync(path.join(root, title));
+      fs.writeFileSync(path.join(root, title, 'Index.md'), `# ${title}\n\n说明`);
+    }
+    const data = loadAbilityData(root);
+    expect(data.config).toEqual(config);
+    expect(data.documents.map((document) => document.dimension)).toEqual(titles);
+    expect(getAbilityRoutes(data)).toEqual(
+      titles.map((title) => `about/ability/${encodeURIComponent(title)}/Index.md`),
+    );
+  });
   it('非法配置、空文档、symlink 阻断', () => {
     const root = fixture();
     fs.writeFileSync(path.join(root, 'config.json'), '{');

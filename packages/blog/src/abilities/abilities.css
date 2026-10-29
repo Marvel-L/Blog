@@ -52,22 +52,23 @@
   border: 0;
   border-radius: 8px;
   background: transparent;
-  font-size: 14px;
+  font-size: 12px;
+  line-height: 18px;
   font-weight: 600;
   white-space: nowrap;
   color: inherit;
   cursor: pointer;
 }
 .ability-axis[data-dimension='语言广度'],
-.ability-axis[data-dimension='业务的深度'] {
+.ability-axis[data-dimension='业务深度'] {
   transform: translate(0, -50%);
 }
 .ability-axis[data-dimension='学历'],
-.ability-axis[data-dimension='技术的广度'] {
+.ability-axis[data-dimension='技术广度'] {
   transform: translate(-100%, -50%);
 }
-.ability-axis[data-dimension='业务的深度'],
-.ability-axis[data-dimension='技术的广度'] {
+.ability-axis[data-dimension='业务深度'],
+.ability-axis[data-dimension='技术广度'] {
   margin-top: 16px;
 }
 .ability-axis:hover {
