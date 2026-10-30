@@ -1,5 +1,5 @@
 ---
-id: intersection-of-two-linked-lists/description-0x01
+id: intersection-of-two-linked-lists-description-0x01
 title: "160.相交链表"
 excerpt: "相交链表"
 category: 算法
