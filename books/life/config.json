@@ -4,5 +4,9 @@
   "subtitle": "时间是一本书",
   "edition": "contract project",
   "accent": "#faa825",
-  "order": 1
+  "order": 1,
+  "markdownFirst": true,
+  "directoryOrder": {
+    ".": ["思考", "工作规划"]
+  }
 }
