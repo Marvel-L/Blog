@@ -14,6 +14,15 @@ import (
 
 const Endpoint = "https://api.deepseek.com/chat/completions"
 
+// Header and body reads share the same timeout classification; neither is retried.
+func requestError(ctx context.Context, err error) *Error {
+	var timeout net.Error
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(ctx.Err(), context.DeadlineExceeded) || (errors.As(err, &timeout) && timeout.Timeout()) {
+		return &Error{"AI_TIMEOUT"}
+	}
+	return &Error{"AI_REQUEST_UNKNOWN"}
+}
+
 // Error exposes only a safe business code, never upstream payloads or credentials.
 type Error struct{ Code string }
 
@@ -47,14 +56,7 @@ func (c *Client) Check(ctx context.Context, key, model, system, prompt string) (
 	r.Header.Set("Authorization", "Bearer "+key)
 	response, err := c.http.Do(r)
 	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			return Completion{}, &Error{"AI_TIMEOUT"}
-		}
-		var n net.Error
-		if errors.As(err, &n) && n.Timeout() {
-			return Completion{}, &Error{"AI_TIMEOUT"}
-		}
-		return Completion{}, &Error{"AI_REQUEST_UNKNOWN"}
+		return Completion{}, requestError(ctx, err)
 	}
 	defer response.Body.Close()
 	if response.StatusCode != 200 {
@@ -74,7 +76,7 @@ func (c *Client) Check(ctx context.Context, key, model, system, prompt string) (
 	}
 	raw, err = io.ReadAll(io.LimitReader(response.Body, 256*1024+1))
 	if err != nil {
-		return Completion{}, &Error{"AI_REQUEST_UNKNOWN"}
+		return Completion{}, requestError(ctx, err)
 	}
 	if len(raw) > 256*1024 {
 		return Completion{}, &Error{"AI_RESPONSE_TOO_LARGE"}

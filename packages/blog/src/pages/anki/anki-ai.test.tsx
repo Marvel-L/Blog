@@ -66,6 +66,7 @@ const fixture = (options: { configured?: boolean; failure?: boolean; check?: AIC
 };
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 describe('Anki AI Check', () => {
@@ -248,6 +249,106 @@ describe('Anki AI Check', () => {
     const posts = request.mock.calls.filter(([, init]) => init?.method === 'POST');
     expect(posts).toHaveLength(2);
     expect(posts[0][1]?.body).toBe(posts[1][1]?.body);
+  });
+  it.each(['running', 'unknown'] as const)(
+    '刷新状态后同步详情并恢复 %s 任务的查询，不重发评分',
+    async (refreshStatus) => {
+      vi.useFakeTimers();
+      const running: AICheck = { ...record, id: 'new-check', status: 'running', score: null, result: undefined };
+      const terminal: AICheck = { ...running, status: 'unknown', errorCode: 'AI_TIMEOUT' };
+      let created = false;
+      let refreshing = false;
+      let failDetail = true;
+      let detailReads = 0;
+      const request = vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+        const url = String(input);
+        if (url.endsWith('/ai/settings'))
+          return response({ configured: true, available: true, maskedKey: '••••test', updatedAt: null });
+        if (init?.method === 'POST') {
+          created = true;
+          return response({ check: running }, 202);
+        }
+        if (url.includes('?limit=')) {
+          const current = refreshing && refreshStatus === 'unknown' ? terminal : running;
+          return response({
+            checks: created ? [current] : [],
+            nextCursor: '',
+            active: created && current.status === 'running' ? current : undefined,
+          });
+        }
+        detailReads++;
+        if (failDetail) {
+          failDetail = false;
+          throw new TypeError('查询中断');
+        }
+        return response({ check: refreshStatus === 'running' && detailReads === 2 ? running : terminal });
+      });
+      vi.stubGlobal('fetch', request);
+      await act(async () => {
+        render(<AnkiAIDialog card={card} onClose={vi.fn()} />);
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: '开始 Check' }));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: '查看 AI 历史' }));
+      });
+      expect(screen.getByRole('alert')).toHaveTextContent('查询中断');
+      refreshing = true;
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: '刷新状态' }));
+      });
+      if (refreshStatus === 'running') {
+        expect(screen.getByText(/正在检查…关闭窗口/)).toBeInTheDocument();
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(2000);
+        });
+      }
+      expect(screen.getByText('调用超时，是否已产生费用无法确定；没有自动重发。')).toBeInTheDocument();
+      expect(screen.queryByText(/正在检查…关闭窗口/)).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: '返回 Ai Check' }));
+      expect(screen.getByRole('button', { name: '开始 Check' })).toBeEnabled();
+      expect(request.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(1);
+      const reads = detailReads;
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10000);
+      });
+      expect(detailReads).toBe(reads);
+    },
+  );
+  it('状态查询恢复后清除过期的重新查询提示，终态停止轮询', async () => {
+    vi.useFakeTimers();
+    const running: AICheck = { ...record, id: 'new-check', status: 'running', score: null, result: undefined };
+    const request = fixture({ check: running });
+    const original = request.getMockImplementation()!;
+    let polls = 0;
+    request.mockImplementation(async (url, init) => {
+      if (String(url).endsWith('/ai-checks/new-check') && !init?.method) {
+        if (++polls === 1) throw new TypeError('network');
+        return response({ check: { ...record, id: 'new-check' } });
+      }
+      return original(url, init);
+    });
+    await act(async () => {
+      render(<AnkiAIDialog card={card} onClose={vi.fn()} />);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '开始 Check' }));
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(screen.getByText('任务状态暂时无法获取，正在重新查询；不会再次调用 AI。')).toBeInTheDocument();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4000);
+    });
+    expect(screen.getByText('正确但不完整')).toBeInTheDocument();
+    expect(screen.queryByText(/任务状态暂时无法获取/)).not.toBeInTheDocument();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10000);
+    });
+    expect(polls).toBe(2);
+    expect(request.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(1);
   });
   it('业务版本错误显示真实错误，不伪造得分', async () => {
     const request = fixture({ failure: true });

@@ -3,6 +3,7 @@ package deepseek
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"io"
 	"net/http"
 	"strconv"
@@ -58,6 +59,44 @@ func TestCipherIsolationAndNonce(t *testing.T) {
 type roundTrip func(*http.Request) (*http.Response, error)
 
 func (f roundTrip) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+type failingBody struct{ err error }
+
+func (b failingBody) Read([]byte) (int, error) { return 0, b.err }
+func (b failingBody) Close() error             { return nil }
+
+type bodyTimeout struct{}
+
+func (bodyTimeout) Error() string   { return "body timeout" }
+func (bodyTimeout) Timeout() bool   { return true }
+func (bodyTimeout) Temporary() bool { return true }
+
+func TestClientBodyReadFailuresDoNotRetry(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		err  error
+		code string
+	}{
+		{"deadline", context.DeadlineExceeded, "AI_TIMEOUT"},
+		{"network timeout", bodyTimeout{}, "AI_TIMEOUT"},
+		{"connection lost", io.ErrUnexpectedEOF, "AI_REQUEST_UNKNOWN"},
+		{"cancelled", context.Canceled, "AI_REQUEST_UNKNOWN"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			calls := 0
+			client := NewClient(roundTrip(func(*http.Request) (*http.Response, error) {
+				calls++
+				return &http.Response{StatusCode: 200, Header: http.Header{"Content-Type": []string{"application/json"}}, Body: failingBody{tc.err}}, nil
+			}))
+			completion, err := client.Check(context.Background(), "test-private-key", "test-model", SystemPrompt, "data")
+			var safe *Error
+			if !errors.As(err, &safe) || safe.Code != tc.code || calls != 1 || completion.Content != "" {
+				t.Fatalf("wrong body error or automatic retry: error=%v calls=%d", err, calls)
+			}
+		})
+	}
+}
+
 func TestClientSingleRoundAndSafeErrors(t *testing.T) {
 	calls := 0
 	transport := roundTrip(func(r *http.Request) (*http.Response, error) {

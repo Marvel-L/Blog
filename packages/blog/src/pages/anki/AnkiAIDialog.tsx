@@ -63,6 +63,8 @@ export function AnkiAIDialog({ card, onClose }: Props) {
     });
   useEffect(() => {
     const controller = new AbortController();
+    const selectedId = selected?.id;
+    const generation = selectionGeneration.current;
     lifecycle.current = controller;
     void fetchAISettings(controller.signal)
       .then((value) => {
@@ -73,11 +75,15 @@ export function AnkiAIDialog({ card, onClose }: Props) {
       });
     if (card)
       void fetchAIChecks(card.id, '', controller.signal)
-        .then((list) => {
+        .then(async (list) => {
           if (controller.signal.aborted) return;
           merge(list.checks);
           setCursor(list.nextCursor);
           setActive(list.active ?? null);
+          if (selectedId) {
+            const detail = await fetchAICheck(selectedId, controller.signal);
+            if (!controller.signal.aborted && generation === selectionGeneration.current) setSelected(detail);
+          }
         })
         .catch((cause) => {
           if (!controller.signal.aborted) handleError(cause);
@@ -99,6 +105,7 @@ export function AnkiAIDialog({ card, onClose }: Props) {
         const next = await fetchAICheck(active.id, controller.signal);
         if (controller.signal.aborted || !alive()) return;
         setActive(next);
+        setNotice((previous) => (previous === '任务状态暂时无法获取，正在重新查询；不会再次调用 AI。' ? '' : previous));
         setChecks((previous) => [next, ...previous.filter((entry) => entry.id !== next.id)]);
         setSelected((previous) => (previous?.id === next.id ? next : previous));
         if (checkRunning(next)) timer = setTimeout(poll, delay);
@@ -120,7 +127,7 @@ export function AnkiAIDialog({ card, onClose }: Props) {
       clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active?.id, active?.status]);
+  }, [active?.id, active?.status, retry]);
 
   const run = async (operation: (signal: AbortSignal) => Promise<void>) => {
     if (inFlight.current || !alive()) return;
