@@ -209,3 +209,29 @@ func spiralOrder(matrix [][]int) []int {
 ```
 
 # 48. 旋转图像
+
+题目链接 : https://leetcode.cn/problems/rotate-image/description/?envType=study-plan-v2&envId=top-100-liked
+
+数学归纳法 :
+
+先进行对角线翻转，然后再做一次行反转
+
+1. `(i,j)` -> `(j,i)` -> `(j,n-1-i)`
+
+
+## Code 
+
+```go
+func rotate(matrix [][]int)  {
+    n := len(matrix) 
+    for i := range n {
+        for j := range i {
+            matrix[i][j] , matrix[j][i] = matrix[j][i], matrix[i][j]
+        }
+    }
+
+    for i := range n {
+        slices.Reverse(matrix[i])
+    }
+}
+```
