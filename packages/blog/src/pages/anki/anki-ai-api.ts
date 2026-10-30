@@ -13,6 +13,19 @@ export interface AIResult {
   issues: string[];
   suggestions: string[];
 }
+export interface AIDiagnostic {
+  stage: string;
+  detail: string;
+  httpStatus?: number;
+  requestId?: string;
+  responseReceived: boolean;
+  responseComplete: boolean;
+  responseTruncated: boolean;
+  responseBody?: string;
+  finishReason?: string;
+  modelReturned?: string;
+  usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+}
 export type AIStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'unknown';
 export interface AICheck {
   id: string;
@@ -29,6 +42,7 @@ export interface AICheck {
   score: number | null;
   result?: AIResult;
   errorCode?: string;
+  diagnostic?: AIDiagnostic;
   createdAt: string;
   startedAt?: string;
   finishedAt?: string;
@@ -99,6 +113,42 @@ export function validResult(value: unknown): value is AIResult {
     (value.suggestions as unknown[]).length > 0
   );
 }
+export function validDiagnostic(value: unknown): value is AIDiagnostic {
+  if (!object(value)) return false;
+  const usage = value.usage;
+  return (
+    typeof value.stage === 'string' &&
+    [
+      'request',
+      'transport',
+      'response_body',
+      'http_status',
+      'response_envelope',
+      'response_finish',
+      'result_validation',
+    ].includes(value.stage) &&
+    typeof value.detail === 'string' &&
+    value.detail.trim().length > 0 &&
+    value.detail.length <= 1000 &&
+    ['responseReceived', 'responseComplete', 'responseTruncated'].every((key) => typeof value[key] === 'boolean') &&
+    (value.httpStatus === undefined ||
+      (typeof value.httpStatus === 'number' &&
+        Number.isInteger(value.httpStatus) &&
+        value.httpStatus >= 100 &&
+        value.httpStatus <= 599)) &&
+    ['requestId', 'finishReason', 'modelReturned'].every(
+      (key) =>
+        value[key] === undefined || (typeof value[key] === 'string' && /^[a-zA-Z0-9._:-]{1,200}$/.test(value[key])),
+    ) &&
+    (value.responseBody === undefined ||
+      (typeof value.responseBody === 'string' && value.responseBody.length <= 16384)) &&
+    (value.usage === undefined ||
+      (object(usage) &&
+        ['prompt_tokens', 'completion_tokens', 'total_tokens'].every(
+          (key) => typeof usage![key] === 'number' && Number.isSafeInteger(usage![key]) && (usage![key] as number) >= 0,
+        )))
+  );
+}
 function check(value: unknown, detail = false): AICheck {
   if (
     !object(value) ||
@@ -126,6 +176,8 @@ function check(value: unknown, detail = false): AICheck {
   }
   if (value.status !== 'succeeded' && value.score !== null)
     throw new AIRequestError('INVALID_RESPONSE', '失败记录不应包含得分', 200);
+  if (value.diagnostic !== undefined && !validDiagnostic(value.diagnostic))
+    throw new AIRequestError('INVALID_RESPONSE', '检查诊断响应无效', 200);
   return value as unknown as AICheck;
 }
 export async function fetchAISettings(signal?: AbortSignal): Promise<AISettings> {

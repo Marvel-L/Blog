@@ -25,6 +25,15 @@ interface Props {
 }
 const stamp = (value: string) => new Date(value).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
 const buttonClass = 'anki-rating-button';
+const diagnosticStage: Record<string, string> = {
+  request: '构造请求',
+  transport: '发送请求 / 等待响应',
+  response_body: '读取响应正文',
+  http_status: '上游 HTTP 状态',
+  response_envelope: '解析响应结构',
+  response_finish: '检查输出结束状态',
+  result_validation: '校验评分内容',
+};
 
 /** A single modal owns requests and focus. Opening it never creates a check. */
 export function AnkiAIDialog({ card, onClose }: Props) {
@@ -529,6 +538,52 @@ export function AnkiAIDialog({ card, onClose }: Props) {
                           </section>
                         ))}
                       </>
+                    )}
+                    {!checkRunning(selected) && !selected.result && (
+                      <details key={selected.id} className="anki-ai-diagnostic">
+                        <summary>检查诊断详情</summary>
+                        {selected.diagnostic ? (
+                          <>
+                            <p>失败阶段：{diagnosticStage[selected.diagnostic.stage] ?? selected.diagnostic.stage}</p>
+                            <p>具体原因：{selected.diagnostic.detail}</p>
+                            <p>错误码：{selected.errorCode ?? '未记录'}</p>
+                            <p>上游 HTTP：{selected.diagnostic.httpStatus ?? '未取得响应状态'}</p>
+                            {selected.diagnostic.requestId && <p>厂商请求标识：{selected.diagnostic.requestId}</p>}
+                            {selected.diagnostic.modelReturned && (
+                              <p>厂商返回模型：{selected.diagnostic.modelReturned}</p>
+                            )}
+                            {selected.diagnostic.finishReason && (
+                              <p>输出结束原因：{selected.diagnostic.finishReason}</p>
+                            )}
+                            <p>
+                              响应读取：
+                              {!selected.diagnostic.responseReceived
+                                ? '未取得响应'
+                                : selected.diagnostic.responseComplete
+                                  ? '已完整读取'
+                                  : '未完整读取'}
+                              {selected.diagnostic.responseTruncated ? '；保存内容已截断' : ''}
+                            </p>
+                            {selected.diagnostic.usage && (
+                              <p>
+                                厂商返回用量：输入 {selected.diagnostic.usage.prompt_tokens}、输出{' '}
+                                {selected.diagnostic.usage.completion_tokens}、合计{' '}
+                                {selected.diagnostic.usage.total_tokens} tokens；不代表已确认扣费。
+                              </p>
+                            )}
+                            <p className="anki-ai-subtitle">
+                              响应仅用于诊断，不是有效评分；已脱敏且最多保存 16 KiB。查看详情不会再次调用 AI。
+                            </p>
+                            {selected.diagnostic.responseBody ? (
+                              <pre>{selected.diagnostic.responseBody}</pre>
+                            ) : (
+                              <p>没有可保存的响应正文。</p>
+                            )}
+                          </>
+                        ) : (
+                          <p>此记录未保存诊断详情，无法补回当时的响应；不会自动重新调用 AI。</p>
+                        )}
+                      </details>
                     )}
                     <details>
                       <summary>当时发送的完整提问</summary>

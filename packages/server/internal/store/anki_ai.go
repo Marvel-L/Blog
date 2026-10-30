@@ -35,27 +35,28 @@ type AIKey struct {
 	KeyID             string
 }
 type AICheck struct {
-	ID               string           `json:"id"`
-	CardID           string           `json:"cardId"`
-	CardVersion      int              `json:"cardVersion"`
-	Status           string           `json:"status"`
-	Question         string           `json:"questionSnapshot,omitempty"`
-	Answer           string           `json:"answerSnapshot,omitempty"`
-	SystemPrompt     string           `json:"systemPromptSnapshot,omitempty"`
-	UserPrompt       string           `json:"userPromptSnapshot,omitempty"`
-	PromptVersion    string           `json:"promptVersion"`
-	Model            string           `json:"model"`
-	ModelReturned    *string          `json:"modelReturned,omitempty"`
-	AssistantContent *string          `json:"assistantContent,omitempty"`
-	Result           *deepseek.Result `json:"result,omitempty"`
-	Score            *int             `json:"score"`
-	ErrorCode        *string          `json:"errorCode,omitempty"`
-	CreatedAt        time.Time        `json:"createdAt"`
-	StartedAt        *time.Time       `json:"startedAt,omitempty"`
-	FinishedAt       *time.Time       `json:"finishedAt,omitempty"`
-	UserID           string           `json:"-"`
-	KeyVersion       int64            `json:"-"`
-	ClaimToken       string           `json:"-"`
+	ID               string               `json:"id"`
+	CardID           string               `json:"cardId"`
+	CardVersion      int                  `json:"cardVersion"`
+	Status           string               `json:"status"`
+	Question         string               `json:"questionSnapshot,omitempty"`
+	Answer           string               `json:"answerSnapshot,omitempty"`
+	SystemPrompt     string               `json:"systemPromptSnapshot,omitempty"`
+	UserPrompt       string               `json:"userPromptSnapshot,omitempty"`
+	PromptVersion    string               `json:"promptVersion"`
+	Model            string               `json:"model"`
+	ModelReturned    *string              `json:"modelReturned,omitempty"`
+	AssistantContent *string              `json:"assistantContent,omitempty"`
+	Result           *deepseek.Result     `json:"result,omitempty"`
+	Score            *int                 `json:"score"`
+	ErrorCode        *string              `json:"errorCode,omitempty"`
+	Diagnostic       *deepseek.Diagnostic `json:"diagnostic,omitempty"`
+	CreatedAt        time.Time            `json:"createdAt"`
+	StartedAt        *time.Time           `json:"startedAt,omitempty"`
+	FinishedAt       *time.Time           `json:"finishedAt,omitempty"`
+	UserID           string               `json:"-"`
+	KeyVersion       int64                `json:"-"`
+	ClaimToken       string               `json:"-"`
 }
 type AICheckList struct {
 	Checks     []AICheck `json:"checks"`
@@ -63,13 +64,20 @@ type AICheckList struct {
 	Active     *AICheck  `json:"active,omitempty"`
 }
 
-const aiColumns = `id::text,user_id::text,card_id::text,card_version,status,COALESCE(question_snapshot,''),COALESCE(answer_snapshot,''),COALESCE(system_prompt_snapshot,''),COALESCE(user_prompt_snapshot,''),prompt_version,model_requested,model_returned,assistant_content,result,score,error_code,created_at,started_at,finished_at,key_version,COALESCE(claim_token::text,'')`
-const aiSummaryColumns = `id::text,user_id::text,card_id::text,card_version,status,''::text,''::text,''::text,''::text,prompt_version,model_requested,model_returned,NULL::text,NULL::jsonb,score,error_code,created_at,started_at,finished_at,key_version,''::text`
+const aiColumns = `id::text,user_id::text,card_id::text,card_version,status,COALESCE(question_snapshot,''),COALESCE(answer_snapshot,''),COALESCE(system_prompt_snapshot,''),COALESCE(user_prompt_snapshot,''),prompt_version,model_requested,model_returned,assistant_content,result,score,error_code,created_at,started_at,finished_at,key_version,COALESCE(claim_token::text,''),diagnostic`
+const aiSummaryColumns = `id::text,user_id::text,card_id::text,card_version,status,''::text,''::text,''::text,''::text,prompt_version,model_requested,model_returned,NULL::text,NULL::jsonb,score,error_code,created_at,started_at,finished_at,key_version,''::text,NULL::jsonb`
 
 func scanAI(row pgx.Row) (AICheck, error) {
 	var c AICheck
-	var raw []byte
-	err := row.Scan(&c.ID, &c.UserID, &c.CardID, &c.CardVersion, &c.Status, &c.Question, &c.Answer, &c.SystemPrompt, &c.UserPrompt, &c.PromptVersion, &c.Model, &c.ModelReturned, &c.AssistantContent, &raw, &c.Score, &c.ErrorCode, &c.CreatedAt, &c.StartedAt, &c.FinishedAt, &c.KeyVersion, &c.ClaimToken)
+	var raw, diagnostic []byte
+	err := row.Scan(&c.ID, &c.UserID, &c.CardID, &c.CardVersion, &c.Status, &c.Question, &c.Answer, &c.SystemPrompt, &c.UserPrompt, &c.PromptVersion, &c.Model, &c.ModelReturned, &c.AssistantContent, &raw, &c.Score, &c.ErrorCode, &c.CreatedAt, &c.StartedAt, &c.FinishedAt, &c.KeyVersion, &c.ClaimToken, &diagnostic)
+	if err == nil && len(diagnostic) > 0 {
+		var value deepseek.Diagnostic
+		if json.Unmarshal(diagnostic, &value) != nil {
+			return c, errors.New("invalid stored AI diagnostic")
+		}
+		c.Diagnostic = &value
+	}
 	if err == nil && len(raw) > 0 {
 		var result deepseek.Result
 		if json.Unmarshal(raw, &result) != nil {
@@ -321,7 +329,7 @@ func (s *Store) ListAIChecks(ctx context.Context, user, card string, limit int, 
 	return out, nil
 }
 func (s *Store) DeleteAICheck(ctx context.Context, user, id string) error {
-	tag, err := s.Pool.Exec(ctx, `UPDATE anki_ai_checks SET status='deleted',question_snapshot=NULL,answer_snapshot=NULL,system_prompt_snapshot=NULL,user_prompt_snapshot=NULL,assistant_content=NULL,result=NULL,score=NULL,usage=NULL,error_code=NULL,deleted_at=clock_timestamp(),claim_token=NULL,lease_until=NULL WHERE user_id=$1 AND id=$2`, user, id)
+	tag, err := s.Pool.Exec(ctx, `UPDATE anki_ai_checks SET status='deleted',question_snapshot=NULL,answer_snapshot=NULL,system_prompt_snapshot=NULL,user_prompt_snapshot=NULL,assistant_content=NULL,result=NULL,score=NULL,usage=NULL,error_code=NULL,diagnostic=NULL,deleted_at=clock_timestamp(),claim_token=NULL,lease_until=NULL WHERE user_id=$1 AND id=$2`, user, id)
 	if err != nil {
 		return err
 	}
@@ -376,12 +384,23 @@ func (s *Store) AIClaimActive(ctx context.Context, c AICheck) (bool, error) {
 	return active, err
 }
 func (s *Store) FinishAICheck(ctx context.Context, c AICheck, completion *deepseek.Completion, code string) error {
+	return s.FinishAICheckDiagnostic(ctx, c, completion, code, nil)
+}
+func (s *Store) FinishAICheckDiagnostic(ctx context.Context, c AICheck, completion *deepseek.Completion, code string, diagnostic *deepseek.Diagnostic) error {
 	if completion == nil {
+		var stored any
+		if diagnostic != nil {
+			raw, err := json.Marshal(diagnostic)
+			if err != nil {
+				return err
+			}
+			stored = string(raw)
+		}
 		status := "failed"
 		if code == "AI_TIMEOUT" || code == "AI_REQUEST_UNKNOWN" {
 			status = "unknown"
 		}
-		_, err := s.Pool.Exec(ctx, `UPDATE anki_ai_checks SET status=$4,error_code=$5,finished_at=clock_timestamp(),lease_until=NULL WHERE id=$1 AND user_id=$2 AND claim_token=$3 AND status='running'`, c.ID, c.UserID, c.ClaimToken, status, code)
+		_, err := s.Pool.Exec(ctx, `UPDATE anki_ai_checks SET status=$4,error_code=$5,diagnostic=$6::jsonb,finished_at=clock_timestamp(),lease_until=NULL WHERE id=$1 AND user_id=$2 AND claim_token=$3 AND status='running'`, c.ID, c.UserID, c.ClaimToken, status, code, stored)
 		return err
 	}
 	raw, err := json.Marshal(completion.Result)

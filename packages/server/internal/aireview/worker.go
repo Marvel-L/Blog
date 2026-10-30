@@ -48,11 +48,12 @@ func (w Worker) loop(ctx context.Context) {
 	}
 }
 func (w Worker) process(ctx context.Context, c store.AICheck) {
+	var diagnostic *deepseek.Diagnostic
 	finish := func(completion *deepseek.Completion, code string) {
 		// Retrying persistence does not make another upstream request.
 		for i := 0; i < 3; i++ {
 			saveCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			err := w.DB.FinishAICheck(saveCtx, c, completion, code)
+			err := w.DB.FinishAICheckDiagnostic(saveCtx, c, completion, code, diagnostic)
 			cancel()
 			if err == nil {
 				return
@@ -127,6 +128,7 @@ func (w Worker) process(ctx context.Context, c store.AICheck) {
 		var upstream *deepseek.Error
 		if errors.As(err, &upstream) {
 			code = upstream.Code
+			diagnostic = upstream.Diagnostic
 		}
 		finish(nil, code)
 		return

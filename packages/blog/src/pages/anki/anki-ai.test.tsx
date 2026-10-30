@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AnkiAIDialog } from './AnkiAIDialog';
 import { AnkiDeckDetail } from './AnkiDeckDetail';
-import { formatAICopy, validResult, type AICheck } from './anki-ai-api';
+import { fetchAICheck, formatAICopy, validDiagnostic, validResult, type AICheck } from './anki-ai-api';
 import type { AnkiCard } from './anki-api';
 
 vi.mock('@/components/SlideModal', () => ({
@@ -374,6 +374,78 @@ describe('Anki AI Check', () => {
     fireEvent.click(screen.getByRole('button', { name: '取消修改' }));
     expect(screen.queryByLabelText('新的 DeepSeek API Key')).not.toBeInTheDocument();
     expect(request.mock.calls.every(([, init]) => !init?.method || init.method === 'GET')).toBe(true);
+  });
+  it('失败历史显示具体诊断和纯文本响应，查看与展开不重发请求', async () => {
+    const diagnostic = {
+      stage: 'result_validation',
+      detail: 'score 必须是 0–100 的整数。',
+      httpStatus: 200,
+      requestId: 'request-test',
+      responseReceived: true,
+      responseComplete: true,
+      responseTruncated: true,
+      responseBody: '<script>alert(1)</script><img src=x onerror=alert(1)>',
+      finishReason: 'stop',
+      modelReturned: 'test-model',
+      usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+    };
+    const failed: AICheck = {
+      ...record,
+      status: 'failed',
+      score: null,
+      result: undefined,
+      errorCode: 'AI_RESULT_INVALID',
+      diagnostic,
+    };
+    const request = fixture({ check: failed });
+    const { container } = render(<AnkiAIDialog card={card} onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: '查看 AI 历史' }));
+    const summary = await screen.findByText('检查诊断详情');
+    const details = summary.closest('details')!;
+    expect(details).not.toHaveAttribute('open');
+    fireEvent.click(summary);
+    expect(details).toHaveAttribute('open');
+    expect(within(details).getByText('具体原因：score 必须是 0–100 的整数。')).toBeInTheDocument();
+    expect(within(details).getByText('上游 HTTP：200')).toBeInTheDocument();
+    expect(within(details).getByText(/已完整读取；保存内容已截断/)).toBeInTheDocument();
+    expect(within(details).getByText(/不代表已确认扣费/)).toBeInTheDocument();
+    expect(details.querySelector('pre')).toHaveTextContent(diagnostic.responseBody);
+    expect(details.querySelector('script,img,iframe')).toBeNull();
+    expect(container.querySelector('.anki-ai-score')).toBeNull();
+    expect(request.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(0);
+  });
+  it('旧失败记录明确诊断未保存，不编造响应或自动补调用', async () => {
+    const request = fixture({
+      check: { ...record, status: 'unknown', score: null, result: undefined, errorCode: 'AI_REQUEST_UNKNOWN' },
+    });
+    render(<AnkiAIDialog card={card} onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: '查看 AI 历史' }));
+    await screen.findByText('此记录未保存诊断详情，无法补回当时的响应；不会自动重新调用 AI。');
+    expect(screen.queryByText(/上游 HTTP/)).not.toBeInTheDocument();
+    expect(request.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(0);
+  });
+  it('诊断校验拒绝异常类型，详情接口仍支持旧记录', async () => {
+    const value = {
+      stage: 'transport',
+      detail: '等待响应超时。',
+      responseReceived: false,
+      responseComplete: false,
+      responseTruncated: false,
+    };
+    expect(validDiagnostic(value)).toBe(true);
+    for (const invalid of [
+      { ...value, httpStatus: '200' },
+      { ...value, detail: null },
+      { ...value, responseReceived: 'false' },
+      { ...value, responseBody: 'x'.repeat(16385) },
+      { ...value, requestId: '<script>' },
+      { ...value, usage: { prompt_tokens: -1, completion_tokens: 1, total_tokens: 0 } },
+    ])
+      expect(validDiagnostic(invalid)).toBe(false);
+    const request = fixture();
+    await expect(fetchAICheck(record.id)).resolves.toMatchObject({ status: 'succeeded' });
+    request.mockResolvedValue(response({ check: { ...record, diagnostic: { ...value, stage: 'invalid' } } }));
+    await expect(fetchAICheck(record.id)).rejects.toThrow('检查诊断响应无效');
   });
   it('解析与复制保留合法得分，拒绝伪造类型和空建议', () => {
     expect(validResult(record.result)).toBe(true);

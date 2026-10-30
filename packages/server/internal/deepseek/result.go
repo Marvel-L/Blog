@@ -98,33 +98,46 @@ func StrictObject(raw []byte, names ...string) (map[string]json.RawMessage, erro
 func ParseResult(raw string) (Result, error) {
 	var out Result
 	if len(raw) > 128*1024 || !utf8.ValidString(raw) {
-		return out, errors.New("invalid result")
+		return out, errors.New("评分内容超过 128 KiB 或不是有效 UTF-8。")
 	}
 	fields, err := StrictObject([]byte(raw), "score", "summary", "strengths", "issues", "suggestions")
-	if err != nil || len(fields) != 5 {
-		return out, errors.New("invalid result fields")
+	if err != nil {
+		return out, errors.New("评分内容不是严格 JSON 对象，或包含重复、额外字段或尾随内容。")
 	}
-	for _, value := range fields {
+	for _, name := range []string{"score", "summary", "strengths", "issues", "suggestions"} {
+		value, present := fields[name]
+		if !present {
+			return out, errors.New("缺少必填字段：" + name + "。")
+		}
 		if bytes.Equal(bytes.TrimSpace(value), []byte("null")) {
-			return out, errors.New("null result field")
+			return out, errors.New("字段不能为 null：" + name + "。")
 		}
 	}
-	if json.Unmarshal([]byte(raw), &out) != nil || out.Score < 0 || out.Score > 100 || strings.TrimSpace(out.Summary) == "" || utf8.RuneCountInString(out.Summary) > 3000 {
-		return Result{}, errors.New("invalid score or summary")
+	if json.Unmarshal(fields["score"], &out.Score) != nil || out.Score < 0 || out.Score > 100 {
+		return Result{}, errors.New("score 必须是 0–100 的整数。")
 	}
-	for _, list := range [][]string{out.Strengths, out.Issues, out.Suggestions} {
-		if len(list) > 20 {
-			return Result{}, errors.New("too many items")
+	if json.Unmarshal(fields["summary"], &out.Summary) != nil || strings.TrimSpace(out.Summary) == "" || utf8.RuneCountInString(out.Summary) > 3000 {
+		return Result{}, errors.New("summary 必须是非空字符串且不超过 3000 字。")
+	}
+	for _, field := range []struct {
+		name string
+		list *[]string
+	}{{"strengths", &out.Strengths}, {"issues", &out.Issues}, {"suggestions", &out.Suggestions}} {
+		if json.Unmarshal(fields[field.name], field.list) != nil {
+			return Result{}, errors.New(field.name + " 必须是字符串数组。")
 		}
-		for _, s := range list {
-			if strings.TrimSpace(s) == "" || utf8.RuneCountInString(s) > 3000 {
-				return Result{}, errors.New("invalid item")
+		if len(*field.list) > 20 {
+			return Result{}, errors.New(field.name + " 最多允许 20 项。")
+		}
+		for _, text := range *field.list {
+			if strings.TrimSpace(text) == "" || utf8.RuneCountInString(text) > 3000 {
+				return Result{}, errors.New(field.name + " 的每项必须为非空字符串且不超过 3000 字。")
 			}
 		}
 	}
 	// []string unmarshalling accepts null elements as empty strings; the check above rejects them.
 	if len(out.Suggestions) == 0 {
-		return Result{}, errors.New("missing suggestions")
+		return Result{}, errors.New("suggestions 至少需要一条明确建议。")
 	}
 	return out, nil
 }
