@@ -69,6 +69,12 @@ func permute(nums []int) [][]int {
 
 主要是优化写法 
 
+1. 使用 `make([]int, n)` 初始化 `path` 数组，保证 `i` 可访问
+
+2. 每次修改的时候 使用 `index` 进行修改
+
+3. 传入数组的时候，使用 `append([]int(nil), path...` 进行传递
+
 ## Code
 
 ```go
