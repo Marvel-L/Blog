@@ -4,7 +4,7 @@ title: 灵茶山艾府 - 遍历链表训练
 excerpt: 遍历链表
 category: 算法
 tags:
-  - 日常
+  - 算法打卡日常
   - 链表
   - 遍历链表
 author: Marvel-L

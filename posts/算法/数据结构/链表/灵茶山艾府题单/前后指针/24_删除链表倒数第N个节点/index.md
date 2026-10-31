@@ -4,7 +4,7 @@ title: 灵茶山艾府 - 删除链表倒数第N个节点
 excerpt: 无
 category: 算法
 tags:
-  - 日常
+  - 算法打卡日常
   - 链表
   - 前后指针
 author: Marvel-L

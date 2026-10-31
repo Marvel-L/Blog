@@ -4,7 +4,7 @@ title: 灵茶山艾府 - 插入链表节点
 excerpt: 插入链表
 category: 算法
 tags:
-  - 日常
+  - 算法打卡日常
   - 链表
   - 插入链表
 author: Marvel-L

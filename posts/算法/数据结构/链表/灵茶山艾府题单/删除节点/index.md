@@ -4,7 +4,7 @@ title: 灵茶山艾府 - 删除链表节点训练
 excerpt: 删除链表节点
 category: 算法
 tags:
-  - 日常
+  - 算法打卡日常
   - 链表
   - 删除链表
 author: Marvel-L

@@ -4,7 +4,7 @@ title: 灵茶山艾府 - 链表快慢指针
 excerpt: 快慢指针
 category: 算法
 tags:
-  - 日常
+  - 算法打卡日常
   - 链表
   - 快慢指针
 author: Marvel-L

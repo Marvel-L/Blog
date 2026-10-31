@@ -4,7 +4,7 @@ title: 算法打卡冲刺 week1 day3
 excerpt: 我能复刻的路吗
 category: 算法
 tags:
-  - 日常
+  - 算法打卡日常
   - 我的来时路
 author: Marvel-L
 rank: 青铜

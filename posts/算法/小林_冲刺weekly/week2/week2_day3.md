@@ -4,7 +4,7 @@ title: 算法打卡冲刺 week2 day3
 excerpt: 树的遍历
 category: 算法
 tags:
-  - 日常
+  - 算法打卡日常
   - 我的来时路
 author: Marvel-L
 rank: 白银

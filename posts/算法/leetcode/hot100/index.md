@@ -4,7 +4,7 @@ title: LeetCode Hot 100
 excerpt: hot 100 
 category: 算法
 tags:
-  - 日常
+  - 算法打卡日常
   - LeetCode
   - LeetCode-hot100
 author: Marvel-L

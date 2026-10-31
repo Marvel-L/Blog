@@ -4,7 +4,7 @@ title: 灵茶山艾府 - 反转链表 II
 excerpt: 反转链表
 category: 算法
 tags:
-  - 日常
+  - 算法打卡日常
   - 链表
   - 反转链表
 author: Marvel-L
