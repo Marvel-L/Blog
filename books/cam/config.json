@@ -1,0 +1,9 @@
+{
+  "id": "cam",
+  "name": "CAM",
+  "subtitle": "社招的第一份工作",
+  "edition": "contract project",
+  "accent": "#994802",
+  "order": 9,
+  "markdownFirst": true
+}
