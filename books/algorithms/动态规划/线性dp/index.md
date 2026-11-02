@@ -129,3 +129,82 @@ func climbStairs(n int) int {
     return dp[n]
 }
 ```
+
+## 完全平方数
+
+[279.完全平方数](https://leetcode.cn/problems/perfect-squares/description/)
+
+给你一个整数 `n` ，返回 和为 `n` 的完全平方数的最少数量 。
+
+完全平方数 是一个整数，其值等于另一个整数的平方；换句话说，其值等于一个整数自乘的积。例如，`1、4、9` 和 `16` 都是完全平方数，而 `3` 和 `11` 不是。
+
+### 思路
+
+1. 预处理出 值域范围内的 完全平方数
+
+2. 那么完全平方数 就可以代表对应的 走楼梯的步数 ， 即 `dp[i] = min(dp[i - a[j] + 1)`
+
+3. 初始化 `dp[i] = i` 即所有数 最多需要 `i` 个 `1` 组成
+
+### Code
+
+```go
+var sq []int
+
+const N = 10000 + 10
+
+func init() {
+    sq = make([]int, 0)
+    for i := 1; i <= N/i; i++ {
+        sq = append(sq, i*i)
+    }
+}
+
+func numSquares(n int) int {
+    dp := make([]int, n+1)
+    for i := 1; i <= n; i++ {
+        dp[i] = i // 最坏情况：全部使用 1
+        for j := 0; j < len(sq) && sq[j] <= i; j++ {
+            dp[i] = min(dp[i], dp[i-sq[j]] + 1)
+        }
+    }
+
+    return dp[n]
+}
+```
+
+## 打家劫舍
+
+[198.打家劫舍](https://leetcode.cn/problems/house-robber/description/)
+
+你是一个专业的小偷，计划偷窃沿街的房屋。每间房内都藏有一定的现金，影响你偷窃的唯一制约因素就是相邻的房屋装有相互连通的防盗系统，如果两间相邻的房屋在同一晚上被小偷闯入，系统会自动报警。
+
+给定一个代表每个房屋存放金额的非负整数数组，计算你 不触动警报装置的情况下 ，一夜之内能够偷窃到的最高金额。
+
+### 思路
+
+1. 将类型转化为 `i-1` 和 `i-2` 的情况
+
+2. 因此同样我们可以推出递推方程 `dp[i] = max(dp[i-1], dp[i-2] + a[i])`
+
+3. 注意一下对应的初始化
+
+### Code
+
+```go
+func rob(nums []int) int {
+    dp := make([]int ,len(nums))
+    dp[0] = nums[0]
+    if len(nums) >= 2 {
+        dp[1] = max(dp[0] , nums[1])
+    }
+
+    for i := 2 ; i < len(nums) ; i ++ {
+        dp[i] = max(dp[i - 1], dp[i-2] + nums[i])
+    }
+    if len(nums) == 1 {
+        return dp[0]
+    }
+    return dp[len(nums) - 1]
+}
+```
