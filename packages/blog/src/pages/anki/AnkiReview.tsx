@@ -1,5 +1,6 @@
 /**
- * 到期练习会话。
+ * 到期练习及全量主动练习共享会话。
+ * 全量（含库内随机浏览）复用 /practice，推荐依赖服务端队列时间；默认到期仍用 /reviews。
  *
  * 行为约束：
  * - 初始只显示 Q；答案默认不在可访问性树中渲染，自评控件仅在揭示后可用；
@@ -16,8 +17,11 @@ import { AnkiMarkdown } from './AnkiMarkdown';
 import { AnkiCardTags } from './AnkiTags';
 import { matchesTag } from './anki-tags';
 import { AnkiCardCounts } from './AnkiCardCounts';
+import { prioritizeCards } from './anki-priority';
 import {
   fetchDeckQueue,
+  fetchDeckCards,
+  submitPractice,
   newMutationId,
   isUnauthorized,
   readReviewPreview,
@@ -34,6 +38,8 @@ interface AnkiReviewProps {
   tag?: string | null;
   onExit: () => void;
   onSessionSettled: () => void;
+  browse?: boolean;
+  deckName?: string;
 }
 
 type ReviewPhase = 'loading' | 'active' | 'done' | 'error';
@@ -46,7 +52,16 @@ const RATING_LABELS: Array<{ rating: AnkiRating; label: string; hint: string }> 
 
 const formatNext = (card: AnkiCard): string => (card.intervalDays >= 1 ? `${card.intervalDays} 天后` : '稍后再练');
 
-export function AnkiReview({ decks, deckId, tag = null, onExit, onSessionSettled }: AnkiReviewProps) {
+export function AnkiReview({
+  decks,
+  deckId,
+  tag = null,
+  onExit,
+  onSessionSettled,
+  browse = false,
+  deckName,
+}: AnkiReviewProps) {
+  const [fullPractice, setFullPractice] = useState(browse);
   const [phase, setPhase] = useState<ReviewPhase>('loading');
   const [error, setError] = useState('');
   const [cards, setCards] = useState<AnkiCard[]>([]);
@@ -63,20 +78,36 @@ export function AnkiReview({ decks, deckId, tag = null, onExit, onSessionSettled
   const submittingRef = useRef(false);
   const submitController = useRef<AbortController | null>(null);
   const queueTargets = useRef(deckId ? [deckId] : decks.filter((deck) => deck.due > 0).map((deck) => deck.id));
+  const allTargetsRef = useRef<string[]>([]);
+  allTargetsRef.current = decks.filter((deck) => deck.total > 0).map((deck) => deck.id);
+  const readController = useRef<AbortController | null>(null);
+  const sessionRef = useRef<HTMLDivElement>(null);
   const [loadToken, setLoadToken] = useState(0);
   const [queueWarning, setQueueWarning] = useState('');
 
   useEffect(() => {
     cancelledRef.current = false;
     const controller = new AbortController();
-    const targets = queueTargets.current;
+    readController.current = controller;
+    const targets = fullPractice ? (browse && deckId ? [deckId] : allTargetsRef.current) : queueTargets.current;
     setPhase('loading');
     setError('');
     setQueueWarning('');
     setIndex(0);
     setRevealed(false);
     retryRef.current = null;
-    Promise.allSettled(targets.map((targetId) => fetchDeckQueue(targetId, controller.signal)))
+    setLastRecord('');
+    setCustomDays('7');
+    Promise.allSettled(
+      targets.map(async (targetId) => {
+        if (!fullPractice) return fetchDeckQueue(targetId, controller.signal);
+        const [allCards, queue] = await Promise.all([
+          fetchDeckCards(targetId, controller.signal),
+          fetchDeckQueue(targetId, controller.signal),
+        ]);
+        return { ...queue, cards: allCards, dueCards: queue.cards };
+      }),
+    )
       .then((results) => {
         if (cancelledRef.current || controller.signal.aborted) return;
         const failures = results.filter((result) => result.status === 'rejected');
@@ -87,19 +118,33 @@ export function AnkiReview({ decks, deckId, tag = null, onExit, onSessionSettled
           return;
         }
         if (failures.length > 0 && loaded.length === 0) {
-          setError('到期队列加载失败，请重试。');
+          setError(fullPractice ? '全量卡片加载失败，请重试。' : '到期队列加载失败，请重试。');
           setPhase('error');
           return;
         }
-        const allCards = loaded
+        const sourceCards = loaded
           .flatMap((result) => result.cards)
-          .filter((card) => matchesTag(card, tag))
-          .sort(
-            (a, b) =>
-              Number(a.reviewCount === 0) - Number(b.reviewCount === 0) ||
-              a.dueAt.localeCompare(b.dueAt) ||
-              a.id.localeCompare(b.id),
-          );
+          .filter((card) => matchesTag(card, fullPractice && !browse ? null : tag));
+        const dueIds = new Set(
+          loaded.flatMap((result) => ('dueCards' in result ? result.dueCards.map((card) => card.id) : [])),
+        );
+        const serverNow =
+          loaded
+            .map((result) => result.serverNow)
+            .filter((time) => Number.isFinite(Date.parse(time)))
+            .sort()
+            .at(-1) ?? '';
+        const allCards = fullPractice
+          ? prioritizeCards(sourceCards, dueIds, serverNow)
+          : sourceCards.sort(
+              (a, b) =>
+                Number(a.reviewCount === 0) - Number(b.reviewCount === 0) ||
+                a.dueAt.localeCompare(b.dueAt) ||
+                a.id.localeCompare(b.id),
+            );
+        if (fullPractice && loaded.length > 0 && !serverNow) {
+          setQueueWarning('服务端时间暂不可用，已按到期队列与下次复习时间推荐，不计算相对逾期程度。');
+        }
         const previews: Record<string, unknown> = {};
         for (const result of loaded) {
           for (const card of result.cards) {
@@ -130,7 +175,26 @@ export function AnkiReview({ decks, deckId, tag = null, onExit, onSessionSettled
       controller.abort();
       submitController.current?.abort();
     };
-  }, [loadToken, tag]);
+  }, [loadToken, tag, fullPractice, browse, deckId]);
+
+  useEffect(() => {
+    if (phase === 'active') sessionRef.current?.scrollIntoView?.({ block: 'start', behavior: 'instant' });
+  }, [index, loadToken, phase]);
+
+  const restartFullPractice = () => {
+    if (submittingRef.current) return;
+    readController.current?.abort();
+    setFullPractice(true);
+    setLoadToken((value) => value + 1);
+  };
+
+  const goTo = (next: number) => {
+    if (submittingRef.current || retryRef.current || next < 0 || next >= cards.length) return;
+    setIndex(next);
+    setRevealed(false);
+    setError('');
+    setLastRecord('');
+  };
 
   const current = cards[index];
   const currentPreview = useMemo(
@@ -147,8 +211,12 @@ export function AnkiReview({ decks, deckId, tag = null, onExit, onSessionSettled
       setSubmitting(true);
       setError('');
       try {
-        const updated = await submitReview(payload, AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]));
-        if (cancelledRef.current) return;
+        const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]);
+        const updated =
+          fullPractice && payload.rating
+            ? await submitPractice({ ...payload, rating: payload.rating }, signal)
+            : await submitReview(payload, signal);
+        if (cancelledRef.current || controller.signal.aborted) return;
         setCards((prev) => prev.map((card) => (card.id === updated.id ? updated : card)));
         retryRef.current = null;
         setLastRecord(`已记录 · 下次 ${formatNext(updated)}`);
@@ -170,12 +238,12 @@ export function AnkiReview({ decks, deckId, tag = null, onExit, onSessionSettled
         if (!cancelledRef.current) setSubmitting(false);
       }
     },
-    [cards.length, index, onSessionSettled],
+    [cards.length, index, onSessionSettled, fullPractice],
   );
 
   const rate = useCallback(
     (rating: AnkiRating, custom?: number) => {
-      if (!current || submitting || !revealed) return;
+      if (!current || submitting || !revealed || retryRef.current) return;
       const payload: AnkiReviewRequest = {
         cardId: current.id,
         version: current.version,
@@ -221,7 +289,7 @@ export function AnkiReview({ decks, deckId, tag = null, onExit, onSessionSettled
   if (phase === 'loading') {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <p className="text-sm text-zinc-400">正在准备今日练习…</p>
+        <p className="text-sm text-zinc-400">{fullPractice ? '正在准备全量练习…' : '正在准备今日练习…'}</p>
       </div>
     );
   }
@@ -233,7 +301,13 @@ export function AnkiReview({ decks, deckId, tag = null, onExit, onSessionSettled
           ✓
         </div>
         <h1 className="text-2xl font-bold text-ink">
-          {cards.length === 0 ? '暂无到期卡片' : queueWarning ? '已加载卡片练习完成' : '本轮练习完成'}
+          {cards.length === 0
+            ? fullPractice
+              ? '暂无可练习卡片'
+              : '暂无到期卡片'
+            : queueWarning
+              ? '已加载卡片练习完成'
+              : '本轮练习完成'}
         </h1>
         <p className="mt-3 text-sm text-zinc-500">答错的卡片会在稍后重新到期；自定义间隔不会推断对错。</p>
         {queueWarning && (
@@ -242,6 +316,14 @@ export function AnkiReview({ decks, deckId, tag = null, onExit, onSessionSettled
           </p>
         )}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
+          <button
+            type="button"
+            className="anki-rating-button"
+            disabled={browse ? !deckId : allTargetsRef.current.length === 0}
+            onClick={restartFullPractice}
+          >
+            {browse ? '重新洗牌' : '手动全量练习'}
+          </button>
           <button
             type="button"
             className="rounded-full border border-[#087ae9] bg-[#087ae9] px-[17px] py-[9px] text-sm font-medium text-white inline-flex items-center justify-center gap-2 whitespace-nowrap"
@@ -268,6 +350,16 @@ export function AnkiReview({ decks, deckId, tag = null, onExit, onSessionSettled
         >
           重新加载队列
         </button>
+        {!browse && (
+          <button
+            type="button"
+            className="anki-rating-button mr-3"
+            disabled={allTargetsRef.current.length === 0}
+            onClick={restartFullPractice}
+          >
+            手动全量练习
+          </button>
+        )}
         <button
           type="button"
           className="rounded-full border border-[#087ae9] bg-[#087ae9] px-[17px] py-[9px] text-sm font-medium text-white inline-flex items-center justify-center gap-2 whitespace-nowrap mt-5"
@@ -283,18 +375,30 @@ export function AnkiReview({ decks, deckId, tag = null, onExit, onSessionSettled
   const percent = total > 0 ? Math.round((index / total) * 100) : 0;
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between text-sm text-zinc-500">
+    <div
+      ref={sessionRef}
+      className="anki-review space-y-5"
+      aria-label={browse ? '随机浏览练习' : fullPractice ? '手动全量练习' : '今日练习'}
+    >
+      <div className="anki-review-toolbar flex flex-wrap items-center justify-between gap-3 text-sm text-zinc-500">
         <button
           type="button"
           className="rounded-full border border-[#e9edf1] bg-white px-[17px] py-[9px] text-sm font-medium text-[#202124] inline-flex items-center justify-center gap-2 whitespace-nowrap"
           onClick={onExit}
         >
-          退出练习
+          {browse ? '返回卡片库' : '退出练习'}
         </button>
         <span aria-live="polite">
-          第 {Math.min(index + 1, total)} / {total} 张
+          {browse ? `随机浏览 · ${index + 1} / ${cards.length}` : `第 ${Math.min(index + 1, total)} / ${total} 张`}
         </span>
+        <button
+          type="button"
+          className="anki-rating-button"
+          disabled={submitting || Boolean(retryRef.current) || (!browse && allTargetsRef.current.length === 0)}
+          onClick={restartFullPractice}
+        >
+          {browse ? '重新洗牌' : '手动全量练习'}
+        </button>
       </div>
 
       <div
@@ -314,7 +418,13 @@ export function AnkiReview({ decks, deckId, tag = null, onExit, onSessionSettled
         </p>
       )}
 
-      <article className="rounded-surface border border-zinc-200 bg-white p-6 md:p-8">
+      {fullPractice && (
+        <p className="text-xs text-zinc-500">
+          {browse ? `${deckName ?? ''}${tag !== null ? ` · ${tag || '无标签'}` : ''} · ` : '全部卡片库 · '}
+          按遗忘优先级推荐：到期复习、新卡、未到期复习，同优先级随机；仅自评计入练习并更新排期。
+        </p>
+      )}
+      <article aria-label="当前卡牌" className="rounded-surface border border-zinc-200 bg-white p-6 md:p-8">
         <span className="text-xs font-semibold text-sky-600" aria-hidden="true">
           Q
         </span>
@@ -356,7 +466,7 @@ export function AnkiReview({ decks, deckId, tag = null, onExit, onSessionSettled
         </div>
       )}
 
-      {!revealed ? (
+      {!revealed && !browse ? (
         <div className="text-center">
           <button
             type="button"
@@ -367,17 +477,19 @@ export function AnkiReview({ decks, deckId, tag = null, onExit, onSessionSettled
           </button>
           <p className="mt-2 text-xs text-zinc-400">先在心里回答，再点击按钮或按空格键。</p>
         </div>
-      ) : (
+      ) : revealed ? (
         <div className="space-y-4">
-          <label className="flex items-center gap-2 text-sm text-zinc-500">
-            <input
-              type="checkbox"
-              checked={showIntervals}
-              onChange={(event) => setShowIntervals(event.target.checked)}
-            />
-            显示下次间隔
-          </label>
-          <div className="grid grid-cols-3 gap-2" role="group" aria-label="评价这次回忆">
+          {!fullPractice && (
+            <label className="flex items-center gap-2 text-sm text-zinc-500">
+              <input
+                type="checkbox"
+                checked={showIntervals}
+                onChange={(event) => setShowIntervals(event.target.checked)}
+              />
+              显示下次间隔
+            </label>
+          )}
+          <div className="anki-review-ratings grid grid-cols-3 gap-2" role="group" aria-label="评价这次回忆">
             {RATING_LABELS.map(({ rating, label, hint }) => {
               // SM2 三档映射：错误=10 分钟学习步；hard/correct 本次共用 nextDays（EF 差异影响未来）。
               const preview = rating === 'wrong' ? currentPreview?.againMinutes : currentPreview?.nextDays;
@@ -385,13 +497,13 @@ export function AnkiReview({ decks, deckId, tag = null, onExit, onSessionSettled
                 <button
                   key={rating}
                   type="button"
-                  disabled={submitting}
+                  disabled={submitting || Boolean(retryRef.current)}
                   onClick={() => rate(rating)}
                   className="rounded-surface border border-zinc-200 bg-white px-2 py-3 text-center transition-colors hover:border-sky-400 disabled:opacity-50"
                 >
                   <strong className="block text-sm text-ink">{label}</strong>
                   <small className="mt-0.5 block text-xs text-zinc-400">
-                    {showIntervals && typeof preview === 'number'
+                    {showIntervals && !fullPractice && typeof preview === 'number'
                       ? rating === 'wrong'
                         ? `${preview} 分钟后`
                         : `${preview} 天后`
@@ -401,33 +513,67 @@ export function AnkiReview({ decks, deckId, tag = null, onExit, onSessionSettled
               );
             })}
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-500">
-            <label htmlFor="anki-custom-days" className="shrink-0">
-              或自行指定
-            </label>
-            <input
-              id="anki-custom-days"
-              type="number"
-              min={1}
-              max={365}
-              step={1}
-              value={customDays}
-              onChange={(event) => setCustomDays(event.target.value)}
-              className="w-24 rounded-md border border-zinc-200 bg-white px-3 py-2 text-[#202124]"
-              style={{ colorScheme: 'light' }}
-              aria-label="自定义复习天数"
-            />
-            <span>天后</span>
-            <button
-              type="button"
-              className="text-sm font-medium text-[#087ae9] hover:opacity-80"
-              disabled={submitting}
-              onClick={rateCustom}
-            >
-              按此间隔继续
-            </button>
-          </div>
-          <p className="text-xs text-zinc-400">服务端按自评或自定义间隔排期；自定义间隔不推断答对或答错。</p>
+          {!fullPractice && (
+            <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-500">
+              <label htmlFor="anki-custom-days" className="shrink-0">
+                或自行指定
+              </label>
+              <input
+                id="anki-custom-days"
+                type="number"
+                min={1}
+                max={365}
+                step={1}
+                value={customDays}
+                onChange={(event) => setCustomDays(event.target.value)}
+                className="w-24 rounded-md border border-zinc-200 bg-white px-3 py-2 text-[#202124]"
+                style={{ colorScheme: 'light' }}
+                aria-label="自定义复习天数"
+              />
+              <span>天后</span>
+              <button
+                type="button"
+                className="text-sm font-medium text-[#087ae9] hover:opacity-80"
+                disabled={submitting}
+                onClick={rateCustom}
+              >
+                按此间隔继续
+              </button>
+            </div>
+          )}
+          <p className="text-xs text-zinc-400">
+            {fullPractice
+              ? '主动自评计入正式练习，并由服务端更新复习排期。'
+              : '服务端按自评或自定义间隔排期；自定义间隔不推断答对或答错。'}
+          </p>
+        </div>
+      ) : null}
+      {browse && (
+        <div className="flex flex-wrap justify-between gap-3">
+          <button
+            type="button"
+            className="anki-rating-button"
+            disabled={index === 0 || submitting || Boolean(retryRef.current)}
+            onClick={() => goTo(index - 1)}
+          >
+            上一张
+          </button>
+          <button
+            type="button"
+            className="anki-rating-button"
+            disabled={submitting || Boolean(retryRef.current)}
+            onClick={() => setRevealed((value) => !value)}
+          >
+            {revealed ? '收起答案' : '显示答案'}
+          </button>
+          <button
+            type="button"
+            className="anki-rating-button"
+            disabled={index >= cards.length - 1 || submitting || Boolean(retryRef.current)}
+            onClick={() => goTo(index + 1)}
+          >
+            下一张
+          </button>
         </div>
       )}
     </div>

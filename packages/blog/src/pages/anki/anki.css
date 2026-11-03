@@ -737,6 +737,19 @@ button.anki-tag:focus-visible {
   }
 }
 
+/* 两种练习共用页面滚动；不创建固定高度或嵌套纵向滚动区域。 */
+.anki-review {
+  scroll-margin-top: 110px;
+  min-width: 0;
+}
+.anki-review-ratings button {
+  min-height: 64px;
+  min-width: 0;
+}
+.anki-review-toolbar button {
+  min-height: 44px;
+}
+
 .anki-card-ai-tools {
   display: flex;
   flex-shrink: 0;

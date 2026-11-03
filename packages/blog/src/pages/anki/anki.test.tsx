@@ -2,7 +2,7 @@
  * Anki 行为测试（真实组件渲染，fetch 按 URL 路由桩）。
  *
  * 覆盖：登录门、库列表进度、揭示后才自评、评价成功推进/失败留当前卡、
- * mutationId 重试幂等、随机浏览无写入、账号切换清理、热力/折线渲染。
+ * mutationId 重试幂等、仅浏览无写入、主动自评入账、账号切换清理、热力/折线渲染。
  */
 import { StrictMode } from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
