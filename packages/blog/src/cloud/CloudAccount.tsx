@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { LoaderCircle, LogIn, UserRound, X } from 'lucide-react';
 import { useModalOverlay } from '../hooks/useModalOverlay';
+import { AccountCredentials, GitHubBinding } from './AccountCredentials';
 import { cloudRequest, pageEvent, type CloudUser, type CloudEvent } from './api';
 
 export default function CloudAccount() {
@@ -28,9 +29,32 @@ export default function CloudAccount() {
     setIsClient(true);
     mounted.current = true;
     const controller = new AbortController();
+    let readGeneration = 0;
+    const refresh = (event: Event) => {
+      const currentRead = ++readGeneration;
+      generation.current += 1;
+      setBusy(false);
+      setTracking(false);
+      setEvents([]);
+      lastPage.current = '';
+      if (event instanceof CustomEvent && event.detail && 'user' in event.detail) {
+        setUser(event.detail.user as CloudUser | null);
+        return;
+      }
+      void cloudRequest<{ user: CloudUser | null }>('/me', { signal: controller.signal })
+        .then((data) => {
+          if (!controller.signal.aborted && currentRead === readGeneration) setUser(data.user);
+        })
+        .catch(() => {
+          if (!controller.signal.aborted && currentRead === readGeneration) setError('账号状态刷新失败，请重试');
+        });
+    };
+    const open = () => setIsOpen(true);
+    window.addEventListener('dblog-account-change', refresh);
+    window.addEventListener('dblog-account-open', open);
     cloudRequest<{ user: CloudUser | null }>('/me', { signal: controller.signal })
       .then((data) => {
-        if (!controller.signal.aborted) setUser(data.user);
+        if (!controller.signal.aborted && readGeneration === 0) setUser(data.user);
       })
       .catch(() => {
         if (!controller.signal.aborted) setError('无法连接账号服务，可继续浏览博客');
@@ -40,6 +64,8 @@ export default function CloudAccount() {
       });
     return () => {
       mounted.current = false;
+      window.removeEventListener('dblog-account-change', refresh);
+      window.removeEventListener('dblog-account-open', open);
       controller.abort();
       generation.current += 1;
     };
@@ -105,7 +131,7 @@ export default function CloudAccount() {
     setTracking(false);
     return action(async () => {
       await cloudRequest('/auth/logout', { method: 'POST' });
-      window.dispatchEvent(new Event('dblog-account-change'));
+      window.dispatchEvent(new CustomEvent('dblog-account-change', { detail: { user: null } }));
       if (mounted.current) {
         setUser(null);
         setEvents([]);
@@ -186,6 +212,7 @@ export default function CloudAccount() {
               </button>
             </div>
             <div className="space-y-3 leading-relaxed">
+              {!loading && !user && <AccountCredentials user={null} onUser={setUser} />}
               {!loading && !user && (
                 <a
                   className="frosted-control flex items-center justify-center gap-2 px-4 py-3 font-medium"
@@ -198,6 +225,15 @@ export default function CloudAccount() {
               {user && (
                 <>
                   <p>已登录：{user.login}。登录安全记录由服务器保存，页面访问记录可自行开启。</p>
+                  {user.githubBound === false ? (
+                    <>
+                      <p>尚未绑定 GitHub。绑定后才能使用 Planner、Anki、Trend 的云端功能。</p>
+                      <GitHubBinding onError={setError} />
+                    </>
+                  ) : (
+                    <p>GitHub：{user.login}</p>
+                  )}
+                  <AccountCredentials user={user} onUser={setUser} />
                   <label className="flex items-start gap-2">
                     <input
                       className="mt-1"

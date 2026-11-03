@@ -17,10 +17,28 @@ import (
 )
 
 type User struct {
-	ID    string `json:"id"`
-	Login string `json:"login"`
-	Name  string `json:"name"`
+	ID          string `json:"id"`
+	Login       string `json:"login"`
+	Name        string `json:"name"`
+	Username    string `json:"username"`
+	GitHubBound bool   `json:"githubBound"`
 }
+
+const identityColumns = `u.id::text,u.login,u.name,COALESCE(c.username,''),u.github_id IS NOT NULL`
+const credentialJoin = ` LEFT JOIN account_credentials c ON c.user_id=u.id `
+
+func scanUser(row pgx.Row) (*User, error) {
+	var u User
+	err := row.Scan(&u.ID, &u.Login, &u.Name, &u.Username, &u.GitHubBound)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
 type Event struct {
 	EventID    string    `json:"eventId"`
 	Name       string    `json:"name"`
@@ -98,6 +116,9 @@ func (s *Store) Login(ctx context.Context, identity github.Identity, oldToken st
 		return "", err
 	}
 	defer tx.Rollback(context.Background())
+	if err = accountLock(ctx, tx); err != nil {
+		return "", err
+	}
 	var userID string
 	err = tx.QueryRow(ctx, `INSERT INTO users(id,github_id,login,name) VALUES($1,$2,$3,$4)
  ON CONFLICT(github_id) DO UPDATE SET login=EXCLUDED.login,name=EXCLUDED.name RETURNING id::text`, uuid(), identity.ID, identity.Login, identity.Name).Scan(&userID)
@@ -122,15 +143,7 @@ func (s *Store) Login(ctx context.Context, identity github.Identity, oldToken st
 	return token, nil
 }
 func (s *Store) FindUser(ctx context.Context, token string) (*User, error) {
-	var u User
-	err := s.Pool.QueryRow(ctx, `SELECT u.id::text,u.login,u.name FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token_hash=$1 AND s.expires_at>now()`, Hash(token)).Scan(&u.ID, &u.Login, &u.Name)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	return &u, nil
+	return scanUser(s.Pool.QueryRow(ctx, `SELECT `+identityColumns+` FROM users u JOIN sessions s ON s.user_id=u.id `+credentialJoin+` WHERE s.token_hash=$1 AND s.expires_at>now()`, Hash(token)))
 }
 func (s *Store) Logout(ctx context.Context, token string) error {
 	_, err := s.Pool.Exec(ctx, "DELETE FROM sessions WHERE token_hash=$1", Hash(token))
@@ -164,7 +177,7 @@ func (s *Store) RecentEvents(ctx context.Context, userID string) ([]RecentEvent,
 	return result, rows.Err()
 }
 func (s *Store) Cleanup(ctx context.Context) error {
-	for _, sql := range []string{"DELETE FROM oauth_attempts WHERE expires_at<=now()", "DELETE FROM sessions WHERE expires_at<=now()", "DELETE FROM trend_connect_codes WHERE expires_at<=now()", "DELETE FROM trend_sessions WHERE expires_at<=now()", "DELETE FROM user_events WHERE received_at<now()-interval '90 days'"} {
+	for _, sql := range []string{"DELETE FROM account_login_limits WHERE expires_at<=now()", "DELETE FROM oauth_attempts WHERE expires_at<=now()", "DELETE FROM sessions WHERE expires_at<=now()", "DELETE FROM trend_connect_codes WHERE expires_at<=now()", "DELETE FROM trend_sessions WHERE expires_at<=now()", "DELETE FROM user_events WHERE received_at<now()-interval '90 days'"} {
 		if _, err := s.Pool.Exec(ctx, sql); err != nil {
 			return err
 		}

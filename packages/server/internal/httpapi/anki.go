@@ -73,6 +73,9 @@ func (a *API) ankiUser(w http.ResponseWriter, r *http.Request) (*store.User, boo
 		failure(w, 401)
 		return nil, false
 	}
+	if !requireGitHub(w, u) {
+		return nil, false
+	}
 	return u, true
 }
 

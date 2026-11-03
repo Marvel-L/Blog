@@ -13,7 +13,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useHref, useLocation, useSearchParams } from 'react-router-dom';
-import { cloudRequest, type CloudUser } from '@/cloud/api';
+import { cloudRequest, CloudError, type CloudUser } from '@/cloud/api';
+import { AccountCredentials, GitHubBinding } from '@/cloud/AccountCredentials';
 import { Seo } from '@/components/Seo';
 import { fetchDashboard, isUnauthorized, type AnkiCard, type NormalizedDashboard } from './anki-api';
 import { AnkiAIDialog } from './AnkiAIDialog';
@@ -27,7 +28,7 @@ import { AnkiDrafts } from './AnkiDrafts';
 import { readAnkiView, writeAnkiView, type AnkiView } from './anki-view';
 import './anki.css';
 
-type Phase = 'loading' | 'ready' | 'unauthorized' | 'error';
+type Phase = 'loading' | 'ready' | 'unauthorized' | 'binding' | 'error';
 
 const ANKI_LOGIN_HREF = '/api/v1/auth/github/start';
 
@@ -141,6 +142,11 @@ export default function AnkiPage() {
       })
       .catch((error) => {
         if (cancelled || controller.signal.aborted || generation !== accountGeneration.current) return;
+        if (error instanceof CloudError && error.code === 'github_binding_required') {
+          setDashboard(null);
+          setPhase('binding');
+          return;
+        }
         if (isUnauthorized(error)) {
           accountRequest.current?.abort();
           setAccountLoading(false);
@@ -212,6 +218,18 @@ export default function AnkiPage() {
     />
   );
 
+  if (phase === 'binding')
+    return (
+      <div className="anki-surface min-h-screen bg-white" style={{ color: T.ink }}>
+        <Seo title="绑定 GitHub 后使用 Anki" noindex />
+        {topBar}
+        <main className="mx-auto max-w-md px-6 py-16 text-center">
+          <h1 className="text-2xl font-semibold">请先绑定 GitHub</h1>
+          <p className="my-4">系统账号已登录，绑定 GitHub 后才能使用 Planner、Anki、Trend 的云端功能。</p>
+          <GitHubBinding onError={setAccountError} />
+        </main>
+      </div>
+    );
   if (phase === 'unauthorized' || (explicitLogin && phase === 'error' && !user)) {
     return (
       <div className="anki-surface min-h-screen bg-white" style={{ color: T.ink }}>
@@ -230,6 +248,9 @@ export default function AnkiPage() {
           <p className="mt-3 text-sm" style={{ color: T.muted }}>
             卡片库与练习进度只属于你，由服务端按会话隔离。
           </p>
+          <div className="mt-6 w-full max-w-sm text-left">
+            <AccountCredentials user={null} onUser={setUser} />
+          </div>
           <a
             href={loginHref}
             className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full px-6 text-sm font-medium text-white"
@@ -433,9 +454,11 @@ function AnkiTopBar({
             </span>
           ) : user || authenticated ? (
             <>
-              <button type="button" className="min-h-11 text-sm font-medium text-[#087ae9]" onClick={onAISettings}>
-                AI 设置
-              </button>
+              {authenticated && (
+                <button type="button" className="min-h-11 text-sm font-medium text-[#087ae9]" onClick={onAISettings}>
+                  AI 设置
+                </button>
+              )}
               <span className="max-w-[180px] truncate text-sm" title={user?.login}>
                 已登录 · {user?.login ?? '用户名暂不可用'}
               </span>

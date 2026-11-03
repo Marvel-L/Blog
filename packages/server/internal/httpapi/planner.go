@@ -20,6 +20,9 @@ func (a *API) getPlanner(w http.ResponseWriter, r *http.Request) {
 		failure(w, 401)
 		return
 	}
+	if !requireGitHub(w, u) {
+		return
+	}
 	v, err := a.db.Planner(r.Context(), u.ID)
 	if err != nil {
 		failure(w, 503)
@@ -35,6 +38,9 @@ func (a *API) putPlanner(w http.ResponseWriter, r *http.Request) {
 	}
 	if u == nil {
 		failure(w, 401)
+		return
+	}
+	if !requireGitHub(w, u) {
 		return
 	}
 	raw, ok := jsonBody(w, r, 3*1024*1024)

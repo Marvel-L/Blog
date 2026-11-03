@@ -32,6 +32,12 @@ type Persistence interface {
 	BeginOAuthReturn(context.Context, string, string, string) error
 	ConsumeOAuthReturn(context.Context, string) (string, string, error)
 	Login(context.Context, github.Identity, string) (string, error)
+	RegisterAccount(context.Context, string, string, string) (string, error)
+	LoginAccount(context.Context, string, string, string) (string, error)
+	BindAccount(context.Context, string, string, string) (string, error)
+	BindGitHub(context.Context, github.Identity, string) (string, error)
+	BeginOAuthBinding(context.Context, string, string, string, string) error
+	ConsumeOAuthAttempt(context.Context, string) (store.OAuthAttempt, error)
 	FindUser(context.Context, string) (*store.User, error)
 	Logout(context.Context, string) error
 	RecordEvents(context.Context, string, []store.Event) (int64, error)
@@ -92,6 +98,10 @@ func New(c config.Config, db Persistence, exchange github.Exchange) http.Handler
 	mux.HandleFunc("GET /api/v1/me", a.me)
 	mux.HandleFunc("GET /api/v1/auth/github/start", a.start)
 	mux.HandleFunc("GET /api/v1/auth/github/callback", a.callback)
+	mux.HandleFunc("POST /api/v1/auth/account/register", a.registerAccount)
+	mux.HandleFunc("POST /api/v1/auth/account/login", a.loginAccount)
+	mux.HandleFunc("POST /api/v1/auth/account/bind", a.bindAccount)
+	mux.HandleFunc("POST /api/v1/auth/github/bind", a.startBinding)
 	mux.HandleFunc("POST /api/v1/auth/logout", a.logout)
 	mux.HandleFunc("POST /api/v1/events/batch", a.events)
 	mux.HandleFunc("GET /api/v1/me/events", a.recent)
@@ -144,7 +154,7 @@ func New(c config.Config, db Persistence, exchange github.Exchange) http.Handler
 		if err != nil {
 			ip = r.RemoteAddr
 		}
-		isAuthFlow := r.URL.Path == "/api/v1/auth/github/start" || r.URL.Path == "/api/v1/trend/connect" || r.URL.Path == "/api/v1/trend/exchange"
+		isAuthFlow := r.URL.Path == "/api/v1/auth/github/start" || r.URL.Path == "/api/v1/auth/github/bind" || strings.HasPrefix(r.URL.Path, "/api/v1/auth/account/") || r.URL.Path == "/api/v1/trend/connect" || r.URL.Path == "/api/v1/trend/exchange"
 		if !a.limit.allow(ip, isAuthFlow, time.Now()) {
 			w.Header().Set("Retry-After", "60")
 			failure(w, 429)
@@ -230,6 +240,33 @@ func (a *API) start(w http.ResponseWriter, r *http.Request) {
 	a.cookie(w, a.stateCookie, state, 600)
 	http.Redirect(w, r, "https://github.com/login/oauth/authorize?"+params.Encode(), 302)
 }
+func (a *API) authorizationURL(state, verifier string) string {
+	challenge := sha256.Sum256([]byte(verifier))
+	params := url.Values{"client_id": {a.config.ClientID}, "redirect_uri": {a.config.Origin + "/api/v1/auth/github/callback"}, "state": {state}, "code_challenge": {base64.RawURLEncoding.EncodeToString(challenge[:])}, "code_challenge_method": {"S256"}}
+	return "https://github.com/login/oauth/authorize?" + params.Encode()
+}
+func (a *API) startBinding(w http.ResponseWriter, r *http.Request) {
+	u, err := a.user(r)
+	if err != nil {
+		failure(w, 503)
+		return
+	}
+	if u == nil {
+		failure(w, 401)
+		return
+	}
+	if u.GitHubBound {
+		accountFailure(w, store.ErrAccountConflict)
+		return
+	}
+	state, verifier := store.Secret(), store.Secret()
+	if err = a.db.BeginOAuthBinding(r.Context(), state, verifier, "/Blog/", cookieValue(r, a.sessionCookie)); err != nil {
+		accountFailure(w, err)
+		return
+	}
+	a.cookie(w, a.stateCookie, state, 600)
+	respond(w, 200, map[string]string{"url": a.authorizationURL(state, verifier)})
+}
 func (a *API) callback(w http.ResponseWriter, r *http.Request) {
 	a.cookie(w, a.stateCookie, "", -1)
 	query, err := url.ParseQuery(r.URL.RawQuery)
@@ -244,7 +281,8 @@ func (a *API) callback(w http.ResponseWriter, r *http.Request) {
 		failure(w, 400)
 		return
 	}
-	verifier, returnPath, err := a.db.ConsumeOAuthReturn(r.Context(), state)
+	attempt, err := a.db.ConsumeOAuthAttempt(r.Context(), state)
+	verifier, returnPath := attempt.Verifier, attempt.ReturnPath
 	if err != nil {
 		failure(w, 503)
 		return
@@ -253,14 +291,23 @@ func (a *API) callback(w http.ResponseWriter, r *http.Request) {
 		failure(w, 400)
 		return
 	}
+	if attempt.BindingSessionHash != "" && attempt.BindingSessionHash != store.Hash(cookieValue(r, a.sessionCookie)) {
+		failure(w, 400)
+		return
+	}
 	identity, err := a.exchange(r.Context(), code, verifier)
 	if err != nil {
 		failure(w, 503)
 		return
 	}
-	token, err := a.db.Login(r.Context(), identity, cookieValue(r, a.sessionCookie))
+	var token string
+	if attempt.BindingSessionHash != "" {
+		token, err = a.db.BindGitHub(r.Context(), identity, attempt.BindingSessionHash)
+	} else {
+		token, err = a.db.Login(r.Context(), identity, cookieValue(r, a.sessionCookie))
+	}
 	if err != nil {
-		failure(w, 503)
+		accountFailure(w, err)
 		return
 	}
 	a.cookie(w, a.sessionCookie, token, 7*24*3600)

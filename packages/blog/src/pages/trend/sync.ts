@@ -14,7 +14,13 @@ export class SyncError extends Error {
     public status: number,
     public snapshot?: SyncResponse,
   ) {
-    super(status === 401 ? '授权已失效，请重新连接' : '云端连接失败，草稿保留在本地');
+    super(
+      status === 403
+        ? '请先在云端账号中绑定 GitHub，再使用云端趋势'
+        : status === 401
+          ? '授权已失效，请重新连接'
+          : '云端连接失败，草稿保留在本地',
+    );
   }
 }
 

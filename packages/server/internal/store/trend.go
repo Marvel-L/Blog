@@ -100,29 +100,23 @@ func (s *Store) ExchangeTrend(ctx context.Context, code, origin, challenge strin
  VALUES($1,$2,$3,now()+interval '1 hour')`, Hash(token), session, origin); err != nil {
 		return "", nil, err
 	}
-	var u User
-	err = tx.QueryRow(ctx, `SELECT u.id::text,u.login,u.name FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token_hash=$1`, session).Scan(&u.ID, &u.Login, &u.Name)
-	if err != nil {
+	u, err := scanUser(tx.QueryRow(ctx, `SELECT `+identityColumns+` FROM users u JOIN sessions s ON s.user_id=u.id `+credentialJoin+` WHERE s.token_hash=$1 AND u.github_id IS NOT NULL`, session))
+	if err != nil || u == nil {
+		if err == nil {
+			err = ErrCredentials
+		}
 		return "", nil, err
 	}
 	if err = tx.Commit(ctx); err != nil {
 		return "", nil, err
 	}
-	return token, &u, nil
+	return token, u, nil
 }
 
 func (s *Store) FindTrendUser(ctx context.Context, token, origin string) (*User, error) {
-	var u User
-	err := s.Pool.QueryRow(ctx, `SELECT u.id::text,u.login,u.name FROM trend_sessions t
- JOIN sessions s ON s.token_hash=t.session_hash JOIN users u ON u.id=s.user_id
- WHERE t.token_hash=$1 AND t.origin=$2 AND t.expires_at>now() AND s.expires_at>now()`, Hash(token), origin).Scan(&u.ID, &u.Login, &u.Name)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	return &u, nil
+	return scanUser(s.Pool.QueryRow(ctx, `SELECT `+identityColumns+` FROM trend_sessions t
+ JOIN sessions s ON s.token_hash=t.session_hash JOIN users u ON u.id=s.user_id `+credentialJoin+`
+ WHERE t.token_hash=$1 AND t.origin=$2 AND t.expires_at>now() AND s.expires_at>now() AND u.github_id IS NOT NULL`, Hash(token), origin))
 }
 
 func (s *Store) RevokeTrend(ctx context.Context, token, origin string) error {

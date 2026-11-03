@@ -2,6 +2,17 @@ export interface CloudUser {
   id: string;
   login: string;
   name: string;
+  username?: string;
+  githubBound?: boolean;
+}
+export class CloudError extends Error {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+  ) {
+    super(message);
+  }
 }
 export interface CloudEvent {
   eventId: string;
@@ -18,7 +29,24 @@ export async function cloudRequest<T>(path: string, init: RequestInit = {}): Pro
     cache: 'no-store',
     headers: { ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...init.headers },
   });
-  if (!response.ok) throw new Error(response.status === 401 ? '登录已失效，请重新登录' : '云端服务暂时不可用，请重试');
+  if (!response.ok) {
+    let message = response.status === 401 ? '登录已失效，请重新登录' : '云端服务暂时不可用，请重试';
+    let code = '';
+    // Only safe application errors, never raw upstream responses or HTML.
+    try {
+      const data = (await response.json()) as { error?: unknown; code?: unknown };
+      if (typeof data.code === 'string') code = data.code;
+      if (
+        (path.startsWith('/auth/account/') || code === 'github_binding_required') &&
+        typeof data.error === 'string' &&
+        data.error.length <= 240
+      )
+        message = data.error;
+    } catch {
+      /* Retain the safe fallback for non-JSON failures. */
+    }
+    throw new CloudError(response.status, code, message);
+  }
   if (response.status === 204) return undefined as T;
   if (response.headers.get('content-type')?.includes('text/html')) {
     throw new Error('账号 API 返回了博客页面，请检查云端服务是否启动及开发代理配置');

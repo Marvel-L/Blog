@@ -81,6 +81,9 @@ func (a *API) getTrend(w http.ResponseWriter, r *http.Request) {
 		failure(w, 401)
 		return
 	}
+	if !requireGitHub(w, u) {
+		return
+	}
 	v, err := a.db.Trend(r.Context(), u.ID)
 	if err != nil {
 		failure(w, 503)
@@ -121,6 +124,9 @@ func (a *API) putTrend(w http.ResponseWriter, r *http.Request) {
 	}
 	if u == nil {
 		failure(w, 401)
+		return
+	}
+	if !requireGitHub(w, u) {
 		return
 	}
 	raw, ok := jsonBody(w, r, 3*1024*1024)
@@ -174,6 +180,9 @@ func (a *API) connectTrend(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/api/v1/auth/github/start?"+url.Values{"return_to": {path}}.Encode(), 302)
 		return
 	}
+	if !requireGitHub(w, u) {
+		return
+	}
 	q := r.URL.Query()
 	code, err := a.db.BeginTrendConnect(r.Context(), cookieValue(r, a.sessionCookie), q.Get("origin"), q.Get("challenge"))
 	if err != nil {
@@ -211,6 +220,9 @@ func (a *API) exchangeTrend(w http.ResponseWriter, r *http.Request) {
 	}
 	if u == nil {
 		failure(w, 401)
+		return
+	}
+	if !requireGitHub(w, u) {
 		return
 	}
 	respond(w, 200, map[string]any{"token": token, "user": u, "expiresIn": 3600})

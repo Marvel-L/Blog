@@ -1,6 +1,10 @@
 # Go 后端
 
-独立 Go module，使用标准库 `net/http` 和 pgx，提供 GitHub 登录、数据库会话、访问记录和 Trend 自动同步。
+独立 Go module，使用标准库 `net/http` 和 pgx，提供账号密码登录、GitHub 登录与双向绑定、数据库会话、访问记录和 Trend 自动同步。
+
+账号规则、接口、安全边界与本轮验证详见 [账号登录记录](../project-notes/features/account-login.md)。新系统账号可登录，但须绑定 GitHub 才能读写 Planner、Anki、Trend 云端数据。密码登录不依赖 GitHub 网络。
+
+初始化现有 GitHub 身份的系统凭据：先执行编号迁移，再将仅含 username / githubId / passwordHash 的 JSON 通过 stdin 传给 `go run ./cmd/account-init`。工具只附加凭据，不覆盖已有绑定、不改业务用户 ID。`tooling/account-hash.py` 用交互方式生成随机盐散列，密码不回显；交互提示须在终端操作，输出仅作私有初始化载荷，不能提交仓库。DATABASE_URL 沿用既有安全注入方式。
 前端与 Pages 构建无需引入 Go 运行时。生产 API 为不依赖 Node 的静态 Go 二进制。
 
 ## 目录
