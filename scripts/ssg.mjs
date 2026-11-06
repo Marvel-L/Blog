@@ -485,6 +485,11 @@ export const runSsg = async ({
       schemaFromSeo: true,
     },
     {
+      path: 'ocean',
+      schemaType: 'WebPage',
+      schemaFromSeo: true,
+    },
+    {
       path: 'trend',
       schemaType: 'WebApplication',
       schemaFromSeo: true,

@@ -129,6 +129,14 @@ describe('Layout', () => {
     expect(screen.getAllByRole('link', { name: /归档/ }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole('link', { name: '标签' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '积累' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '沉沦之海' })).toHaveAttribute('href', '/ocean');
+    const links = screen.getAllByRole('link');
+    expect(links.indexOf(screen.getByRole('link', { name: '沉沦之海' }))).toBeGreaterThan(
+      links.indexOf(screen.getByRole('link', { name: 'Planner' })),
+    );
+    expect(links.indexOf(screen.getByRole('link', { name: '沉沦之海' }))).toBeLessThan(
+      links.indexOf(screen.getByRole('link', { name: '关于' })),
+    );
   });
 
   it.each(['/book', '/book/algorithms', '/book/algorithms/chapter/hello'])(
@@ -358,6 +366,7 @@ describe('Layout', () => {
     expect(screen.getByRole('button', { name: /归档/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /标签/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /积累/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /沉沦之海/ })).toBeInTheDocument();
   });
 
   it('渲染 children 内容', () => {

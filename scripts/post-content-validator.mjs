@@ -22,6 +22,7 @@ const DEFAULT_STATIC_ROUTES = new Set([
   '/guestbook',
   '/about',
   '/accumulate',
+  '/ocean',
   '/cover',
   '/watermark',
   '/image-compress',

@@ -32,6 +32,7 @@ import {
   Smile,
   TrendingUp,
   CalendarDays,
+  Waves,
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { preloadPage } from '@/utils/preload';
@@ -111,6 +112,7 @@ const navItems: NavPathItem[] = [
   { path: '/stats', label: TEXT.navStats, hint: '站点数据', icon: BarChart3 },
   { path: '/trend', label: 'Trend', hint: '数据趋势与比较', icon: TrendingUp },
   { path: '/planner', label: 'Planner', hint: '月度计划与待办', icon: CalendarDays },
+  { path: '/ocean', label: '沉沦之海', hint: '坠入一片静谧深海', icon: Waves },
   { path: '/about', label: TEXT.navAbout, hint: '站点介绍', icon: Info },
 ];
 

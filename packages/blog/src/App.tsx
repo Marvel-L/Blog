@@ -6,6 +6,7 @@ import React, { Suspense, lazy, useEffect, useState } from 'react';
 // Eager CSS keeps pre-rendered books styled before the lazy page hydrates.
 import './books/books.css';
 import './abilities/abilities.css';
+import './pages/ocean/ocean.css';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { flushSync } from 'react-dom';
@@ -44,6 +45,7 @@ const ImageCompress = lazy(pageLoaders['/image-compress']);
 const SearchPage = lazy(pageLoaders['/search']);
 const TbdPostsPage = lazy(pageLoaders['/tbd']);
 const AccumulatePage = lazy(pageLoaders['/accumulate']);
+const OceanPage = lazy(pageLoaders['/ocean']);
 const NotFound = lazy(() => import('./pages/NotFound').then((m) => ({ default: m.NotFound })));
 const CookieNotice = lazy(() => import('./components/CookieNotice').then((m) => ({ default: m.CookieNotice })));
 const TypewriterIntro = lazy(() =>
@@ -145,6 +147,21 @@ const AppRoutes: React.FC = () => {
 
   const isAnkiRoute = displayLocation.pathname.startsWith('/anki');
 
+  // 海洋体验使用独立全屏场景，不挂载博客导航、页脚或阅读区背景特效。
+  if (displayLocation.pathname.replace(/\/$/, '') === '/ocean') {
+    return (
+      <Suspense
+        fallback={
+          <main className="ocean-loading">
+            <p role="status">正在靠近海面…</p>
+          </main>
+        }
+      >
+        <OceanPage />
+      </Suspense>
+    );
+  }
+
   // Anki 是独立学习白面：自带顶部条，不套用全站 Layout 的导航/页脚/雨鱼等装饰。
   // cloud 构建下 AnkiPage 非空；Pages 构建恒为 null，走正常 Layout。
   if (isAnkiRoute && AnkiPage) {
@@ -201,6 +218,8 @@ const AppRoutes: React.FC = () => {
 };
 
 const AppShell: React.FC = () => {
+  const location = useLocation();
+  const isOceanRoute = location.pathname.replace(/\/$/, '') === '/ocean';
   const [introReady, setIntroReady] = useState(false);
   const [showCookieNotice, setShowCookieNotice] = useState(false);
 
@@ -223,7 +242,7 @@ const AppShell: React.FC = () => {
       <Suspense fallback={null}>
         <TypewriterIntro onReady={() => setIntroReady(true)} />
       </Suspense>
-      {showCookieNotice && (
+      {showCookieNotice && !isOceanRoute && (
         <Suspense fallback={null}>
           <CookieNotice />
         </Suspense>
