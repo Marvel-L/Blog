@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
+	"unicode/utf16"
 )
 
 type plannerTask struct {
-	ID, Text  string
-	Completed bool
+	ID, Text           string
+	Completed          bool
+	Category, Priority string
 }
 
 func decodePlannerState(raw json.RawMessage) (map[string][]plannerTask, bool) {
@@ -27,6 +30,9 @@ func decodePlannerState(raw json.RawMessage) (map[string][]plannerTask, bool) {
 	}
 	result := make(map[string][]plannerTask, len(months))
 	for key, rawTasks := range months {
+		if _, err := time.Parse("2006-01", key); err != nil {
+			return nil, false
+		}
 		if len(key) != 7 || key[4] != '-' || key[:4] < "1970" || key[:4] > "9999" || key[5:] < "01" || key[5:] > "12" {
 			return nil, false
 		}
@@ -36,7 +42,13 @@ func decodePlannerState(raw json.RawMessage) (map[string][]plannerTask, bool) {
 		}
 		ids := map[string]bool{}
 		for _, rawTask := range items {
-			t, err := fields(rawTask, "id", "text", "completed")
+			var t map[string]json.RawMessage
+			err := json.Unmarshal(rawTask, &t)
+			for key := range t {
+				if key != "id" && key != "text" && key != "completed" && key != "category" && key != "priority" {
+					return nil, false
+				}
+			}
 			if err != nil || !boolean(t["completed"]) {
 				return nil, false
 			}
@@ -51,7 +63,18 @@ func decodePlannerState(raw json.RawMessage) (map[string][]plannerTask, bool) {
 				}
 			}
 			ids[id] = true
-			result[key] = append(result[key], plannerTask{ID: id, Text: strings.TrimSpace(content), Completed: string(t["completed"]) == "true"})
+			var category, priority string
+			if raw, exists := t["category"]; exists {
+				if json.Unmarshal(raw, &category) != nil || (category != "work" && category != "learning" && category != "life" && category != "other") {
+					return nil, false
+				}
+			}
+			if raw, exists := t["priority"]; exists {
+				if json.Unmarshal(raw, &priority) != nil || (priority != "normal" && priority != "high") {
+					return nil, false
+				}
+			}
+			result[key] = append(result[key], plannerTask{ID: id, Text: strings.TrimSpace(content), Completed: string(t["completed"]) == "true", Category: category, Priority: priority})
 		}
 	}
 	return result, true
@@ -59,7 +82,7 @@ func decodePlannerState(raw json.RawMessage) (map[string][]plannerTask, bool) {
 
 func plannerText(raw json.RawMessage) (string, bool) {
 	var value string
-	if json.Unmarshal(raw, &value) != nil || len([]rune(value)) > 500 {
+	if json.Unmarshal(raw, &value) != nil || len(utf16.Encode([]rune(value))) > 500 {
 		return "", false
 	}
 	return value, true
@@ -86,7 +109,14 @@ func plannerMarkdown(raw json.RawMessage) (string, bool) {
 			}
 			clean := strings.ReplaceAll(strings.ReplaceAll(task.Text, "\r", " "), "\n", " ")
 			clean = strings.ReplaceAll(clean, "<!--", "&lt;!--")
-			fmt.Fprintf(&out, "- [%s] %s <!-- id:%s -->\n", mark, clean, task.ID)
+			meta := ""
+			if task.Category != "" {
+				meta += " category:" + task.Category
+			}
+			if task.Priority != "" {
+				meta += " priority:" + task.Priority
+			}
+			fmt.Fprintf(&out, "- [%s] %s <!-- id:%s%s -->\n", mark, clean, task.ID, meta)
 		}
 	}
 	return out.String(), true

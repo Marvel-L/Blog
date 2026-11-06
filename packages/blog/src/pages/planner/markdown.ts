@@ -1,8 +1,17 @@
-import { emptyPlannerState, monthKey, parsePlannerState, type MonthlyPlannerState, type MonthlyTask } from './model';
+import {
+  emptyPlannerState,
+  monthKey,
+  parsePlannerState,
+  type MonthlyPlannerState,
+  type MonthlyTask,
+  type TaskCategory,
+  type TaskPriority,
+} from './model';
 
 const HEADER = '# Monthly Planner';
 const SECTION = /^##\s+(\d{4})-(0[1-9]|1[0-2])\s*$/;
-const TASK = /^-\s+\[([ xX])\]\s+(.+?)(?:\s+<!--\s*id:([A-Za-z0-9_-]{1,120})\s*-->)?\s*$/;
+const TASK =
+  /^-\s+\[([ xX])\]\s+(.+?)(?:\s+<!--\s*id:([A-Za-z0-9_-]{1,120})(?:\s+category:(work|learning|life|other))?(?:\s+priority:(normal|high))?\s*-->)?\s*$/;
 const hash = (input: string) => {
   let value = 2166136261;
   for (const character of input) {
@@ -36,7 +45,13 @@ export const parsePlannerMarkdown = (markdown: string): MonthlyPlannerState => {
     let suffix = 2;
     while (used.has(id)) id = `${candidate}-${suffix++}`;
     used.add(id);
-    state.months[current].push({ id, text, completed: task[1].toLowerCase() === 'x' });
+    state.months[current].push({
+      id,
+      text,
+      completed: task[1].toLowerCase() === 'x',
+      ...(task[4] ? { category: task[4] as TaskCategory } : {}),
+      ...(task[5] ? { priority: task[5] as TaskPriority } : {}),
+    });
     if (state.months[current].length > 300) throw new Error('每月最多支持 300 个任务');
   }
   return parsePlannerState(JSON.stringify(state));
@@ -57,7 +72,9 @@ export const plannerToMarkdown = (state: MonthlyPlannerState): string => {
   for (const key of keys) {
     lines.push(`## ${key}`, '');
     for (const task of parsed.months[key]) {
-      lines.push(`- [${task.completed ? 'x' : ' '}] ${safeText(task.text)} <!-- id:${task.id} -->`);
+      lines.push(
+        `- [${task.completed ? 'x' : ' '}] ${safeText(task.text)} <!-- id:${task.id}${task.category ? ` category:${task.category}` : ''}${task.priority ? ` priority:${task.priority}` : ''} -->`,
+      );
     }
     lines.push('');
   }

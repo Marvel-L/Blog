@@ -3,6 +3,28 @@ import { parsePlannerMarkdown, plannerToMarkdown } from './markdown';
 import { emptyPlannerState, monthKey, parsePlannerState, samePlannerData, taskProgress } from './model';
 
 describe('月度计划模型', () => {
+  it('新分类和优先级可以与旧任务一起完成 Markdown 往返', () => {
+    const state = parsePlannerState(
+      JSON.stringify({
+        version: 1,
+        months: {
+          '2026-11': [
+            { id: 'old', text: '旧目标', completed: false },
+            { id: 'new', text: '新目标', completed: true, category: 'learning', priority: 'high' },
+          ],
+        },
+      }),
+    );
+    expect(parsePlannerMarkdown(plannerToMarkdown(state))).toEqual(state);
+    expect(() =>
+      parsePlannerState(
+        JSON.stringify({
+          version: 1,
+          months: { '2026-11': [{ id: 'bad', text: '错误分类', completed: false, category: ['work'] }] },
+        }),
+      ),
+    ).toThrow();
+  });
   it('Markdown 往返保留月份、顺序、完成状态和稳定 ID', () => {
     const markdown = `# Monthly Planner\n\n## 2026-10\n\n- [ ] 发布月度规划 <!-- id:publish -->\n- [x] 完成接口测试 <!-- id:test -->\n\n## 2027-01\n\n- [ ] 新年规划\n`;
     const state = parsePlannerMarkdown(markdown);

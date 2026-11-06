@@ -16,11 +16,15 @@ func TestPlannerStateAndMarkdown(t *testing.T) {
 		`{"version":1,"months":null}`,
 		`{"version":1,"months":{"1969-12":[]}}`,
 		`{"version":1,"months":{"2026-13":[]}}`,
+		`{"version":1,"months":{"2abc-01":[]}}`,
 		`{"version":1,"months":{"2026-10":[{"id":"bad/id","text":"x","completed":false}]}}`,
 		`{"version":1,"months":{"2026-10":[{"id":"a","text":"","completed":false}]}}`,
 	} {
 		if _, ok := plannerMarkdown(json.RawMessage(raw)); ok {
 			t.Fatalf("invalid planner accepted: %s", raw)
 		}
+	}
+	if _, ok := plannerText(json.RawMessage(`"` + strings.Repeat("😀", 251) + `"`)); ok {
+		t.Fatal("server text limit differs from frontend UTF-16 limit")
 	}
 }

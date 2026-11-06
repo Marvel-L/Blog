@@ -147,6 +147,7 @@ func (s *Store) LoginAccount(ctx context.Context, username, password, oldToken s
 func unboundHasData(ctx context.Context, tx pgx.Tx, id string) (bool, error) {
 	var exists bool
 	err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM monthly_planners WHERE user_id=$1)
+ OR EXISTS(SELECT 1 FROM planner_daily WHERE user_id=$1)
  OR EXISTS(SELECT 1 FROM trend_dashboards WHERE user_id=$1)
  OR EXISTS(SELECT 1 FROM anki_categories WHERE user_id=$1)
  OR EXISTS(SELECT 1 FROM anki_decks WHERE user_id=$1)

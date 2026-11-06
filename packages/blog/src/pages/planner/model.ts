@@ -1,7 +1,13 @@
+export const CATEGORIES = { work: '工作', learning: '学习', life: '生活', other: '其他' } as const;
+export const PRIORITIES = { normal: '普通', high: '优先' } as const;
+export type TaskCategory = keyof typeof CATEGORIES;
+export type TaskPriority = keyof typeof PRIORITIES;
 export type MonthlyTask = {
   id: string;
   text: string;
   completed: boolean;
+  category?: TaskCategory;
+  priority?: TaskPriority;
 };
 
 export type MonthlyPlannerState = {
@@ -36,7 +42,11 @@ export const parsePlannerState = (raw: string): MonthlyPlannerState => {
     months[key] = tasks.map((task) => {
       if (
         !isObject(task) ||
-        Object.keys(task).length !== 3 ||
+        Object.keys(task).some((key) => !['id', 'text', 'completed', 'category', 'priority'].includes(key)) ||
+        (task.category !== undefined &&
+          (typeof task.category !== 'string' || !Object.hasOwn(CATEGORIES, task.category))) ||
+        (task.priority !== undefined &&
+          (typeof task.priority !== 'string' || !Object.hasOwn(PRIORITIES, task.priority))) ||
         typeof task.id !== 'string' ||
         !TASK_ID.test(task.id) ||
         seen.has(task.id) ||
@@ -48,7 +58,13 @@ export const parsePlannerState = (raw: string): MonthlyPlannerState => {
         throw new Error('月度计划任务格式无效');
       }
       seen.add(task.id);
-      return { id: task.id, text: task.text.trim(), completed: task.completed };
+      return {
+        id: task.id,
+        text: task.text.trim(),
+        completed: task.completed,
+        ...(task.category !== undefined ? { category: task.category as TaskCategory } : {}),
+        ...(task.priority !== undefined ? { priority: task.priority as TaskPriority } : {}),
+      };
     });
   }
   return { version: 1, months };
@@ -68,6 +84,7 @@ const canonical = (value: unknown): string => {
 
 export const samePlannerData = (a: MonthlyPlannerState | null, b: MonthlyPlannerState | null) =>
   canonical(a?.months ?? null) === canonical(b?.months ?? null);
+export const sameData = (a: unknown, b: unknown) => canonical(a) === canonical(b);
 
 export type TaskProgress = { year: number; month: number; quarter: number };
 
