@@ -8,6 +8,7 @@ import { Layout } from './Layout';
 import { siteConfig } from '@config/site.config';
 import { RESUME_TYPOGRAPHY_KEY } from '@/hooks/useResumeTypography';
 import { PARTICLE_EFFECT_STORAGE_KEY } from '@/utils/particleEffect';
+import { BACKGROUND_APPEARANCE_KEY } from '@/hooks/useBackgroundAppearance';
 
 // 懒加载子组件用简单 stub 替代，避免测试中等待 dynamic import 与动画。
 // 注意：Layout 以命名导出方式解构（import('./X').then(m => m.X)），mock 需提供同名导出。
@@ -214,6 +215,67 @@ describe('Layout', () => {
   it('渲染主题切换按钮（桌面端与移动端顶栏各一个）', () => {
     renderLayout();
     expect(screen.getAllByRole('button', { name: /外观与氛围/ }).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('天空背景可搭配浅色和深色，保留原有氛围组合', async () => {
+    const user = userEvent.setup();
+    renderLayout(['/archive']);
+    await waitFor(() => expect(document.querySelectorAll('.site-shell > canvas')).toHaveLength(2));
+    const savedEffects = window.localStorage.getItem(PARTICLE_EFFECT_STORAGE_KEY);
+    await user.click(screen.getAllByRole('button', { name: /外观与氛围/ })[0]);
+    const appearance = within(screen.getByRole('group', { name: '外观' }));
+    const sky = appearance.getByRole('button', { name: '天空背景' });
+    expect(sky).toHaveAttribute('aria-pressed', 'false');
+    await user.click(sky);
+    expect(sky).toHaveAttribute('aria-pressed', 'true');
+    expect(document.querySelector('.site-shell')).toHaveAttribute('data-sky-background', 'true');
+    expect(document.querySelector('.site-shell')).not.toHaveAttribute('data-book-sky');
+    expect(document.querySelector('.book-sky-world')).toBeInTheDocument();
+    expect(document.querySelectorAll('.site-shell > canvas')).toHaveLength(2);
+    await user.click(appearance.getByRole('button', { name: '深色' }));
+    expect(document.documentElement).toHaveClass('dark');
+    expect(sky).toHaveAttribute('aria-pressed', 'true');
+    expect(window.localStorage.getItem('theme')).toBe('dark');
+    expect(window.localStorage.getItem(BACKGROUND_APPEARANCE_KEY)).toBe('sky');
+    await user.click(appearance.getByRole('button', { name: '浅色' }));
+    expect(document.documentElement).not.toHaveClass('dark');
+    expect(document.querySelector('.book-sky-world')).toBeInTheDocument();
+    await user.click(sky);
+    expect(document.querySelector('.site-shell')).not.toHaveAttribute('data-sky-background');
+    expect(document.querySelector('.book-sky-world')).not.toBeInTheDocument();
+    expect(window.localStorage.getItem(PARTICLE_EFFECT_STORAGE_KEY)).toBe(savedEffects);
+  });
+
+  it('全站天空在导航、重新挂载及专注阅读退出后恢复', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(BACKGROUND_APPEARANCE_KEY, 'sky');
+    const first = renderLayout(['/archive']);
+    expect(document.querySelector('.site-shell')).toHaveAttribute('data-sky-background', 'true');
+    await user.click(screen.getAllByRole('link', { name: '文章' })[0]);
+    expect(probePathname).toBe('/articles');
+    expect(document.querySelector('.book-sky-world')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '进入专注阅读' }));
+    expect(document.querySelector('.book-sky-world')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '退出专注阅读' }));
+    expect(document.querySelector('.book-sky-world')).toBeInTheDocument();
+    first.unmount();
+    renderLayout(['/archive']);
+    expect(document.querySelector('.site-shell')).toHaveAttribute('data-sky-background', 'true');
+    screen.getAllByRole('button', { name: /外观与氛围/ }).forEach((button) => {
+      expect(button).toHaveAccessibleName(/天空背景/);
+    });
+  });
+
+  it('Love 面覆盖全站天空，退出后恢复个人背景选择', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(BACKGROUND_APPEARANCE_KEY, 'sky');
+    renderLayout(['/archive']);
+    await user.click(screen.getByRole('button', { name: '进入 Love 面' }));
+    await screen.findByRole('region', { name: 'Love 首页' });
+    expect(document.querySelector('.book-sky-world')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '退出 Love 面' }));
+    await waitFor(() => expect(document.querySelector('.book-sky-world')).toBeInTheDocument());
+    expect(window.localStorage.getItem(BACKGROUND_APPEARANCE_KEY)).toBe('sky');
   });
 
   it('新访客默认开启小雨、Ascall 鲸鱼和 Aa 排版', async () => {

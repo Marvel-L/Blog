@@ -33,6 +33,7 @@ import {
   TrendingUp,
   CalendarDays,
   Waves,
+  CloudSun,
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { preloadPage } from '@/utils/preload';
@@ -67,6 +68,7 @@ import '@/styles/resumeTypography.css';
 import { PrivacyPasswordModal } from './PrivacyPasswordModal';
 import { grantPrivacyAccess } from '@/utils/privacyAccess';
 import { BookSky } from '@/books/BookSky';
+import { useBackgroundAppearance, type BackgroundAppearance } from '@/hooks/useBackgroundAppearance';
 
 const BackToTop = lazy(() => import('./BackToTop').then((m) => ({ default: m.BackToTop })));
 const RinMascot = lazy(() => import('./mascot/RinMascot'));
@@ -298,11 +300,15 @@ const useTheme = () => {
 const ThemeToggle = ({
   theme,
   setThemePreference,
+  backgroundAppearance,
+  onBackgroundAppearanceChange,
   atmosphereEffects,
   onAtmosphereEffectToggle,
 }: {
   theme: Theme;
   setThemePreference: (theme: Theme) => void;
+  backgroundAppearance: BackgroundAppearance;
+  onBackgroundAppearanceChange: (appearance: BackgroundAppearance) => void;
   atmosphereEffects: readonly AtmosphereEffectId[];
   onAtmosphereEffectToggle: (effect: AtmosphereEffectId) => void;
 }) => {
@@ -341,6 +347,7 @@ const ThemeToggle = ({
   }, [isMenuOpen]);
 
   const currentThemeLabel = theme === 'light' ? TEXT.themeLight : TEXT.themeDark;
+  const skySelected = backgroundAppearance === 'sky';
   const currentEffectLabel =
     atmosphereEffects
       .map((effect) => ATMOSPHERE_EFFECT_OPTIONS.find((option) => option.id === effect)?.label)
@@ -352,20 +359,20 @@ const ThemeToggle = ({
         type="button"
         onClick={() => setIsMenuOpen((open) => !open)}
         className="frosted-control group relative inline-flex h-11 w-11 items-center justify-center transition-colors"
-        aria-label={`${TEXT.atmosphereMenu}，当前${currentThemeLabel} · ${currentEffectLabel}`}
+        aria-label={`${TEXT.atmosphereMenu}，当前${currentThemeLabel}${skySelected ? ' · 天空背景' : ''} · ${currentEffectLabel}`}
         aria-haspopup="dialog"
         aria-expanded={isMenuOpen}
         aria-controls={menuId}
       >
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
-            key={theme}
+            key={skySelected ? 'sky' : theme}
             initial={prefersReducedMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={prefersReducedMotion ? undefined : { opacity: 0 }}
             transition={{ duration: prefersReducedMotion ? 0 : 0.15 }}
           >
-            {theme === 'light' ? <Sun size={18} /> : <Moon size={18} />}
+            {skySelected ? <CloudSun size={18} /> : theme === 'light' ? <Sun size={18} /> : <Moon size={18} />}
           </motion.div>
         </AnimatePresence>
         <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-control border border-zinc-700 bg-black px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 group-aria-expanded:opacity-0">
@@ -378,7 +385,7 @@ const ThemeToggle = ({
           id={menuId}
           role="dialog"
           aria-label={TEXT.atmosphereMenu}
-          className="frosted-panel absolute right-0 top-full z-popover mt-2 w-64 max-w-[calc(100vw-2rem)] p-3"
+          className="frosted-panel fixed left-3 right-3 top-[calc(4rem+env(safe-area-inset-top,0px))] z-popover max-h-[calc(100dvh-5rem-env(safe-area-inset-top,0px))] overflow-y-auto overscroll-contain p-3 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-64"
         >
           <div className="space-y-3">
             <div>
@@ -406,7 +413,25 @@ const ThemeToggle = ({
                     </button>
                   );
                 })}
+                <button
+                  type="button"
+                  onClick={() => onBackgroundAppearanceChange(skySelected ? 'default' : 'sky')}
+                  aria-label="天空背景"
+                  aria-pressed={skySelected}
+                  className="frosted-option col-span-2 inline-flex min-h-11 items-center justify-between gap-2 px-3 text-xs font-semibold transition-colors"
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <CloudSun size={15} aria-hidden="true" />
+                    天空背景
+                  </span>
+                  <span className="text-[10px] font-normal opacity-75" aria-hidden="true">
+                    {skySelected ? '已开启' : '开启'}
+                  </span>
+                </button>
               </div>
+              <p className="mt-2 text-[10px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                开启后普通页面也使用天空，可搭配浅色或深色。
+              </p>
             </div>
 
             <div>
@@ -745,6 +770,8 @@ const Navbar = ({
   onToggleTypography,
   theme,
   setThemePreference,
+  backgroundAppearance,
+  onBackgroundAppearanceChange,
   atmosphereEffects,
   onAtmosphereEffectToggle,
   isLoveMode,
@@ -757,6 +784,8 @@ const Navbar = ({
   onToggleTypography: () => void;
   theme: Theme;
   setThemePreference: (theme: Theme) => void;
+  backgroundAppearance: BackgroundAppearance;
+  onBackgroundAppearanceChange: (appearance: BackgroundAppearance) => void;
   atmosphereEffects: readonly AtmosphereEffectId[];
   onAtmosphereEffectToggle: (effect: AtmosphereEffectId) => void;
   isLoveMode: boolean;
@@ -1349,6 +1378,8 @@ const Navbar = ({
                   <ThemeToggle
                     theme={theme}
                     setThemePreference={setThemePreference}
+                    backgroundAppearance={backgroundAppearance}
+                    onBackgroundAppearanceChange={onBackgroundAppearanceChange}
                     atmosphereEffects={atmosphereEffects}
                     onAtmosphereEffectToggle={onAtmosphereEffectToggle}
                   />
@@ -1370,6 +1401,8 @@ const Navbar = ({
                 <ThemeToggle
                   theme={theme}
                   setThemePreference={setThemePreference}
+                  backgroundAppearance={backgroundAppearance}
+                  onBackgroundAppearanceChange={onBackgroundAppearanceChange}
                   atmosphereEffects={atmosphereEffects}
                   onAtmosphereEffectToggle={onAtmosphereEffectToggle}
                 />
@@ -1703,6 +1736,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const navigate = useNavigate();
   const { isReadingMode } = useReadingMode();
   const { theme, setThemePreference } = useTheme();
+  const { backgroundAppearance, setBackgroundPreference } = useBackgroundAppearance();
   const { enabled: resumeTypography, toggle: toggleTypography } = useResumeTypography();
   const { isLoveMode, setLoveMode } = useLoveMode();
   const [atmosphereEffects, setAtmosphereEffects] = useState<readonly AtmosphereEffectId[]>(DEFAULT_ATMOSPHERE_EFFECTS);
@@ -1720,6 +1754,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const prefersReducedMotion = useSiteReducedMotion();
   const isParticleFrontRoute = PARTICLE_FRONT_ROUTES.has(location.pathname);
   const isBookSky = !isLoveMode && location.pathname.replace(/\/+$/, '') === '/book';
+  const isSkyBackground = isBookSky || (!isLoveMode && !isReadingMode && backgroundAppearance === 'sky');
   const routeVariants = prefersReducedMotion
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : routeShellVariants;
@@ -1830,8 +1865,9 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
       data-love-mode={isLoveMode ? 'true' : undefined}
       data-particle-front={isParticleFrontRoute ? 'true' : undefined}
       data-book-sky={isBookSky ? 'true' : undefined}
+      data-sky-background={isSkyBackground ? 'true' : undefined}
     >
-      {isBookSky ? <BookSky /> : <BackgroundWithEffect isLoveMode={isLoveMode} loveNameEffect={loveNameEffect} />}
+      {isSkyBackground ? <BookSky /> : <BackgroundWithEffect isLoveMode={isLoveMode} loveNameEffect={loveNameEffect} />}
       {!isReadingMode &&
         !isLoveMode &&
         !isBookSky &&
@@ -1848,6 +1884,8 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
         <Navbar
           theme={theme}
           setThemePreference={setThemePreference}
+          backgroundAppearance={backgroundAppearance}
+          onBackgroundAppearanceChange={setBackgroundPreference}
           onSearchNavigate={goToSearch}
           resumeTypography={resumeTypography}
           onToggleTypography={toggleTypography}

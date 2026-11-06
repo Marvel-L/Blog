@@ -1,5 +1,5 @@
 /* The sky, shelves and close-up share CSS-only depth; no image or 3D runtime is needed. */
-.site-shell[data-book-sky='true'] {
+.site-shell[data-sky-background='true'] {
   isolation: isolate;
 }
 .site-shell[data-book-sky='true'] > main {
@@ -9,14 +9,14 @@
 .site-shell[data-book-sky='true'] .book-library {
   padding: 0;
 }
-.site-shell[data-book-sky='true'] .site-navbar,
-.site-shell[data-book-sky='true'] .site-tab-bar {
+.site-shell[data-sky-background='true'] .site-navbar,
+.site-shell[data-sky-background='true'] .site-tab-bar {
   border-color: transparent;
   background: #e3f1fa1f;
   backdrop-filter: blur(14px);
 }
-.dark .site-shell[data-book-sky='true'] .site-navbar,
-.dark .site-shell[data-book-sky='true'] .site-tab-bar {
+.dark .site-shell[data-sky-background='true'] .site-navbar,
+.dark .site-shell[data-sky-background='true'] .site-tab-bar {
   background: #19354d1f;
 }
 .book-sky-world {
