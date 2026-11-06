@@ -126,8 +126,8 @@ describe('Layout', () => {
     // 顶栏导航 + 移动端底部标签栏各是一个 nav
     expect(screen.getAllByRole('navigation').length).toBeGreaterThanOrEqual(2);
     expect(screen.getByRole('link', { name: '文章' })).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: /归档/ }).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByRole('link', { name: '标签' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '展开Static菜单' })).toHaveTextContent('Static');
+    expect(screen.queryByRole('link', { name: /^(标签|统计|归档)$/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '积累' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: '沉沦之海' })).toHaveAttribute('href', '/ocean');
     const links = screen.getAllByRole('link');
@@ -327,6 +327,76 @@ describe('Layout', () => {
     expect(screen.getByRole('button', { name: '打开更多菜单' })).toBeInTheDocument();
   });
 
+  it('Static 悬停展开三个入口，移入选项保持展开，移出后关闭', () => {
+    renderLayout();
+    const trigger = screen.getByRole('button', { name: '展开Static菜单' });
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    fireEvent.mouseOver(trigger);
+    const menu = screen.getByRole('menu', { name: '展开Static菜单' });
+    const items = within(menu).getAllByRole('menuitem');
+    expect(items.map((item) => item.getAttribute('href'))).toEqual(['/tags', '/stats', '/archive']);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.mouseOut(trigger, { relatedTarget: items[0] });
+    fireEvent.mouseOver(items[0], { relatedTarget: trigger });
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.mouseOut(items[0], { relatedTarget: document.body });
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['标签', '/tags'],
+    ['统计', '/stats'],
+    ['归档', '/archive'],
+  ])('Static 中的%s跳转到 %s，关闭菜单并高亮当前项', async (label, path) => {
+    const user = userEvent.setup();
+    renderLayout();
+    const trigger = screen.getByRole('button', { name: '展开Static菜单' });
+    fireEvent.mouseOver(trigger);
+    await user.click(screen.getByRole('menuitem', { name: new RegExp(label) }));
+    expect(probePathname).toBe(path);
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(trigger).toHaveClass('text-ink');
+    fireEvent.mouseOver(trigger);
+    expect(screen.getByRole('menuitem', { name: new RegExp(label) })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('Static 与更多互斥展开，点击触发按钮可切换关闭', () => {
+    renderLayout();
+    const staticTrigger = screen.getByRole('button', { name: '展开Static菜单' });
+    const moreTrigger = screen.getByRole('button', { name: '展开更多菜单' });
+    fireEvent.click(staticTrigger);
+    expect(staticTrigger).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.mouseOver(moreTrigger);
+    expect(staticTrigger).toHaveAttribute('aria-expanded', 'false');
+    expect(moreTrigger).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getAllByRole('menu')).toHaveLength(1);
+    fireEvent.click(moreTrigger);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('Static 支持方向键循环、Home/End 和 Escape 返回触发按钮', async () => {
+    renderLayout();
+    const trigger = screen.getByRole('button', { name: '展开Static菜单' });
+    trigger.focus();
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    const items = within(screen.getByRole('menu', { name: '展开Static菜单' })).getAllByRole('menuitem');
+    await waitFor(() => expect(items[0]).toHaveFocus());
+    fireEvent.keyDown(items[0], { key: 'ArrowUp' });
+    await waitFor(() => expect(items[2]).toHaveFocus());
+    fireEvent.keyDown(items[2], { key: 'ArrowDown' });
+    await waitFor(() => expect(items[0]).toHaveFocus());
+    fireEvent.keyDown(items[0], { key: 'End' });
+    await waitFor(() => expect(items[2]).toHaveFocus());
+    fireEvent.keyDown(items[2], { key: 'Home' });
+    await waitFor(() => expect(items[0]).toHaveFocus());
+    fireEvent.keyDown(items[0], { key: 'Escape' });
+    expect(trigger).toHaveFocus();
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
   it('桌面更多菜单可访问友链与留言，移动端更多包含同样入口', async () => {
     const user = userEvent.setup();
     stubReducedMotionForDrawer();
@@ -365,6 +435,7 @@ describe('Layout', () => {
     await waitForNavOpen();
     expect(screen.getByRole('button', { name: /归档/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /标签/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /统计/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /积累/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /沉沦之海/ })).toBeInTheDocument();
   });

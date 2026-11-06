@@ -116,6 +116,9 @@ const navItems: NavPathItem[] = [
   { path: '/about', label: TEXT.navAbout, hint: '站点介绍', icon: Info },
 ];
 
+const staticNavItems = ['/tags', '/stats', '/archive'].flatMap((path) => navItems.filter((item) => item.path === path));
+const desktopNavItems = navItems.filter((item) => !staticNavItems.includes(item));
+
 const moreNavItems: NavItem[] = [
   { key: 'friends', path: '/friends', label: TEXT.navFriends, hint: '友情链接', icon: Users },
   { key: 'guestbook', path: '/guestbook', label: TEXT.navGuestbook, hint: '留言互动', icon: MessageSquareText },
@@ -550,6 +553,187 @@ const LoveEffectToggle = ({
   );
 };
 
+// Static 与「更多」共用面板样式、悬停/点击开关和键盘焦点管理。
+const DesktopNavMenu = ({
+  id,
+  label,
+  items,
+  isOpen,
+  onOpenChange,
+  activePath,
+}: {
+  id: string;
+  label: string;
+  items: NavItem[];
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  activePath?: string;
+}) => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const itemRefs = useRef<Array<HTMLElement | null>>([]);
+  const focusFrameRef = useRef<number | null>(null);
+  const isActive = items.some((item) => 'path' in item && item.path === activePath);
+
+  const cancelFocusFrame = useCallback(() => {
+    if (focusFrameRef.current !== null) {
+      window.cancelAnimationFrame(focusFrameRef.current);
+      focusFrameRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      cancelFocusFrame();
+    }
+  }, [cancelFocusFrame, isOpen]);
+  useEffect(() => cancelFocusFrame, [cancelFocusFrame]);
+
+  const closeMenu = (restoreFocus = false) => {
+    cancelFocusFrame();
+    onOpenChange(false);
+    if (restoreFocus) {
+      buttonRef.current?.focus();
+    }
+  };
+
+  const focusItem = (index: number) => {
+    setActiveIndex(index);
+    cancelFocusFrame();
+    focusFrameRef.current = window.requestAnimationFrame(() => {
+      focusFrameRef.current = null;
+      itemRefs.current[index]?.focus();
+    });
+  };
+
+  const handleButtonKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'Escape' && isOpen) {
+      event.preventDefault();
+      closeMenu(true);
+    } else if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      onOpenChange(true);
+      focusItem(event.key === 'ArrowUp' ? items.length - 1 : 0);
+    }
+  };
+
+  const handleItemKeyDown = (event: React.KeyboardEvent<HTMLElement>, index: number) => {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Home' || event.key === 'End') {
+      event.preventDefault();
+      const nextIndex =
+        event.key === 'Home'
+          ? 0
+          : event.key === 'End'
+            ? items.length - 1
+            : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+      focusItem(nextIndex);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      closeMenu(true);
+    } else if (event.key === 'Tab') {
+      closeMenu();
+    }
+  };
+
+  return (
+    <div
+      className="nav-more-menu relative"
+      onMouseEnter={() => onOpenChange(true)}
+      onMouseLeave={() => closeMenu()}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          closeMenu();
+        }
+      }}
+    >
+      <button
+        ref={buttonRef}
+        id={`${id}-button`}
+        type="button"
+        className={`group relative inline-flex h-10 items-center gap-1 px-2 py-1 text-sm font-semibold tracking-wide transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${
+          isActive
+            ? 'text-ink dark:text-white'
+            : 'text-zinc-700 hover:text-ink dark:text-zinc-300 dark:hover:text-white'
+        }`}
+        aria-label={`展开${label}菜单`}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        aria-controls={id}
+        onClick={() => onOpenChange(!isOpen)}
+        onKeyDown={handleButtonKeyDown}
+      >
+        <span>{label}</span>
+        <ChevronDown
+          size={14}
+          className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          aria-hidden="true"
+        />
+        {isActive && (
+          <span
+            aria-hidden="true"
+            className="absolute bottom-[2px] left-2 right-2 h-[2px] bg-zinc-900 dark:bg-zinc-100"
+          />
+        )}
+      </button>
+      <div
+        id={id}
+        role="menu"
+        aria-labelledby={`${id}-button`}
+        aria-hidden={!isOpen}
+        data-open={isOpen}
+        className="frosted-panel nav-more-menu-panel absolute right-0 top-full z-popover w-64 max-w-[calc(100vw-2rem)] p-1.5"
+      >
+        {items.map((item, index) => {
+          const Icon = item.icon;
+          const isCurrent = 'path' in item && item.path === activePath;
+          const content = (
+            <>
+              <Icon size={15} aria-hidden="true" className="shrink-0" />
+              <span className="shrink-0 whitespace-nowrap">{item.label}</span>
+              <span className="min-w-0 flex-1 truncate text-right text-[10px] font-normal text-zinc-400">
+                {item.hint}
+              </span>
+            </>
+          );
+          const itemProps = {
+            ref: (element: HTMLElement | null) => {
+              itemRefs.current[index] = element;
+            },
+            role: 'menuitem' as const,
+            tabIndex: isOpen && index === activeIndex ? 0 : -1,
+            'aria-current': isCurrent ? ('page' as const) : undefined,
+            onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => handleItemKeyDown(event, index),
+            onClick: () => closeMenu(),
+            className: `flex min-h-11 min-w-0 items-center gap-2 rounded-control px-2.5 py-2 text-xs font-semibold transition-colors ${
+              isCurrent
+                ? 'bg-zinc-100 text-ink dark:bg-zinc-900 dark:text-white'
+                : 'text-zinc-700 hover:bg-zinc-100 hover:text-ink dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white'
+            }`,
+          };
+          if ('path' in item) {
+            return (
+              <Link
+                key={item.key ?? item.path}
+                {...itemProps}
+                to={item.path}
+                onMouseEnter={() => preloadPage(item.path)}
+              >
+                {content}
+              </Link>
+            );
+          }
+          return (
+            <a key={item.key ?? item.href} {...itemProps} href={item.href} target="_blank" rel="noopener noreferrer">
+              {content}
+              <ExternalLink size={11} className="shrink-0" aria-hidden="true" />
+            </a>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 type MobileNavPhase = 'closed' | 'opening' | 'open' | 'closing';
 
 const MOBILE_NAV_ANIMATION_DURATION_MS = 340;
@@ -581,10 +765,7 @@ const Navbar = ({
 }) => {
   const [mobileNavPhase, setMobileNavPhase] = useState<MobileNavPhase>('closed');
   const [isMobileNavMounted, setIsMobileNavMounted] = useState(false);
-  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
-  const [desktopMoreMenuActiveIndex, setDesktopMoreMenuActiveIndex] = useState(0);
-  const desktopMoreMenuButtonRef = useRef<HTMLButtonElement | null>(null);
-  const desktopMoreMenuItemRefs = useRef<Array<HTMLElement | null>>([]);
+  const [openDesktopMenu, setOpenDesktopMenu] = useState<'static' | 'more' | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
@@ -604,60 +785,6 @@ const Navbar = ({
   const isSwipingRef = useRef(false);
   const mobileNavDuration = shouldReduceMotion ? 1 : MOBILE_NAV_ANIMATION_DURATION_MS;
   const isMobileNavOpen = mobileNavPhase === 'open' || mobileNavPhase === 'opening';
-  const closeDesktopMoreMenu = useCallback((restoreFocus = false) => {
-    setIsMoreMenuOpen(false);
-    if (restoreFocus) {
-      window.setTimeout(() => desktopMoreMenuButtonRef.current?.focus(), 0);
-    }
-  }, []);
-  const focusDesktopMoreMenuItem = useCallback((index: number) => {
-    setDesktopMoreMenuActiveIndex(index);
-    window.setTimeout(() => desktopMoreMenuItemRefs.current[index]?.focus(), 0);
-  }, []);
-  const handleDesktopMoreMenuButtonKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLButtonElement>) => {
-      if (event.key === 'Escape' && isMoreMenuOpen) {
-        event.preventDefault();
-        closeDesktopMoreMenu(true);
-        return;
-      }
-
-      if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        setIsMoreMenuOpen(true);
-        focusDesktopMoreMenuItem(0);
-      } else if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        setIsMoreMenuOpen(true);
-        focusDesktopMoreMenuItem(moreNavItems.length - 1);
-      }
-    },
-    [closeDesktopMoreMenu, focusDesktopMoreMenuItem, isMoreMenuOpen],
-  );
-  const handleDesktopMoreMenuItemKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLElement>, index: number) => {
-      const lastIndex = moreNavItems.length - 1;
-      if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Home' || event.key === 'End') {
-        event.preventDefault();
-        const nextIndex =
-          event.key === 'Home'
-            ? 0
-            : event.key === 'End'
-              ? lastIndex
-              : (index + (event.key === 'ArrowDown' ? 1 : -1) + moreNavItems.length) % moreNavItems.length;
-        focusDesktopMoreMenuItem(nextIndex);
-        return;
-      }
-
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        closeDesktopMoreMenu(true);
-      } else if (event.key === 'Tab') {
-        setIsMoreMenuOpen(false);
-      }
-    },
-    [closeDesktopMoreMenu, focusDesktopMoreMenuItem],
-  );
   const isMobileNavAnimating = mobileNavPhase === 'opening' || mobileNavPhase === 'closing';
   const isNavItemActive = (path: string) =>
     location.pathname === path ||
@@ -687,7 +814,7 @@ const Navbar = ({
     clearTransitionTimer();
     setIsMobileNavMounted(false);
     setMobileNavPhase('closed');
-    setIsMoreMenuOpen(false);
+    setOpenDesktopMenu(null);
 
     const afterCloseAction = afterCloseActionRef.current;
     afterCloseActionRef.current = null;
@@ -842,7 +969,7 @@ const Navbar = ({
     previousActiveElementRef.current = null;
     setIsMobileNavMounted(false);
     setMobileNavPhase('closed');
-    setIsMoreMenuOpen(false);
+    setOpenDesktopMenu(null);
   }, [clearAnimationFrame, clearTransitionTimer, detachNativeSwipeCapture, isLoveMode, isMobileNavMounted]);
 
   const resetMobileNavDragStyles = useCallback(() => {
@@ -1054,6 +1181,7 @@ const Navbar = ({
     }
 
     previousLocationKeyRef.current = locationKey;
+    setOpenDesktopMenu(null);
 
     if (!isMobileNavMounted) {
       return;
@@ -1066,7 +1194,6 @@ const Navbar = ({
     previousActiveElementRef.current = null;
     setIsMobileNavMounted(false);
     setMobileNavPhase('closed');
-    setIsMoreMenuOpen(false);
   }, [clearAnimationFrame, clearTransitionTimer, isMobileNavMounted, locationKey, resetMobileNavDragStyles]);
 
   useEffect(
@@ -1164,109 +1291,51 @@ const Navbar = ({
             ) : (
               <>
                 <div className="flex min-w-0 shrink gap-2">
-                  {navItems.map((item) => {
+                  {desktopNavItems.map((item) => {
                     const isActive = isNavItemActive(item.path);
 
                     return (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        onMouseEnter={() => preloadPage(item.path)}
-                        aria-current={isActive ? 'page' : undefined}
-                        className={`group relative inline-flex h-10 items-center px-2 py-1 text-sm font-semibold tracking-wide transition-colors ${
-                          isActive
-                            ? 'text-ink dark:text-white'
-                            : 'text-zinc-700 hover:text-ink dark:text-zinc-300 dark:hover:text-white'
-                        }`}
-                      >
-                        <span className="relative z-10">{item.label}</span>
-                        <span
-                          aria-hidden="true"
-                          className={`absolute bottom-[2px] left-2 right-2 h-[2px] origin-center rounded-none bg-zinc-900 dark:bg-zinc-100 transition-[transform,opacity] duration-[250ms] ${
+                      <React.Fragment key={item.path}>
+                        {item.path === '/trend' && (
+                          <DesktopNavMenu
+                            id="desktop-static-menu"
+                            label="Static"
+                            items={staticNavItems}
+                            isOpen={openDesktopMenu === 'static'}
+                            onOpenChange={(open) => setOpenDesktopMenu(open ? 'static' : null)}
+                            activePath={location.pathname}
+                          />
+                        )}
+                        <Link
+                          to={item.path}
+                          onMouseEnter={() => preloadPage(item.path)}
+                          aria-current={isActive ? 'page' : undefined}
+                          className={`group relative inline-flex h-10 items-center px-2 py-1 text-sm font-semibold tracking-wide transition-colors ${
                             isActive
-                              ? 'scale-x-100 opacity-100'
-                              : 'scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-70'
+                              ? 'text-ink dark:text-white'
+                              : 'text-zinc-700 hover:text-ink dark:text-zinc-300 dark:hover:text-white'
                           }`}
-                        />
-                      </Link>
+                        >
+                          <span className="relative z-10">{item.label}</span>
+                          <span
+                            aria-hidden="true"
+                            className={`absolute bottom-[2px] left-2 right-2 h-[2px] origin-center rounded-none bg-zinc-900 dark:bg-zinc-100 transition-[transform,opacity] duration-[250ms] ${
+                              isActive
+                                ? 'scale-x-100 opacity-100'
+                                : 'scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-70'
+                            }`}
+                          />
+                        </Link>
+                      </React.Fragment>
                     );
                   })}
-                  <div
-                    className="nav-more-menu relative"
-                    onMouseEnter={() => setIsMoreMenuOpen(true)}
-                    onMouseLeave={() => setIsMoreMenuOpen(false)}
-                  >
-                    <button
-                      ref={desktopMoreMenuButtonRef}
-                      type="button"
-                      className="group inline-flex h-10 items-center gap-1 px-2 py-1 text-sm font-semibold tracking-wide text-zinc-700 transition-colors hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:text-zinc-300 dark:hover:text-white"
-                      aria-label="展开更多菜单"
-                      aria-haspopup="menu"
-                      aria-expanded={isMoreMenuOpen}
-                      aria-controls="desktop-more-menu"
-                      // 切换而非只开：菜单已由 hover 打开时，再次点击按钮应关闭
-                      // （指针始终在容器内不会触发 mouseleave，只开不关会让
-                      // aria-expanded 按钮的第二次点击失效）。
-                      onClick={() => setIsMoreMenuOpen((open) => !open)}
-                      onKeyDown={handleDesktopMoreMenuButtonKeyDown}
-                    >
-                      <span>更多</span>
-                      <ChevronDown
-                        size={14}
-                        className={`transition-transform duration-200 ${isMoreMenuOpen ? 'rotate-180' : ''}`}
-                        aria-hidden="true"
-                      />
-                    </button>
-                    <div
-                      id="desktop-more-menu"
-                      role="menu"
-                      data-open={isMoreMenuOpen}
-                      className="frosted-panel nav-more-menu-panel absolute right-0 top-full z-popover w-64 max-w-[calc(100vw-2rem)] p-1.5"
-                    >
-                      {moreNavItems.map((item, index) => {
-                        const Icon = item.icon;
-                        const content = (
-                          <>
-                            <Icon size={15} aria-hidden="true" className="shrink-0" />
-                            <span className="shrink-0 whitespace-nowrap">{item.label}</span>
-                            <span className="min-w-0 flex-1 truncate text-right text-[10px] font-normal text-zinc-400">
-                              {item.hint}
-                            </span>
-                          </>
-                        );
-                        const itemProps = {
-                          ref: (element: HTMLElement | null) => {
-                            desktopMoreMenuItemRefs.current[index] = element;
-                          },
-                          role: 'menuitem' as const,
-                          tabIndex: isMoreMenuOpen && index === desktopMoreMenuActiveIndex ? 0 : -1,
-                          onKeyDown: (event: React.KeyboardEvent<HTMLElement>) =>
-                            handleDesktopMoreMenuItemKeyDown(event, index),
-                          onClick: () => closeDesktopMoreMenu(),
-                          className:
-                            'flex min-h-11 min-w-0 items-center gap-2 rounded-control px-2.5 py-2 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-ink dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white',
-                        };
-                        if ('path' in item) {
-                          return (
-                            <Link
-                              key={item.key}
-                              {...itemProps}
-                              to={item.path}
-                              onMouseEnter={() => preloadPage(item.path)}
-                            >
-                              {content}
-                            </Link>
-                          );
-                        }
-                        return (
-                          <a key={item.key} {...itemProps} href={item.href} target="_blank" rel="noopener noreferrer">
-                            {content}
-                            <ExternalLink size={11} className="shrink-0" aria-hidden="true" />
-                          </a>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <DesktopNavMenu
+                    id="desktop-more-menu"
+                    label="更多"
+                    items={moreNavItems}
+                    isOpen={openDesktopMenu === 'more'}
+                    onOpenChange={(open) => setOpenDesktopMenu(open ? 'more' : null)}
+                  />
                 </div>
                 <div className="flex shrink-0 items-center gap-2 border-l border-zinc-300 pl-4 dark:border-zinc-700">
                   <button
