@@ -84,7 +84,6 @@ const TEXT = {
   navGuestbook: '留言',
   navShuoShuo: '说说',
   navAbout: '关于',
-  navAccumulate: '积累',
   rssFeed: 'RSS 订阅',
 };
 
@@ -112,7 +111,6 @@ const navItems: NavPathItem[] = [
   { path: '/stats', label: TEXT.navStats, hint: '站点数据', icon: BarChart3 },
   { path: '/trend', label: 'Trend', hint: '数据趋势与比较', icon: TrendingUp },
   { path: '/planner', label: 'Planner', hint: '月度计划与待办', icon: CalendarDays },
-  { path: '/accumulate', label: TEXT.navAccumulate, hint: '卡片式积累', icon: Library },
   { path: '/about', label: TEXT.navAbout, hint: '站点介绍', icon: Info },
 ];
 
@@ -1817,7 +1815,9 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
             className={`mx-auto min-w-0 w-full ${
               location.pathname.replace(/\/$/, '') === '/trend' && !isLoveMode
                 ? 'relative z-[31] max-w-[1600px]'
-                : 'max-w-7xl'
+                : location.pathname.replace(/\/$/, '').startsWith('/book/') && !isLoveMode
+                  ? 'max-w-[1600px]'
+                  : 'max-w-7xl'
             }`}
           >
             <AnimatePresence mode="wait" initial={false}>

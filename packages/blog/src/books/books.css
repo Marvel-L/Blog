@@ -312,7 +312,7 @@
   align-items: start;
   min-width: 0;
   min-height: 65vh;
-  padding: 2.75rem clamp(1.5rem, 4vw, 3.5rem);
+  padding: 2.75rem clamp(1.5rem, 2vw, 2rem);
   border-left: 1px solid var(--book-line);
 }
 .book-package-article {

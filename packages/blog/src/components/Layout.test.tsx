@@ -128,7 +128,7 @@ describe('Layout', () => {
     expect(screen.getByRole('link', { name: '文章' })).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: /归档/ }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole('link', { name: '标签' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '积累' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '积累' })).not.toBeInTheDocument();
   });
 
   it.each(['/book', '/book/algorithms', '/book/algorithms/chapter/hello'])(
@@ -357,6 +357,7 @@ describe('Layout', () => {
     await waitForNavOpen();
     expect(screen.getByRole('button', { name: /归档/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /标签/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /积累/ })).not.toBeInTheDocument();
   });
 
   it('渲染 children 内容', () => {
