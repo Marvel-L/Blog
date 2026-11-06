@@ -6,6 +6,7 @@
 | --- | --- |
 | [features/about-radar.md](features/about-radar.md) | 关于页能力雷达 HTML Demo、确认门槛与后续开发进度 |
 | [features/search.md](features/search.md) | 关键词快捷检索、命中片段与 Road 功能清理 |
+| [features/home-articles.md](features/home-articles.md) | 独立首页、横向文章列表、导航与旧查询地址兼容 |
 | [features/book.md](features/book.md) | Book 3D 分类书架、预览与后续批次状态 |
 | [features/trend.md](features/trend.md) | Trend 数据比较、阈值配色、本地保存与账号同步 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 部署拓扑、package 边界、架构决策与迁移条件 |

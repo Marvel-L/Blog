@@ -27,6 +27,7 @@ const AnkiPage =
     : null;
 
 const Post = lazy(() => import('./pages/Post').then((m) => ({ default: m.Post })));
+const Articles = lazy(pageLoaders['/articles']);
 const About = lazy(pageLoaders['/about']);
 const AbilityDocument = lazy(() => import('./pages/AbilityDocument').then((m) => ({ default: m.AbilityDocumentPage })));
 const BookPage = lazy(pageLoaders['/book']);
@@ -188,6 +189,7 @@ const AppRoutes: React.FC = () => {
       <Suspense fallback={<RouteFallback />}>
         <Routes location={displayLocation} key={displayLocation.pathname}>
           <Route path="/" element={<Home />} />
+          <Route path="/articles" element={<Articles />} />
           <Route path="/post/:id" element={<Post />} />
           <Route path="/book" element={<BookPage />} />
           <Route path="/book/:bookId" element={<BookPage />} />

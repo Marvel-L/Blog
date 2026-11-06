@@ -451,6 +451,7 @@ export const runSsg = async ({
   };
 
   const staticPages = [
+    { path: 'articles', title: '文章', description: `${siteConfig.title} 的文章列表`, schemaType: 'CollectionPage' },
     ...getAbilityRoutes(JSON.parse(fs.readFileSync(path.join(__dirname, '../generated/abilities.json'), 'utf8'))).map(
       (path) => ({ path, schemaFromSeo: true, schemaType: 'WebPage' }),
     ),
@@ -633,15 +634,6 @@ export const runSsg = async ({
   );
 
   // 3. 首页。
-  const homeHeroPost = (() => {
-    const pinnedPosts = posts
-      .filter((post) => post.featured === true && typeof post['featured-top'] === 'number')
-      .sort((a, b) => a['featured-top'] - b['featured-top']);
-    return pinnedPosts[0] || posts.find((post) => post.featured === true) || null;
-  })();
-  const homeExtraHead = homeHeroPost?.coverImage
-    ? createImagePreload(toAbsoluteUrl(homeHeroPost.coverImage, SITE_URL, BASE_PATH))
-    : '';
   if (budgetExceeded()) {
     skippedPages.push('/');
   } else {
@@ -656,7 +648,7 @@ export const runSsg = async ({
           (match) => `${homeRouteDataScript}\n    ${match}`,
         );
       }
-      writeStandaloneHtml('index.html', mergeHead(homePage, homeHead, `${homeExtraHead}${NOSCRIPT_FALLBACK}`));
+      writeStandaloneHtml('index.html', mergeHead(homePage, homeHead, NOSCRIPT_FALLBACK));
       logger.step('Generated home page');
     } catch (error) {
       failedPages.push({ url: '/', error: formatError(error) });

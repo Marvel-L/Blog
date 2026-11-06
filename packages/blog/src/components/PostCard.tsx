@@ -1,5 +1,5 @@
 /**
- * 文章卡片组件：首页网格与搜索结果的统一卡片（精选大卡 + 普通卡两种形态）。
+ * 文章卡片组件：文章列表的横向条目，以及搜索结果的精选/普通卡片。
  * 从 pages/Home 下沉为公共组件，避免搜索结果页反向依赖大体积首页模块
  * （首页若做路由级懒加载会连锁影响搜索页）。
  */
@@ -21,6 +21,7 @@ import { KeywordHighlight, SearchMatchPreview } from './SearchMatchPreview';
 interface PostCardProps {
   post: PostMetadata;
   featured?: boolean;
+  layout?: 'card' | 'row';
   onShare: (post: PostMetadata) => void;
   getPostHref?: (post: PostMetadata) => string;
   getTagHref?: (tag: string) => string | null;
@@ -71,6 +72,7 @@ const PostCardTags: React.FC<{ tags: string[]; getTagHref?: (tag: string) => str
 const PostCardImpl: React.FC<PostCardProps> = ({
   post,
   featured,
+  layout = 'card',
   onShare,
   getPostHref,
   getTagHref,
@@ -90,6 +92,96 @@ const PostCardImpl: React.FC<PostCardProps> = ({
   const handlePostNavigate = () => {
     onNavigatePost?.(post);
   };
+
+  if (layout === 'row') {
+    return (
+      <article className="min-w-0 w-full" onMouseEnter={() => preloadPage(postHref)}>
+        <div
+          data-layout={hasCover ? 'row-with-cover' : 'row-text-only'}
+          className={`relative overflow-hidden rounded-surface border border-zinc-200 bg-white p-4 transition-colors hover:border-zinc-300 focus-within:border-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600 sm:p-6 ${flash.className}`}
+          onPointerMove={flash.onPointerMove}
+          onPointerLeave={flash.onPointerLeave}
+        >
+          <div className="mb-2.5 flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+            <span className="font-medium">{post.category}</span>
+            {post.featured && <span>精选</span>}
+            {isPostRank(post.rank) && <RankBadge rank={post.rank} />}
+            {isPinnedFeaturedPost(post) && (
+              <span className="inline-flex items-center gap-1">
+                <Pin size={11} aria-hidden="true" />
+                置顶
+              </span>
+            )}
+          </div>
+          <div className="flex items-start gap-4 sm:gap-6">
+            <div className="min-w-0 flex-1">
+              <Link to={postHref} onClick={handlePostNavigate} aria-label={`阅读文章：${post.title}`}>
+                <h2 className="mb-2 line-clamp-2 text-lg font-bold leading-snug text-ink hover:underline dark:text-zinc-100 sm:text-xl">
+                  {searchMatch ? <KeywordHighlight text={post.title} terms={searchMatch.terms} /> : post.title}
+                </h2>
+              </Link>
+              {searchMatch ? (
+                <div className="mb-3">
+                  <SearchMatchPreview match={searchMatch} />
+                </div>
+              ) : (
+                <p className="mb-3 line-clamp-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">{post.excerpt}</p>
+              )}
+              <PostCardTags tags={post.tags} getTagHref={getTagHref} />
+            </div>
+            {hasCover && (
+              <Link
+                to={postHref}
+                onClick={handlePostNavigate}
+                className="relative block aspect-[3/2] w-24 shrink-0 overflow-hidden rounded-control bg-zinc-100 dark:bg-zinc-800 sm:w-44 md:w-48"
+                aria-label={`阅读文章：${post.title}`}
+              >
+                <ProgressiveImage
+                  src={assetUrl(post.coverImage!)}
+                  alt={post.title}
+                  loading="lazy"
+                  fetchPriority="auto"
+                  width={post.coverWidth}
+                  height={post.coverHeight}
+                  aspectRatio="3/2"
+                  sizes="(max-width: 639px) 96px, (max-width: 767px) 176px, 192px"
+                  wrapperClassName="h-full w-full"
+                  className={coverImageClass}
+                  effect="fade"
+                />
+                <CoverSheen rank={post.rank} />
+              </Link>
+            )}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
+            <span className="inline-flex items-center gap-1.5">
+              <Calendar size={12} aria-hidden="true" />
+              {post.date}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Clock size={12} aria-hidden="true" />
+              {post.readTime}
+            </span>
+            {typeof post.commentCount === 'number' && (
+              <span className="inline-flex items-center gap-1.5">
+                <MessageCircle size={12} aria-hidden="true" />
+                {post.commentCount} 条评论
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handleShareClick}
+              className="ml-auto inline-flex min-h-11 items-center gap-1.5 rounded-control px-2 transition-colors hover:text-ink dark:hover:text-white"
+              aria-label={`分享文章：${post.title}`}
+            >
+              <Share2 size={13} aria-hidden="true" />
+              分享
+            </button>
+          </div>
+        </div>
+      </article>
+    );
+  }
 
   if (featured) {
     return (

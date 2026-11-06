@@ -125,7 +125,7 @@ describe('Layout', () => {
     renderLayout();
     // 顶栏导航 + 移动端底部标签栏各是一个 nav
     expect(screen.getAllByRole('navigation').length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByRole('link', { name: '文章' })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: '文章' })).toHaveLength(2);
     expect(screen.getByRole('button', { name: '展开Static菜单' })).toHaveTextContent('Static');
     expect(screen.queryByRole('link', { name: /^(标签|统计|归档)$/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '积累' })).not.toBeInTheDocument();
@@ -137,6 +137,19 @@ describe('Layout', () => {
     expect(links.indexOf(screen.getByRole('link', { name: '沉沦之海' }))).toBeLessThan(
       links.indexOf(screen.getByRole('link', { name: '关于' })),
     );
+  });
+
+  it.each(['/articles', '/post/test-post'])('文章入口在 %s 保持高亮并返回独立列表', async (pathname) => {
+    const user = userEvent.setup();
+    renderLayout([pathname]);
+    const articles = screen.getAllByRole('link', { name: '文章' })[0];
+    expect(articles).toHaveAttribute('href', '/articles');
+    expect(articles).toHaveAttribute('aria-current', 'page');
+    await user.click(articles);
+    expect(probePathname).toBe('/articles');
+    await user.click(screen.getAllByRole('link', { name: 'Blog' })[0]);
+    expect(probePathname).toBe('/');
+    screen.getAllByRole('link', { name: '文章' }).forEach((link) => expect(link).not.toHaveAttribute('aria-current'));
   });
 
   it.each(['/book', '/book/algorithms', '/book/algorithms/chapter/hello'])(
@@ -345,7 +358,7 @@ describe('Layout', () => {
     window.localStorage.setItem(RESUME_TYPOGRAPHY_KEY, 'true');
     renderLayout();
     await waitFor(() => expect(document.querySelector('.site-shell')).toHaveAttribute('data-typography', 'resume'));
-    await user.click(screen.getByRole('link', { name: '文章' }));
+    await user.click(screen.getAllByRole('link', { name: '文章' })[0]);
     expect(document.querySelector('.site-shell')).toHaveAttribute('data-typography', 'resume');
     await user.click(screen.getAllByRole('button', { name: '打开搜索页' })[0]);
     await waitFor(() => expect(probePathname).toBe('/search'));
@@ -364,9 +377,11 @@ describe('Layout', () => {
     expect(screen.getByRole('link', { name: /搜索/ })).toBeInTheDocument();
   });
 
-  it('渲染移动端底部标签栏（首页/说说/搜索/Trend/更多），友链和留言移入更多', () => {
+  it('渲染移动端底部标签栏（文章/说说/搜索/Trend/更多），友链和留言移入更多', () => {
     renderLayout();
-    expect(screen.getAllByRole('link', { name: /首页/ }).length).toBeGreaterThanOrEqual(1);
+    expect(
+      within(screen.getByRole('navigation', { name: '移动端底部导航' })).getByRole('link', { name: '文章' }),
+    ).toHaveAttribute('href', '/articles');
     expect(screen.getAllByRole('link', { name: /说说/ }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole('link', { name: /搜索/ })).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Trend' })).toHaveLength(2);

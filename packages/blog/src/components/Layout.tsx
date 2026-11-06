@@ -105,7 +105,7 @@ const shuoshuoNavItem: NavPathItem = {
 };
 
 const navItems: NavPathItem[] = [
-  { path: '/', label: TEXT.navPosts, hint: '最新内容', icon: BookOpen },
+  { path: '/articles', label: TEXT.navPosts, hint: '浏览文章', icon: BookOpen },
   { path: '/book', label: 'Book', hint: '分类书架', icon: Library },
   shuoshuoNavItem,
   { path: '/archive', label: TEXT.navArchive, hint: '时间归档', icon: Archive },
@@ -162,9 +162,9 @@ const moreNavItems: NavItem[] = [
   },
 ];
 
-// 移动端底部标签栏：高频入口一级直达（首页/说说/搜索/Trend），其余栏目收纳进「更多」面板。
+// 移动端底部标签栏：高频入口一级直达（文章/说说/搜索/Trend），其余栏目收纳进「更多」面板。
 const mobileTabItems: Array<{ key: string; path: string; label: string; icon: NavIcon }> = [
-  { key: 'home', path: '/', label: '首页', icon: BookOpen },
+  { key: 'articles', path: '/articles', label: TEXT.navPosts, icon: BookOpen },
   { key: 'shuoshuo', path: '/shuoshuo', label: TEXT.navShuoShuo, icon: MessageCircle },
   { key: 'search', path: '/search', label: '搜索', icon: Search },
   { key: 'trend', path: '/trend', label: 'Trend', icon: TrendingUp },
@@ -175,7 +175,7 @@ const mobileMorePanelGroups: Array<{ label: string; items: NavItem[] }> = [
   {
     label: '栏目',
     items: [
-      ...navItems.filter((item) => !['/', '/shuoshuo', '/trend'].includes(item.path)),
+      ...navItems.filter((item) => !['/articles', '/shuoshuo', '/trend'].includes(item.path)),
       ...moreNavItems.filter((item) => ['friends', 'guestbook'].includes(item.key ?? '')),
     ],
   },
@@ -789,7 +789,7 @@ const Navbar = ({
   const isMobileNavAnimating = mobileNavPhase === 'opening' || mobileNavPhase === 'closing';
   const isNavItemActive = (path: string) =>
     location.pathname === path ||
-    (path === '/' && location.pathname.startsWith('/post/')) ||
+    (path === '/articles' && location.pathname.startsWith('/post/')) ||
     (path === '/book' && location.pathname.startsWith('/book/'));
 
   const clearAnimationFrame = useCallback(() => {

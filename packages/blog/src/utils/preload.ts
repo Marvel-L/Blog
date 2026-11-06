@@ -25,6 +25,7 @@ const canPreload = () => {
 };
 
 const pageLoaders: Record<string, ModuleLoader> = {
+  '/articles': () => import('../pages/Articles').then((m) => ({ default: m.Articles })),
   '/book': () => import('../pages/Book').then((m) => ({ default: m.BookPage })),
   '/archive': () => import('../pages/Archive').then((m) => ({ default: m.ArchivePage })),
   '/tags': () => import('../pages/Tags').then((m) => ({ default: m.Tags })),

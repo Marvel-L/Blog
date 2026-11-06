@@ -35,6 +35,35 @@ describe('PostCard', () => {
     expect(screen.getByText('5分钟阅读')).toBeInTheDocument();
   });
 
+  it('横向条目用二级标题展示文章，复用摘要、标签和元信息', () => {
+    renderWithRouter(<PostCard post={makePost()} layout="row" {...baseProps} />);
+    expect(screen.getByRole('heading', { level: 2, name: '测试文章标题' })).toBeInTheDocument();
+    expect(screen.getByText('这是一段测试摘要')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'React' })).toHaveAttribute('href', '/tags?tag=React');
+    expect(screen.getByText('2026-01-15')).toBeInTheDocument();
+    expect(document.querySelector('[data-layout="row-text-only"]')).toBeInTheDocument();
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  });
+
+  it('横向条目的封面与标题链接到同一文章并保留分级', () => {
+    renderWithRouter(
+      <PostCard post={makePost({ coverImage: '/covers/test.png', rank: '黄金' })} layout="row" {...baseProps} />,
+    );
+    const links = screen.getAllByRole('link', { name: '阅读文章：测试文章标题' });
+    expect(links).toHaveLength(2);
+    links.forEach((link) => expect(link).toHaveAttribute('href', '/post/test-post'));
+    expect(screen.getByRole('img').closest('[data-layout="row-with-cover"]')).not.toBeNull();
+    expect(screen.getByText('黄金')).toBeInTheDocument();
+    expect(document.querySelector('.flash-rank--gold')).toBeInTheDocument();
+  });
+
+  it('横向条目分享保留原有回调', async () => {
+    const onShare = vi.fn();
+    renderWithRouter(<PostCard post={makePost()} layout="row" onShare={onShare} />);
+    await userEvent.setup().click(screen.getByRole('button', { name: '分享文章：测试文章标题' }));
+    expect(onShare).toHaveBeenCalledWith(expect.objectContaining({ id: 'test-post' }));
+  });
+
   it('文章标题链接指向文章详情页', () => {
     renderWithRouter(<PostCard post={makePost()} {...baseProps} />);
     // 封面图与标题各有一个同 aria-label 的链接，取其一断言 href
