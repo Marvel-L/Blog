@@ -66,6 +66,7 @@ import { useResumeTypography } from '@/hooks/useResumeTypography';
 import '@/styles/resumeTypography.css';
 import { PrivacyPasswordModal } from './PrivacyPasswordModal';
 import { grantPrivacyAccess } from '@/utils/privacyAccess';
+import { BookSky } from '@/books/BookSky';
 
 const BackToTop = lazy(() => import('./BackToTop').then((m) => ({ default: m.BackToTop })));
 const RinMascot = lazy(() => import('./mascot/RinMascot'));
@@ -1718,6 +1719,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   }, []);
   const prefersReducedMotion = useSiteReducedMotion();
   const isParticleFrontRoute = PARTICLE_FRONT_ROUTES.has(location.pathname);
+  const isBookSky = !isLoveMode && location.pathname.replace(/\/+$/, '') === '/book';
   const routeVariants = prefersReducedMotion
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : routeShellVariants;
@@ -1827,10 +1829,12 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
       data-reading-mode={isReadingMode ? 'true' : undefined}
       data-love-mode={isLoveMode ? 'true' : undefined}
       data-particle-front={isParticleFrontRoute ? 'true' : undefined}
+      data-book-sky={isBookSky ? 'true' : undefined}
     >
-      <BackgroundWithEffect isLoveMode={isLoveMode} loveNameEffect={loveNameEffect} />
+      {isBookSky ? <BookSky /> : <BackgroundWithEffect isLoveMode={isLoveMode} loveNameEffect={loveNameEffect} />}
       {!isReadingMode &&
         !isLoveMode &&
+        !isBookSky &&
         atmosphereEffects.map((effect) =>
           effect === 'ascii-whale' || effect === 'ascii-fish' ? (
             <Suspense key={effect} fallback={null}>

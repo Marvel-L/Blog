@@ -1,3 +1,5 @@
+@import './shelf.css';
+
 /* Book is a self-contained surface; the existing blog shell and themes stay shared. */
 .book-app {
   --book-paper: #f7f5ef;
@@ -31,28 +33,6 @@
 .book-library {
   padding: 1rem 0 2rem;
   margin-bottom: 0;
-}
-.book-shelf {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.5rem clamp(1rem, 3vw, 3rem);
-}
-.book-shelf-item {
-  display: block;
-  min-width: 0;
-  border-radius: 4px;
-}
-.book-shelf-volume {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 330px;
-  perspective: 1100px;
-  padding: 1.5rem 0;
-}
-.book-library .book-object {
-  width: 210px;
-  height: 280px;
 }
 .book-object {
   position: relative;
@@ -142,10 +122,6 @@
   font-size: 6px;
   letter-spacing: 0.05em;
   opacity: 0.8;
-}
-.book-shelf-item:hover .book-object,
-.book-shelf-item:focus-visible .book-object {
-  transform: translateY(-9px) rotateY(-8deg) rotateX(2deg);
 }
 .book-empty {
   padding: 4rem 0;
@@ -713,13 +689,6 @@
   }
 }
 @media (max-width: 1023px) {
-  .book-shelf {
-    column-gap: 1.5rem;
-  }
-  .book-library .book-object {
-    width: 174px;
-    height: 250px;
-  }
   .book-object {
     width: 150px;
     height: 211px;
@@ -749,19 +718,6 @@
 @media (max-width: 639px) {
   .book-library {
     padding: 0.25rem 0 1rem;
-  }
-  .book-shelf {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 1rem;
-    row-gap: 0.75rem;
-  }
-  .book-shelf-volume {
-    min-height: 250px;
-    padding: 1rem 0;
-  }
-  .book-library .book-object {
-    width: clamp(112px, 35vw, 164px);
-    height: 218px;
   }
   .book-object {
     width: 125px;
@@ -844,9 +800,5 @@
 @media (prefers-reduced-motion: reduce) {
   .book-object {
     transition: none;
-  }
-  .book-shelf-item:hover .book-object,
-  .book-shelf-item:focus-visible .book-object {
-    transform: rotateY(-23deg) rotateX(5deg) rotateZ(-2deg);
   }
 }

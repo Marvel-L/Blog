@@ -151,6 +151,53 @@ describe('Layout', () => {
     },
   );
 
+  it.each(['/book', '/book/'])('书架 %s 在页面外壳渲染全屏天空', (pathname) => {
+    renderLayout([pathname]);
+    const shell = document.querySelector('.site-shell')!;
+    expect(shell).toHaveAttribute('data-book-sky', 'true');
+    expect(shell.firstElementChild).toHaveClass('book-sky-world');
+    expect(shell.firstElementChild).toHaveAttribute('aria-hidden', 'true');
+    expect(shell.querySelector('main .book-sky-world')).not.toBeInTheDocument();
+    expect(shell.querySelectorAll(':scope > canvas')).toHaveLength(0);
+  });
+
+  it.each(['/', '/archive', '/book/algorithms', '/book/algorithms/chapter/hello'])(
+    '页面 %s 保持原有背景',
+    (pathname) => {
+      renderLayout([pathname]);
+      expect(document.querySelector('.site-shell')).not.toHaveAttribute('data-book-sky');
+      expect(document.querySelector('.book-sky-world')).not.toBeInTheDocument();
+    },
+  );
+
+  it('点击 Book 进入天空，离开后恢复用户原有氛围', async () => {
+    const user = userEvent.setup();
+    renderLayout(['/archive']);
+    await waitFor(() => expect(document.querySelectorAll('.site-shell > canvas')).toHaveLength(2));
+    const savedEffects = window.localStorage.getItem(PARTICLE_EFFECT_STORAGE_KEY);
+    await user.click(screen.getByRole('link', { name: 'Book' }));
+    expect(probePathname).toBe('/book');
+    expect(document.querySelector('.book-sky-world')).toBeInTheDocument();
+    expect(document.querySelectorAll('.site-shell > canvas')).toHaveLength(0);
+    expect(window.localStorage.getItem(PARTICLE_EFFECT_STORAGE_KEY)).toBe(savedEffects);
+    await user.click(within(document.querySelector('.site-navbar') as HTMLElement).getByRole('link', { name: 'Blog' }));
+    expect(probePathname).toBe('/');
+    expect(document.querySelector('.book-sky-world')).not.toBeInTheDocument();
+    await waitFor(() => expect(document.querySelectorAll('.site-shell > canvas')).toHaveLength(2));
+  });
+
+  it('Book 的天空随 Love 面进入和退出切换', async () => {
+    const user = userEvent.setup();
+    renderLayout(['/book']);
+    await user.click(screen.getByRole('button', { name: '进入 Love 面' }));
+    await screen.findByRole('region', { name: 'Love 首页' });
+    expect(document.querySelector('.site-shell')).not.toHaveAttribute('data-book-sky');
+    expect(document.querySelector('.book-sky-world')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '退出 Love 面' }));
+    await waitFor(() => expect(document.querySelector('.site-shell')).toHaveAttribute('data-book-sky', 'true'));
+    expect(document.querySelector('.book-sky-world')).toBeInTheDocument();
+  });
+
   it('渲染主题切换按钮（桌面端与移动端顶栏各一个）', () => {
     renderLayout();
     expect(screen.getAllByRole('button', { name: /外观与氛围/ }).length).toBeGreaterThanOrEqual(1);

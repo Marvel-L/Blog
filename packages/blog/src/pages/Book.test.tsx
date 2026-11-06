@@ -52,16 +52,24 @@ describe('Book package detail', () => {
     expect(container.querySelector('.book-markdown .code-block')).toBe(block);
   });
 
-  it('opens an independently configured package from the shelf', async () => {
+  it.each(['/', '/Blog/'])('previews a package before opening it from the shelf under %s', async (base) => {
     const user = userEvent.setup();
-    render(app('/book'));
+    render(app(`${base}book`, base.replace(/\/$/, '') || '/'));
     expect(screen.getByRole('heading', { level: 1, name: 'Book 书架' })).toHaveClass('sr-only');
     expect(screen.queryByText(/把零散的内容|THE COLLECTION|Book 独立于 Category/)).not.toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: '知识包书架' })).getAllByRole('link')).toHaveLength(
       packageDefinitions.length,
     );
-    await user.click(screen.getByRole('link', { name: '打开 算法学习手册，3 个章节' }));
+    const spine = screen.getByRole('link', { name: '抽出 算法学习手册，3 个章节' });
+    expect(spine).toHaveAttribute('href', `${base}book/algorithms`);
+    await user.click(spine);
+    expect(screen.getByTestId('path')).toHaveTextContent('/book');
+    const preview = screen.getByRole('dialog', { name: '算法学习手册封面特写' });
+    await user.click(within(preview).getByRole('link', { name: '翻开 算法学习手册，开始阅读' }));
+    expect(screen.getByText('正在翻开书本…')).toBeInTheDocument();
+    await screen.findByRole('heading', { level: 1, name: '阅读指南' }, { timeout: 1500 });
     expect(screen.getByTestId('path')).toHaveTextContent('/book/algorithms');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: '算法学习手册章节目录' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: '阅读指南' })).toBeInTheDocument();
   });
@@ -146,7 +154,7 @@ describe('Book package detail', () => {
   it('keeps packages visible even when no related Blog post exists', () => {
     vi.mocked(getInitialPosts).mockReturnValue([]);
     render(app('/book'));
-    expect(screen.getByRole('link', { name: '打开 算法学习手册，3 个章节' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '抽出 算法学习手册，3 个章节' })).toBeInTheDocument();
     expect(screen.queryByText(/书架还空着/)).not.toBeInTheDocument();
   });
 

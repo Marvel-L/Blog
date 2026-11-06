@@ -18,7 +18,6 @@ import { siblingContentImageUrl } from '@/utils/post-image-src.mjs';
 import { assetUrl, isExternalUrl } from '@/utils/siteUrl';
 import {
   buildBooks,
-  bookPath,
   chapterPath,
   flattenChapters,
   findLegacyChapter,
@@ -26,9 +25,11 @@ import {
   type BookChapter,
 } from '@/books/books-core.mjs';
 import { BookTree } from '@/books/BookTree';
+import { BookCover } from '@/books/BookCover';
+import { bookStyle } from '@/books/book-style';
+import { BookShelf } from '@/books/BookShelf';
 import { NotFound } from './NotFound';
 
-const bookStyle = (book: Book): CSSProperties => ({ '--book-accent': book.accent }) as CSSProperties;
 const withoutLeadingTitle = (content: string, title: string) => {
   const leading = content.match(/^(?:[ \t]*\r?\n)* {0,3}#[ \t]+([^\r\n]+)(?:\r?\n+|$)/);
   if (!leading || stripInlineMarkdown(leading[1].replace(/\s+#+\s*$/, '')) !== stripInlineMarkdown(title)) {
@@ -36,25 +37,6 @@ const withoutLeadingTitle = (content: string, title: string) => {
   }
   return content.slice(leading[0].length);
 };
-
-function BookCover({ book, number, small = false }: { book: Book; number: number; small?: boolean }) {
-  return (
-    <span className={`book-object${small ? ' book-object-small' : ''}`} style={bookStyle(book)} aria-hidden="true">
-      <span className="book-object-pages" />
-      <span className="book-object-spine" />
-      <span className="book-object-cover">
-        <span className="book-cover-edition">{book.edition}</span>
-        <span className="book-cover-number">VOL. {String(number).padStart(2, '0')}</span>
-        <span className="book-cover-title">{book.name}</span>
-        <span className="book-cover-line" />
-        <span className="book-cover-caption">{book.subtitle}</span>
-        <span className="book-cover-footer">
-          MARVEL&apos;S LIBRARY <span>{book.chapters.length} 章</span>
-        </span>
-      </span>
-    </span>
-  );
-}
 
 type PreviewImage = { src: string; alt?: string };
 
@@ -270,20 +252,7 @@ export function BookPage() {
         />
         <h1 className="sr-only">Book 书架</h1>
         {books.length ? (
-          <section aria-label="知识包书架" className="book-shelf">
-            {books.map((book, index) => (
-              <Link
-                className="book-shelf-item"
-                to={bookPath(book.id)}
-                key={book.id}
-                aria-label={`打开 ${book.name}，${book.chapters.length} 个章节`}
-              >
-                <span className="book-shelf-volume">
-                  <BookCover book={book} number={index + 1} />
-                </span>
-              </Link>
-            ))}
-          </section>
+          <BookShelf books={books} />
         ) : (
           <p className="book-empty">书架还空着，在 Book package 配置中添加第一本书后会显示在这里。</p>
         )}
