@@ -7,10 +7,49 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Marvel-L/Blog/packages/server/internal/config"
 	"github.com/Marvel-L/Blog/packages/server/internal/store"
 )
 
 const testAccountPassword = "test-password-strong"
+
+func TestLocalPreviewLoginOrigins(t *testing.T) {
+	f := setup(t)
+	local := config.Config{Origin: "http://127.0.0.1:3013", ClientID: "id", ClientSecret: "secret"}
+	f.handler = New(local, f.db, nil)
+	body := credentialBody("local-origin-account", testAccountPassword)
+	requireStatus(t, f.request("POST", "/api/v1/auth/account/register", "", body, local.Origin), 200)
+	w := f.request("POST", "/api/v1/auth/account/login", "", body, "http://localhost:3013")
+	requireStatus(t, w, 200)
+	var cookie string
+	for _, c := range w.Result().Cookies() {
+		if c.Name == "dblog_session_dev" && c.HttpOnly && !c.Secure && c.Path == "/" {
+			cookie = c.Name + "=" + c.Value
+		}
+	}
+	if cookie == "" {
+		t.Fatal("real local session not created")
+	}
+	w = f.request("GET", "/api/v1/me", cookie, "", "")
+	requireStatus(t, w, 200)
+	if !strings.Contains(w.Body.String(), `"username":"local-origin-account"`) {
+		t.Fatal("local login did not persist a real session")
+	}
+	requireStatus(t, f.request("PUT", articlePath, cookie, dailyBody(0, "11111111-1111-4111-8111-111111111111", articleState), "http://localhost:3013"), 200)
+	w = f.request("GET", "/api/v1/planner/dashboard", cookie, "", "http://localhost:3013")
+	requireStatus(t, w, 403)
+	if !strings.Contains(w.Body.String(), "github_binding_required") {
+		t.Fatal("local alias was treated as an external cookie caller")
+	}
+	for _, origin := range []string{"", "http://localhost:3000", "https://evil.example"} {
+		w = f.request("POST", "/api/v1/auth/account/login", "", body, origin)
+		requireStatus(t, w, 403)
+		if !strings.Contains(w.Body.String(), "origin_mismatch") {
+			t.Fatal("origin failure reported as a rate limit")
+		}
+	}
+	requireStatus(t, f.request("POST", "/api/v1/auth/logout", cookie, "", "http://localhost:3013"), 204)
+}
 
 func credentialBody(username, password string) string {
 	b, _ := json.Marshal(map[string]string{"username": username, "password": password})

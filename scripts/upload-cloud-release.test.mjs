@@ -88,7 +88,9 @@ setTimeout(() => {
   return { root, remote, archive, data, env };
 }
 
-describe('cloud release upload', () => {
+// 真正执行 tar、校验及多批次子进程传输，包含 18 MiB 随机载荷。
+// 覆盖率和全仓并行运行需要额外时间；仅这组集成测试使用独立的有限预算。
+describe('cloud release upload', { timeout: 30_000 }, () => {
   it('balances a small delta across eight parts while preserving its verified contents', async () => {
     const options = await fixture(2600000);
     const result = await run('bash', [script, commit, options.archive], { env: options.env });

@@ -21,6 +21,32 @@ type Config struct {
 
 func (c Config) PlannerGitHubEnabled() bool { return c.PlannerGithubToken != "" }
 
+// Local previews may be opened under either loopback hostname. Match only the
+// two exact HTTP origins on the configured port; HTTPS keeps one exact origin.
+func (c Config) AllowsAppOrigin(origin string) bool {
+	if origin == c.Origin {
+		return true
+	}
+	u, err := url.Parse(c.Origin)
+	if err != nil || c.SecureCookies || u.Scheme != "http" || u.User != nil ||
+		u.Path != "" || u.RawQuery != "" || u.Fragment != "" {
+		return false
+	}
+	var host string
+	switch u.Hostname() {
+	case "localhost":
+		host = "127.0.0.1"
+	case "127.0.0.1":
+		host = "localhost"
+	default:
+		return false
+	}
+	if port := u.Port(); port != "" {
+		host += ":" + port
+	}
+	return origin == "http://"+host
+}
+
 // Load accepts an environment reader so tests never need production credentials.
 func Load(get func(string) string) (Config, error) {
 	var c Config

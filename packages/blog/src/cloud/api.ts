@@ -45,6 +45,8 @@ export async function cloudRequest<T>(path: string, init: RequestInit = {}): Pro
     } catch {
       /* Retain the safe fallback for non-JSON failures. */
     }
+    if (code === 'origin_mismatch') message = '当前访问地址与服务端配置不一致，请使用配置的站点地址';
+    if (code === 'rate_limited') message = '请求过于频繁，请等待 60 秒后重试';
     throw new CloudError(response.status, code, message);
   }
   if (response.status === 204) return undefined as T;

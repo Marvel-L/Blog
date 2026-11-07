@@ -16,7 +16,7 @@ import (
 )
 
 func (a *API) allowedTrendOrigin(origin string) bool {
-	if origin == a.config.Origin {
+	if a.config.AllowsAppOrigin(origin) {
 		return true
 	}
 	for _, allowed := range a.config.TrendAllowedOrigins {
@@ -66,7 +66,7 @@ func (a *API) trendUser(r *http.Request) (*store.User, error) {
 		return a.db.FindTrendUser(r.Context(), auth[7:], r.Header.Get("Origin"))
 	}
 	// Cross-origin callers must exchange a code; cookies remain same-origin.
-	if origin := r.Header.Get("Origin"); origin != "" && origin != a.config.Origin {
+	if origin := r.Header.Get("Origin"); origin != "" && !a.config.AllowsAppOrigin(origin) {
 		return nil, nil
 	}
 	return a.user(r)

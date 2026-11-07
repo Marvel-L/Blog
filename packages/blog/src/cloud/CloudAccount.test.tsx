@@ -56,6 +56,7 @@ describe('cloud account', () => {
     expect(screen.queryByText(/已登录：alice/)).not.toBeInTheDocument();
     openAccount();
     expect(screen.getByRole('dialog', { name: '云端账号' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '进入文章回看 V2' })).toHaveAttribute('href', '/articles-v2');
     expect(ball).toHaveAttribute('aria-expanded', 'true');
     expect(ball).toHaveAttribute('aria-controls', screen.getByRole('dialog').id);
   });
@@ -66,6 +67,7 @@ describe('cloud account', () => {
     expect(screen.queryByText('使用 GitHub 登录')).not.toBeInTheDocument();
     openAccount();
     expect(screen.getByText('使用 GitHub 登录')).toHaveAttribute('href', '/api/v1/auth/github/start');
+    expect(screen.queryByRole('link', { name: '进入文章回看 V2' })).not.toBeInTheDocument();
   });
   it('supports focus trapping, Escape and backdrop closing, and restores focus and scrolling', async () => {
     const keyboard = userEvent.setup();

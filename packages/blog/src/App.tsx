@@ -19,6 +19,7 @@ import { ServiceWorkerUpdatePrompt } from './components/ServiceWorkerUpdatePromp
 import { SsgRouteContext, readSsgRouteData } from './ssr/routeData';
 
 const CloudAccount = import.meta.env.VITE_DEPLOY_TARGET === 'cloud' ? lazy(() => import('./cloud/CloudAccount')) : null;
+const ArticlesV2 = import.meta.env.VITE_DEPLOY_TARGET === 'cloud' ? lazy(() => import('./pages/ArticlesV2')) : null;
 
 // Anki 记忆卡片是云端专属能力：仅 cloud 构建挂载路由，Pages 产物不包含该页面。
 const AnkiPage =
@@ -190,6 +191,7 @@ const AppRoutes: React.FC = () => {
         <Routes location={displayLocation} key={displayLocation.pathname}>
           <Route path="/" element={<Home />} />
           <Route path="/articles" element={<Articles />} />
+          {ArticlesV2 && <Route path="/articles-v2" element={<ArticlesV2 />} />}
           <Route path="/post/:id" element={<Post />} />
           <Route path="/book" element={<BookPage />} />
           <Route path="/book/:bookId" element={<BookPage />} />

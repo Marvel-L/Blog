@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { LoaderCircle, LogIn, UserRound, X } from 'lucide-react';
 import { useModalOverlay } from '../hooks/useModalOverlay';
 import { AccountCredentials, GitHubBinding } from './AccountCredentials';
@@ -225,6 +225,13 @@ export default function CloudAccount() {
               {user && (
                 <>
                   <p>已登录：{user.login}。登录安全记录由服务器保存，页面访问记录可自行开启。</p>
+                  <Link
+                    to="/articles-v2"
+                    onClick={closePanel}
+                    className="frosted-control flex items-center justify-center px-4 py-3 font-medium"
+                  >
+                    进入文章回看 V2
+                  </Link>
                   {user.githubBound === false ? (
                     <>
                       <p>尚未绑定 GitHub。绑定后才能使用 Planner、Anki、Trend 的云端功能。</p>

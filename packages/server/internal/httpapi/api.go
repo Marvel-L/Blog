@@ -107,6 +107,8 @@ func New(c config.Config, db Persistence, exchange github.Exchange) http.Handler
 	mux.HandleFunc("POST /api/v1/auth/logout", a.logout)
 	mux.HandleFunc("POST /api/v1/events/batch", a.events)
 	mux.HandleFunc("GET /api/v1/me/events", a.recent)
+	mux.HandleFunc("GET /api/v1/articles/reading", a.articleReading)
+	mux.HandleFunc("PUT /api/v1/articles/reading", a.articleReading)
 	mux.HandleFunc("GET /api/v1/planner/dashboard", a.getPlanner)
 	mux.HandleFunc("PUT /api/v1/planner/dashboard", a.putPlanner)
 	mux.HandleFunc("GET /api/v1/planner/daily", a.dailyPlanner)
@@ -150,8 +152,8 @@ func New(c config.Config, db Persistence, exchange github.Exchange) http.Handler
 		if isCrossOriginSync && !a.trendCORS(w, r) {
 			return
 		}
-		if r.Method != "GET" && r.Method != "HEAD" && r.Method != "OPTIONS" && (len(r.Header.Values("Origin")) != 1 || (!isCrossOriginSync && r.Header.Get("Origin") != c.Origin)) {
-			failure(w, 403)
+		if r.Method != "GET" && r.Method != "HEAD" && r.Method != "OPTIONS" && (len(r.Header.Values("Origin")) != 1 || (!isCrossOriginSync && !c.AllowsAppOrigin(r.Header.Get("Origin")))) {
+			respond(w, 403, map[string]string{"code": "origin_mismatch", "error": "当前访问地址与服务端配置不一致，请使用配置的站点地址"})
 			return
 		}
 		ip, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -161,7 +163,7 @@ func New(c config.Config, db Persistence, exchange github.Exchange) http.Handler
 		isAuthFlow := r.URL.Path == "/api/v1/auth/github/start" || r.URL.Path == "/api/v1/auth/github/bind" || strings.HasPrefix(r.URL.Path, "/api/v1/auth/account/") || r.URL.Path == "/api/v1/trend/connect" || r.URL.Path == "/api/v1/trend/exchange"
 		if !a.limit.allow(ip, isAuthFlow, time.Now()) {
 			w.Header().Set("Retry-After", "60")
-			failure(w, 429)
+			respond(w, 429, map[string]string{"code": "rate_limited", "error": "请求过于频繁，请等待 60 秒后重试"})
 			return
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)

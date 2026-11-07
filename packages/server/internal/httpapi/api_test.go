@@ -410,7 +410,11 @@ func TestLimitsAndBasicHTTPWithoutDatabase(t *testing.T) {
 			t.Fatal("anonymous response changed")
 		}
 	}
-	requireStatus(t, call("/api/v1/me"), 429)
+	limited := call("/api/v1/me")
+	requireStatus(t, limited, 429)
+	if !strings.Contains(limited.Body.String(), "rate_limited") || limited.Header().Get("Retry-After") != "60" {
+		t.Fatal("rate limit response lacks a distinct code and retry delay")
+	}
 	l := limiter{entries: make(map[string]window)}
 	now := time.Now()
 	for range 10 {

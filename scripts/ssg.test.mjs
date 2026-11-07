@@ -3,9 +3,13 @@ import { describe, it, expect } from 'vitest';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { flattenSuspenseBoundaries, getAnkiStaticPages, runSsg } from './ssg.mjs';
+import { flattenSuspenseBoundaries, getAnkiStaticPages, getArticleReadingStaticPages, runSsg } from './ssg.mjs';
 
 describe('Anki cloud 静态入口', () => {
+  it('仅 cloud 生成独立的文章回看入口', () => {
+    expect(getArticleReadingStaticPages('cloud')).toEqual([{ path: 'articles-v2', schemaFromSeo: true }]);
+    expect(getArticleReadingStaticPages('pages')).toEqual([]);
+  });
   it('仅 cloud 生成学习页和登录页，不把云端入口放进 Pages', () => {
     expect(getAnkiStaticPages('cloud').map((page) => page.path)).toEqual(['anki', 'anki/login']);
     expect(getAnkiStaticPages('pages')).toEqual([]);

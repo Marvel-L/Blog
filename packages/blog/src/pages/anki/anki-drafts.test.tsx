@@ -165,16 +165,29 @@ describe('Anki 持久草稿', () => {
     expect(listAnkiDrafts('alice').drafts).toHaveLength(1);
   });
   it('存储不可用时如实提示，保留编辑框，不声称已保存草稿', async () => {
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-      throw new Error('quota');
+    const storage = localStorage;
+    const writeDraft = vi.fn<Storage['setItem']>(() => {
+      throw new DOMException('Storage quota exceeded', 'QuotaExceededError');
     });
+    // 支持 jsdom Storage 和测试环境的 Map 存储替身，直接替换实际使用的对象。
+    vi.stubGlobal('localStorage', {
+      get length() {
+        return storage.length;
+      },
+      clear: () => storage.clear(),
+      getItem: (key) => storage.getItem(key),
+      key: (index) => storage.key(index),
+      removeItem: (key) => storage.removeItem(key),
+      setItem: writeDraft,
+    } satisfies Storage);
+    const done = vi.fn();
     render(
       <AnkiDialogs
         userId="alice"
         state={{ kind: 'card', deckId: 'd1' }}
         dashboard={dashboard}
         onClose={vi.fn()}
-        onDone={vi.fn()}
+        onDone={done}
       />,
     );
     fireEvent.change(screen.getByLabelText('Q · 问题'), { target: { value: draft.question } });
@@ -182,6 +195,9 @@ describe('Anki 持久草稿', () => {
     await screen.findByText('当前库没有标签，可以先保存无标签卡片，或返回卡片库管理标签。');
     fireEvent.click(screen.getByRole('button', { name: '保存卡片' }));
     await screen.findByText(/本机草稿保存也失败/);
+    expect(writeDraft).toHaveBeenCalledWith(expect.stringContaining('dblog:anki:draft:v1:alice:'), expect.any(String));
+    expect(screen.queryByText(/内容已保留在「卡片草稿」/)).not.toBeInTheDocument();
+    expect(done).not.toHaveBeenCalled();
     expect(screen.getByLabelText('A · 答案')).toHaveValue(draft.answer);
     expect(listAnkiDrafts('alice').drafts).toHaveLength(0);
   });

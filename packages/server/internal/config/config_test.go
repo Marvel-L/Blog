@@ -5,6 +5,26 @@ import (
 	"testing"
 )
 
+func TestExactLocalAppOrigins(t *testing.T) {
+	for _, primary := range []string{"http://localhost:3013", "http://127.0.0.1:3013"} {
+		c := Config{Origin: primary}
+		for _, allowed := range []string{"http://localhost:3013", "http://127.0.0.1:3013"} {
+			if !c.AllowsAppOrigin(allowed) {
+				t.Fatal("matching local preview origin rejected")
+			}
+		}
+		for _, rejected := range []string{"", "null", "http://localhost:3000", "http://localhost:30130", "https://localhost:3013", "http://localhost:3013/", "http://localhost:3013.evil.example", "http://localhost.evil.example:3013", "http://127.0.0.2:3013", "http://[::1]:3013", "http://user@localhost:3013", "http://localhost:3013?x=1"} {
+			if c.AllowsAppOrigin(rejected) {
+				t.Fatalf("nonmatching local origin accepted: %s", rejected)
+			}
+		}
+	}
+	c := Config{Origin: "https://localhost:3013", SecureCookies: true}
+	if !c.AllowsAppOrigin(c.Origin) || c.AllowsAppOrigin("https://127.0.0.1:3013") || c.AllowsAppOrigin("http://localhost:3013") {
+		t.Fatal("HTTPS origin policy changed")
+	}
+}
+
 func TestAIConfiguration(t *testing.T) {
 	base := map[string]string{"APP_ORIGIN": "https://app.example.com", "DATABASE_URL": "test", "GITHUB_CLIENT_ID": "id", "GITHUB_CLIENT_SECRET": "secret"}
 	load := func(extra map[string]string) (Config, error) {

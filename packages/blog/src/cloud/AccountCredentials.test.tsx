@@ -12,6 +12,23 @@ const credentials = () => {
   fireEvent.change(screen.getByLabelText('密码'), { target: { value: 'test-password-strong' } });
 };
 describe('account credentials', () => {
+  it.each([
+    [403, 'origin_mismatch', '当前访问地址与服务端配置不一致，请使用配置的站点地址'],
+    [429, 'rate_limited', '请求过于频繁，请等待 60 秒后重试'],
+  ])('distinguishes login failure %s without claiming success', async (status, code, message) => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response(JSON.stringify({ code, error: '请求无效或过于频繁' }), { status })),
+    );
+    const onUser = vi.fn();
+    render(<AccountCredentials user={null} onUser={onUser} />);
+    credentials();
+    fireEvent.click(screen.getByRole('button', { name: '使用账号密码登录' }));
+    expect(await screen.findByText(message)).toBeInTheDocument();
+    expect(onUser).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: '使用账号密码登录' })).toBeEnabled();
+  });
+
   it('logs in with same-origin cookies and clears the password after success', async () => {
     const user = { id: 'u1', login: 'test-user', name: 'Test', username: 'test-user', githubBound: false };
     const request = vi.fn().mockResolvedValue(new Response(JSON.stringify({ user })));

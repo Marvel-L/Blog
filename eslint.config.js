@@ -32,6 +32,10 @@ export default tseslint.config(
       // 用户授权：仅排除原型验收安装的第三方依赖与历史源码备份，正式源码仍检查。
       'anki-prototype/_check_deps/**',
       'about-radar-prototype/_backup/**',
+      // 第三方分发库与 esbuild 生成的离线原型 bundle；原型手写脚本继续检查。
+      'article-revisit-prototype/_shared/js/mermaid.min.js',
+      'article-revisit-prototype/assets/demo.js',
+      'article-revisit-prototype/assets/demo-v2.js',
       '.zcode/',
       '.trash/',
       '.vscode/',
@@ -86,8 +90,15 @@ export default tseslint.config(
   },
   {
     files: ['**/*.{js,mjs,cjs}'],
+    ignores: ['*-prototype/assets/**/*.js'],
     languageOptions: {
       globals: { ...globals.node },
+    },
+  },
+  {
+    files: ['*-prototype/assets/**/*.js'],
+    languageOptions: {
+      globals: { ...globals.browser },
     },
   },
   eslintConfigPrettier,
