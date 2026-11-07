@@ -1,0 +1,209 @@
+/* Follow the rendered shell so body portals share the sky and reading/Love mode restore themselves. */
+html:has(.site-shell[data-sky-background='true']) {
+  --sky-ink: #233e52;
+  --sky-line: rgb(57 86 107 / 0.28);
+  --sky-accent: #185a91;
+  --sky-panel: rgb(235 247 255 / 0.2);
+  --glass-control-fill: transparent;
+  --glass-panel-fill: var(--sky-panel);
+  --glass-edge: var(--sky-line);
+  --glass-highlight: rgb(255 255 255 / 0.1);
+  --glass-shadow: rgb(35 62 82 / 0.08);
+  --glass-text: var(--sky-ink);
+  --glass-hover-fill: rgb(255 255 255 / 0.12);
+  --glass-accent-fill: rgb(85 156 208 / 0.12);
+  --glass-accent-edge: var(--sky-accent);
+  --glass-accent-text: var(--sky-accent);
+  --glass-fallback: var(--sky-panel);
+}
+
+html.dark:has(.site-shell[data-sky-background='true']) {
+  --sky-ink: #edf6fd;
+  --sky-line: rgb(192 221 243 / 0.28);
+  --sky-accent: #b9dfff;
+  --sky-panel: rgb(115 170 208 / 0.12);
+  --glass-highlight: rgb(214 236 255 / 0.06);
+  --glass-shadow: rgb(7 24 39 / 0.12);
+  --glass-hover-fill: rgb(192 221 243 / 0.1);
+  --glass-accent-fill: rgb(156 203 240 / 0.12);
+}
+
+/* Neutral utility fills cover cards, filters, fields and portal controls across pages.
+   Keep image pixels, semantic colors, dimming backdrops, skeletons and progress fills intact. */
+html:has(.site-shell[data-sky-background='true'])
+  :is(
+    [class*='bg-paper'],
+    [class*='bg-void'],
+    [class*='bg-ink'],
+    [class*='bg-white'],
+    [class*='bg-black'],
+    [class*='bg-zinc-'],
+    [class*='bg-stone-'],
+    [class*='bg-neutral-'],
+    [class*='bg-gray-'],
+    [class*='bg-slate-'],
+    .editorial-surface,
+    .editorial-overlay,
+    .editorial-button,
+    .editorial-button-primary,
+    .flash-frame-body,
+    .rin-caption
+  ):not([aria-hidden='true'], .animate-pulse, .h-full.rounded-full) {
+  background-color: transparent;
+}
+
+html:has(.site-shell[data-sky-background='true'])
+  :is(
+    [class*='border-zinc-'],
+    [class*='border-stone-'],
+    .editorial-surface,
+    .editorial-overlay,
+    .editorial-button,
+    .code-block,
+    .code-toolbar,
+    .rin-caption,
+    .rin-panel
+  ) {
+  border-color: var(--sky-line);
+}
+
+/* Inverted labels used to rely on opaque black/white buttons. */
+html:has(.site-shell[data-sky-background='true'])
+  :is(
+    .editorial-button-primary,
+    [class~='bg-ink'],
+    [class~='bg-black'],
+    [class*='bg-zinc-']:where([class~='text-white']),
+    [class*='hover:bg-zinc-']:where([class*='hover:text-white']):where(:hover)
+  ) {
+  color: var(--sky-ink);
+  border-color: var(--sky-line);
+}
+
+html:has(.site-shell[data-sky-background='true']) :is(button, a)[aria-pressed='true'] {
+  color: var(--sky-accent);
+  border-color: var(--sky-accent);
+  box-shadow: inset 0 -2px 0 var(--sky-accent);
+}
+
+html:has(.site-shell[data-sky-background='true']) [aria-label='文章排序'] > [aria-hidden='true'] {
+  background: transparent;
+  box-shadow: none;
+}
+
+html:has(.site-shell[data-sky-background='true']) .rin-panel {
+  background: var(--sky-panel);
+  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(22px);
+}
+
+/* Floating menus need blur to separate their text from the page below. */
+html:has(.site-shell[data-sky-background='true'])
+  :is(.editorial-overlay, .editorial-sheet, .nav-more-menu-panel, .mobile-nav-panel, [role='dialog'])
+  :is(.bg-paper, .bg-white, [class*='rounded-overlay']) {
+  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(22px);
+}
+
+html:has(.site-shell[data-sky-background='true'])
+  :is([role='dialog'], [role='complementary'])
+  > [class*='rounded-overlay'] {
+  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(22px);
+}
+
+html:has(.site-shell[data-sky-background='true'])
+  :is(.editorial-overlay, .editorial-sheet, .nav-more-menu-panel, .mobile-nav-panel) {
+  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(22px);
+}
+
+/* Move rank gradients to a hollow border; a transparent inner layer alone reveals the full gradient. */
+html:has(.site-shell[data-sky-background='true']) :is(.flash-surface--frame, .flash-surface--card) {
+  --sky-rank-edge: linear-gradient(
+    120deg,
+    var(--flash-edge),
+    var(--flash-edge-2),
+    var(--flash-foil-2),
+    var(--flash-edge)
+  );
+  background: transparent;
+}
+
+html:has(.site-shell[data-sky-background='true']) :is(.flash-surface--frame, .flash-surface--card).flash-rank--king {
+  --sky-rank-edge: conic-gradient(
+    from 210deg at var(--flash-x) var(--flash-y),
+    #be123c,
+    #f59e0b,
+    #fde68a,
+    #fb7185,
+    #7c3aed,
+    #be123c
+  );
+}
+
+html:has(.site-shell[data-sky-background='true']) :is(.flash-surface--frame, .flash-surface--card)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  pointer-events: none;
+  background: var(--sky-rank-edge);
+  background-size: 240% 240%;
+  background-position: var(--flash-x) var(--flash-y);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+/* Markdown surfaces include dynamically injected highlight.js backgrounds. */
+html:has(.site-shell[data-sky-background='true'])
+  :is(
+    .prose pre,
+    .prose code,
+    .prose thead th,
+    .code-block,
+    .code-toolbar,
+    .code-action-btn,
+    .code-expand-btn,
+    .code-collapse-btn,
+    .mermaid-container,
+    .mermaid-viewport,
+    .mermaid-source,
+    .mermaid-action-btn
+  ) {
+  background: transparent;
+}
+
+html:has(.site-shell[data-sky-background='true']) .code-block-collapsed::after {
+  background: none;
+}
+
+html:has(.site-shell[data-sky-background='true']) .prose blockquote {
+  background: rgb(148 190 220 / 0.08);
+}
+
+html:has(.site-shell[data-sky-background='true']) .book-app {
+  --book-paper: transparent;
+  --book-line: var(--sky-line);
+}
+
+html:has(.site-shell[data-sky-background='true']) .planner-page {
+  --planner-surface: transparent;
+  --planner-glass: var(--sky-panel);
+  --planner-soft: rgb(148 190 220 / 0.08);
+  --planner-faint: transparent;
+  --planner-line: var(--sky-line);
+}
+
+html:has(.site-shell[data-sky-background='true']) .trend-page {
+  --trend-surface: transparent;
+  --trend-glass: var(--sky-panel);
+  --trend-border: var(--sky-line);
+}

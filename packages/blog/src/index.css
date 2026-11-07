@@ -1,5 +1,6 @@
 @import './styles/glass.css';
 @import './styles/waveFish.css';
+@import './styles/sky.css' screen;
 
 @tailwind base;
 @tailwind components;
