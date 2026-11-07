@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Cloud, RefreshCw } from 'lucide-react';
+import { Cloud, RefreshCw, X } from 'lucide-react';
 import type { TrendState } from './model';
 import {
   clearAuthorization,
@@ -93,9 +93,17 @@ export default function TrendSync({
     status: '连接后自动同步到云端',
     conflict: null,
     connecting: false,
+    syncing: false,
+    pending: false,
+    error: false,
+    confirmedAt: null,
   });
   const [error, setError] = useState('');
   const [authorizing, setAuthorizing] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [localAccount, setLocalAccount] = useState(false);
+  const orb = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
   const syncView = useRef(view);
   const engine = useRef<TrendSynchronizer | null>(null);
   const initial = useRef(state);
@@ -103,6 +111,8 @@ export default function TrendSync({
   const authorization = useRef<Authorization | null>(null);
   const authorizingRef = useRef(false);
   const connectSaved = useRef<() => Promise<void>>(async () => {});
+  const connectCookie = useRef<() => Promise<void>>(async () => {});
+  const cookieRetry = useRef(false);
   const clearSaved = useRef<() => void>(() => {});
   const tickRef = useRef<() => void>(() => {});
   const mounted = useRef(false);
@@ -111,6 +121,26 @@ export default function TrendSync({
   useEffect(() => {
     applyRef.current = onApply;
   }, [onApply]);
+  useEffect(() => {
+    if (!open) return;
+    panel.current?.focus();
+    const outside = (event: PointerEvent) => {
+      if (!panel.current?.contains(event.target as Node) && !orb.current?.contains(event.target as Node))
+        setOpen(false);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+        orb.current?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', outside);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('pointerdown', outside);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [open]);
   useEffect(() => {
     mounted.current = true;
     let active = true;
@@ -134,6 +164,8 @@ export default function TrendSync({
     engine.current = synchronizer;
     try {
       const origin = apiOrigin();
+      const sameOriginAccount = import.meta.env.VITE_DEPLOY_TARGET === 'cloud' && origin === window.location.origin;
+      setLocalAccount(sameOriginAccount);
       clearSaved.current = () => {
         authorization.current = null;
         try {
@@ -153,6 +185,16 @@ export default function TrendSync({
           }),
         );
       };
+      connectCookie.current = async () => {
+        if (!active || !sameOriginAccount || authorizingRef.current) return;
+        cookieRetry.current = true;
+        const generation = ++connectGeneration.current;
+        await synchronizer.connect(
+          transportFor(origin, '', () => {
+            if (active && generation === connectGeneration.current) cookieRetry.current = false;
+          }),
+        );
+      };
       try {
         authorization.current = readAuthorization(authorizationStorage, origin, Date.now());
       } catch (cause) {
@@ -160,8 +202,8 @@ export default function TrendSync({
       }
       if (authorization.current) {
         void connectSaved.current();
-      } else if (import.meta.env.VITE_DEPLOY_TARGET === 'cloud' && origin === window.location.origin) {
-        void synchronizer.connect(transportFor(origin, ''));
+      } else if (sameOriginAccount) {
+        void connectCookie.current();
       }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '云端配置无效');
@@ -175,16 +217,22 @@ export default function TrendSync({
         setError((previous) => previous || '授权已到期，请重新连接');
       } else if (authorization.current && !syncView.current.user && !syncView.current.connecting) {
         void connectSaved.current();
+      } else if (cookieRetry.current && !syncView.current.user && !syncView.current.connecting) {
+        void connectCookie.current();
       } else void synchronizer.tick();
     };
     tickRef.current = tick;
-    const accountChanged = () => {
+    const accountChanged = (event: Event) => {
       connectGeneration.current += 1;
       popupCleanup.current();
+      setError('');
       clearSaved.current();
+      cookieRetry.current = false;
       authorizingRef.current = false;
       setAuthorizing(false);
       synchronizer.disconnect();
+      // Account events only trigger a reload; the API verifies the actual identity.
+      if ((event as CustomEvent<{ user?: unknown }>).detail?.user) void connectCookie.current();
     };
     const interval = window.setInterval(() => {
       if (document.visibilityState !== 'hidden') tick();
@@ -199,8 +247,10 @@ export default function TrendSync({
       popupCleanup.current();
       synchronizer.stop();
       authorization.current = null;
+      cookieRetry.current = false;
       authorizingRef.current = false;
       connectSaved.current = async () => {};
+      connectCookie.current = async () => {};
       clearSaved.current = () => {};
       tickRef.current = () => {};
       clearInterval(interval);
@@ -222,6 +272,19 @@ export default function TrendSync({
     let controller: AbortController | undefined;
     try {
       const origin = apiOrigin();
+      if (import.meta.env.VITE_DEPLOY_TARGET === 'cloud' && origin === window.location.origin) {
+        authorizingRef.current = false;
+        setError('');
+        if (syncView.current.errorStatus === 401) {
+          window.dispatchEvent(new Event('dblog-account-open'));
+        } else {
+          const cookieGeneration = connectGeneration.current + 1;
+          await connectCookie.current();
+          if (mounted.current && cookieGeneration === connectGeneration.current && syncView.current.errorStatus === 401)
+            window.dispatchEvent(new Event('dblog-account-open'));
+        }
+        return;
+      }
       popup = window.open('about:blank', '_blank', 'popup,width=600,height=740');
       if (!popup) throw new Error('登录窗口被拦截，请允许弹出窗口后重试');
       setError('');
@@ -314,7 +377,9 @@ export default function TrendSync({
     popupCleanup.current();
     const generation = ++connectGeneration.current;
     const previous = authorization.current?.token;
+    setError('');
     clearSaved.current();
+    cookieRetry.current = false;
     authorizingRef.current = false;
     setAuthorizing(false);
     engine.current?.disconnect();
@@ -341,68 +406,141 @@ export default function TrendSync({
       }
     }
   };
+  const busy = authorizing || view.connecting || view.syncing;
+  const loginNeeded = localAccount && !view.user && view.errorStatus === 401 && !error;
+  const failed = !!error || (view.error && !loginNeeded);
+  const synced = !!view.user && !!view.confirmedAt && !view.pending && !busy && !failed && !view.conflict;
+  const status = view.conflict
+    ? '存在版本冲突'
+    : failed
+      ? '同步需要重试'
+      : busy
+        ? '正在同步'
+        : view.pending
+          ? '有修改待上传'
+          : synced
+            ? '已同步到云端'
+            : '连接云端同步';
+  const detail = authorizing ? '请在登录窗口完成 GitHub 授权' : loginNeeded ? '登录账号后自动同步' : view.status;
   return (
-    <section className="trend-sync" aria-label="Trend 云端同步">
-      <div className="trend-sync-heading">
-        <Cloud size={17} />
-        <strong>{view.user ? `${view.user.login} · 云端同步` : '云端同步'}</strong>
-        <span role="status" aria-live="polite">
-          {authorizing ? '请在登录窗口完成 GitHub 授权' : view.status}
+    <section className="trend-sync-float" aria-label="Trend 云端同步">
+      <button
+        ref={orb}
+        className={`trend-sync-orb ${busy ? 'is-busy' : ''} ${failed || view.conflict ? 'is-error' : ''} ${synced ? 'is-synced' : ''} ${view.pending ? 'is-pending' : ''}`}
+        aria-label={`云端同步：${status}`}
+        title={status}
+        aria-expanded={open}
+        aria-controls="trend-sync-panel"
+        onClick={() => setOpen((value) => !value)}
+      >
+        {busy ? <RefreshCw aria-hidden="true" /> : <Cloud aria-hidden="true" />}
+        <i aria-hidden="true" />
+      </button>
+      {!open && (
+        <span className="sr-only" role="status" aria-live="polite">
+          {detail}
+          {error ? `；${error}` : ''}
         </span>
-      </div>
-      <div className="trend-inline-actions">
-        {view.user ? (
-          <>
+      )}
+      {open && (
+        <div
+          ref={panel}
+          className="trend-sync-panel"
+          id="trend-sync-panel"
+          role="region"
+          aria-label="云端同步详情"
+          tabIndex={-1}
+        >
+          <header>
+            <h2>云端同步</h2>
             <button
-              className="trend-button"
+              className="trend-sync-close"
+              aria-label="关闭同步详情"
               onClick={() => {
-                tickRef.current();
+                setOpen(false);
+                orb.current?.focus();
               }}
             >
-              <RefreshCw size={14} />
-              立即同步
+              <X size={17} />
             </button>
-            <button className="trend-button" onClick={disconnect}>
-              断开同步
-            </button>
-          </>
-        ) : (
-          <button
-            className="trend-button trend-button-primary"
-            disabled={authorizing || view.connecting}
-            onClick={() => {
-              void connect();
-            }}
-          >
-            {authorizing || view.connecting ? '正在连接' : '使用 GitHub 连接同步'}
-          </button>
-        )}
-        {authorizing && (
-          <button className="trend-button" onClick={disconnect}>
-            取消连接
-          </button>
-        )}
-      </div>
-      {view.conflict && (
-        <div className="trend-sync-conflict">
-          <p>本地草稿与云端版本 {view.conflict.revision} 不同。可先导出 JSON 备份，再选择保留哪一份。</p>
-          <div className="trend-inline-actions">
-            <button className="trend-button" onClick={() => engine.current?.resolve(true)}>
-              采用云端版本
-            </button>
-            <button className="trend-button" onClick={() => engine.current?.resolve(false)}>
-              保留本地并上传
-            </button>
+          </header>
+          <div className="trend-sync-heading">
+            <Cloud size={19} aria-hidden="true" />
+            <div>
+              <strong>{view.user ? `${view.user.login} · 云端同步` : '连接你的账号'}</strong>
+              <span role="status" aria-live="polite" className={view.error && !loginNeeded ? 'is-error' : undefined}>
+                {detail}
+              </span>
+            </div>
           </div>
+          <div className="trend-inline-actions">
+            {view.user ? (
+              <>
+                <button
+                  className="trend-button trend-button-primary"
+                  disabled={busy || !!view.conflict}
+                  onClick={() => {
+                    setError('');
+                    tickRef.current();
+                  }}
+                >
+                  <RefreshCw size={14} />
+                  立即同步
+                </button>
+                <button className="trend-button" onClick={disconnect}>
+                  断开同步
+                </button>
+              </>
+            ) : (
+              <button
+                className="trend-button trend-button-primary"
+                disabled={authorizing || view.connecting}
+                onClick={() => void connect()}
+              >
+                {authorizing || view.connecting
+                  ? '正在连接'
+                  : localAccount
+                    ? view.error && !loginNeeded
+                      ? '重试连接'
+                      : '登录账号并连接'
+                    : '使用 GitHub 连接同步'}
+              </button>
+            )}
+            {authorizing && (
+              <button className="trend-button" onClick={disconnect}>
+                取消连接
+              </button>
+            )}
+          </div>
+          {view.conflict && (
+            <div className="trend-sync-conflict">
+              <p>本地草稿与云端版本 {view.conflict.revision} 不同。请选择保留哪一份。</p>
+              <div className="trend-inline-actions">
+                <button className="trend-button" onClick={() => engine.current?.resolve(true)}>
+                  采用云端版本
+                </button>
+                <button className="trend-button" onClick={() => engine.current?.resolve(false)}>
+                  保留本地并上传
+                </button>
+              </div>
+            </div>
+          )}
+          <p className="trend-sync-note">
+            {view.user
+              ? '修改后自动保存。类别、条目和图表配置会同步到你的账号。'
+              : localAccount
+                ? '登录后自动同步类别、条目和图表配置；当前配置保存在此浏览器。'
+                : '连接同一个 GitHub 账号，即可在 GitHub Pages、本地和云端同步类别与条目。'}
+          </p>
+          {view.user && view.confirmedAt && (
+            <p className="trend-sync-note">最近确认：{new Date(view.confirmedAt).toLocaleTimeString('zh-CN')}</p>
+          )}
+          {error && (
+            <p role="alert" className="trend-field-error">
+              {error}
+            </p>
+          )}
         </div>
-      )}
-      {!view.user && (
-        <p className="trend-sync-note">连接同一个 GitHub 账号，即可在 GitHub Pages、本地和云端同步类别与条目。</p>
-      )}
-      {error && (
-        <p role="alert" className="trend-field-error">
-          {error}
-        </p>
       )}
     </section>
   );

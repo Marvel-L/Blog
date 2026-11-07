@@ -1,13 +1,12 @@
 import { StrictMode } from 'react';
 import { renderToString } from 'react-dom/server';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Trend } from './Trend';
-import { STORAGE_KEY, createCategory, defaultState, emptyItem, parseState } from './trend/model';
+import { STORAGE_KEY, defaultState, parseState } from './trend/model';
 
 vi.mock('@/components/Seo', () => ({ Seo: () => null }));
-vi.mock('@/utils/download', () => ({ downloadBlob: vi.fn() }));
 
 describe('Trend 页面', () => {
   beforeEach(() => {
@@ -20,7 +19,13 @@ describe('Trend 页面', () => {
 
   it('展示零食示例、一个条目一个点，蚂蚁线颜色与点相同', () => {
     const { container } = render(<Trend />);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Trend.');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Trend 数据趋势');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveClass('sr-only');
+    expect(screen.queryByText('EVERYDAY DATA / 日常数据')).not.toBeInTheDocument();
+    expect(screen.queryByText('把日常选择，放在同一张图上。')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /导入 JSON|导出 JSON/ })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('导入 Trend 配置文件')).not.toBeInTheDocument();
+    expect(container.querySelector('input[type="file"]')).toBeNull();
     expect(screen.getByLabelText('鸭脖价格')).toHaveValue(30);
     expect(screen.getByLabelText('鸭脖重量')).toHaveValue(500);
     expect(screen.getByLabelText('鸭腿重量')).toHaveValue(130);
@@ -145,38 +150,7 @@ describe('Trend 页面', () => {
       }),
     });
     await userEvent.setup().selectOptions(screen.getByLabelText('参照轴'), 'x');
-    expect(screen.getByText('浏览器保存失败，请导出 JSON 备份')).toBeInTheDocument();
-  });
-
-  it('导入有效配置，拒绝无效文件，异步导入不覆盖期间的新编辑', async () => {
-    const user = userEvent.setup();
-    const category = createCategory('coffee', '导入的咖啡', 'custom');
-    category.items = [{ ...emptyItem('iced'), name: '冰咖啡', x: 15, y: 100 }];
-    const imported = { version: 1, categories: [category], selectedId: category.id };
-    render(<Trend />);
-    const input = screen.getByLabelText('导入 Trend 配置文件');
-    const file = new File(['data'], 'trend.json', { type: 'application/json' });
-    Object.defineProperty(file, 'text', { value: async () => JSON.stringify(imported) });
-    await user.upload(input, file);
-    expect(await screen.findByRole('heading', { name: '导入的咖啡' })).toBeInTheDocument();
-    const badFile = new File(['bad'], 'bad.json', { type: 'application/json' });
-    Object.defineProperty(badFile, 'text', { value: async () => '{"version":9}' });
-    await user.upload(input, badFile);
-    expect(await screen.findByText(/导入失败/)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '导入的咖啡' })).toBeInTheDocument();
-    let finish!: (value: string) => void;
-    const pendingFile = new File(['pending'], 'pending.json', { type: 'application/json' });
-    Object.defineProperty(pendingFile, 'text', {
-      value: () =>
-        new Promise<string>((resolve) => {
-          finish = resolve;
-        }),
-    });
-    await user.upload(input, pendingFile);
-    await user.click(screen.getByRole('button', { name: '添加条目' }));
-    finish(JSON.stringify(defaultState()));
-    await waitFor(() => expect(screen.getByLabelText('新条目名称')).toBeInTheDocument());
-    expect(screen.getByRole('heading', { name: '导入的咖啡' })).toBeInTheDocument();
+    expect(screen.getByText('浏览器保存失败，请检查存储权限')).toBeInTheDocument();
   });
 
   it('SSR 首帧不读取浏览器配置，始终输出可见的确定性示例', () => {
@@ -187,6 +161,12 @@ describe('Trend 页面', () => {
     expect(html).toContain('零食 · 价格与热量');
     expect(html).not.toContain('本地私人配置');
     expect(html).toContain('data-trend-item="duck-neck"');
+    expect(html).toContain('<h1 class="sr-only">Trend 数据趋势</h1>');
+    expect(html).not.toContain('EVERYDAY DATA');
+    expect(html).not.toContain('把日常选择，放在同一张图上');
+    expect(html).not.toContain('正在加载同步功能');
+    expect(html).not.toContain('导入 JSON');
+    expect(html).not.toContain('导出 JSON');
   });
 
   it('恢复旧默认类别时升级热量单位，暂停旧 Y 阈值并持久化，保留购买数据', () => {

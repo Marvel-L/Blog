@@ -4,7 +4,17 @@ export type SyncUser = { id: string; login: string; name: string };
 export type Snapshot = { state: TrendState | null; revision: number; updatedAt: string | null };
 export type SyncResponse = { user: SyncUser; dashboard: Snapshot };
 export type Mutation = { baseRevision: number; mutationId: string; state: TrendState };
-export type SyncView = { user: SyncUser | null; status: string; conflict: Snapshot | null; connecting: boolean };
+export type SyncView = {
+  user: SyncUser | null;
+  status: string;
+  conflict: Snapshot | null;
+  connecting: boolean;
+  syncing: boolean;
+  pending: boolean;
+  error: boolean;
+  errorStatus?: number;
+  confirmedAt: number | null;
+};
 export type Transport = {
   load: (signal: AbortSignal) => Promise<SyncResponse>;
   save: (mutation: Mutation, signal: AbortSignal) => Promise<SyncResponse>;
@@ -75,6 +85,9 @@ export class TrendSynchronizer {
   private status = '连接后自动同步到云端';
   private storageError = false;
   private connecting = false;
+  private error = false;
+  private errorStatus: number | undefined;
+  private confirmedAt: number | null = null;
 
   constructor(
     initial: TrendState,
@@ -88,9 +101,14 @@ export class TrendSynchronizer {
   private view() {
     this.publish({
       user: this.user,
-      status: this.storageError ? `${this.status}；本地保存失败，请导出备份` : this.status,
+      status: this.storageError ? `${this.status}；本地保存失败，请检查浏览器存储权限` : this.status,
       conflict: this.conflict,
       connecting: this.connecting,
+      syncing: this.busy,
+      pending: !!this.user && (!!this.pending || !sameData(this.local, this.base?.state ?? null)),
+      error: this.error || this.storageError,
+      errorStatus: this.errorStatus,
+      confirmedAt: this.confirmedAt,
     });
   }
   private persist() {
@@ -126,11 +144,14 @@ export class TrendSynchronizer {
     this.transport = transport;
     const generation = this.generation;
     this.connecting = true;
+    this.busy = true;
+    this.error = false;
+    this.errorStatus = undefined;
+    this.confirmedAt = null;
     this.status = '正在连接云端';
     this.view();
     const controller = new AbortController();
     this.controller = controller;
-    this.busy = true;
     try {
       const response = await transport.load(controller.signal);
       if (generation !== this.generation) return;
@@ -161,7 +182,7 @@ export class TrendSynchronizer {
             throw new Error('invalid draft');
         }
       } catch {
-        throw new Error('无法读取账号草稿，请先导出备份并检查浏览器存储');
+        throw new Error('无法读取账号草稿，请检查浏览器存储');
       }
       if (saved) {
         this.local = saved.state;
@@ -169,10 +190,13 @@ export class TrendSynchronizer {
         this.pending = saved.pending;
       }
       this.apply(this.local, this.user);
+      this.confirmedAt = Date.now();
       this.accept(response.dashboard, !saved && sameData(this.local, defaultState()));
     } catch (error) {
       if (generation === this.generation) {
         this.status = error instanceof Error ? error.message : '云端连接失败';
+        this.error = true;
+        this.errorStatus = error instanceof SyncError ? error.status : undefined;
         this.transport = null;
         this.user = null;
       }
@@ -223,13 +247,15 @@ export class TrendSynchronizer {
     const controller = new AbortController();
     this.controller = controller;
     this.busy = true;
+    this.error = false;
+    this.errorStatus = undefined;
     try {
       if (!this.pending && !sameData(this.local, this.base?.state ?? null)) {
         this.pending = { baseRevision: this.base?.revision ?? 0, mutationId: crypto.randomUUID(), state: this.local };
         this.persist();
       }
       const mutation = this.pending;
-      this.status = mutation ? '正在上传修改' : '已同步到云端';
+      this.status = mutation ? '正在上传修改' : '正在检查云端';
       this.view();
       const response = mutation
         ? await this.transport.save(mutation, controller.signal)
@@ -238,9 +264,11 @@ export class TrendSynchronizer {
       if (response.user.id !== this.user.id) {
         this.disconnect();
         this.status = '账号已变化，请重新连接';
+        this.error = true;
         this.view();
         return;
       }
+      this.confirmedAt = Date.now();
       if (mutation) {
         this.base = response.dashboard;
         this.pending = null;
@@ -260,13 +288,18 @@ export class TrendSynchronizer {
         this.status = error.message;
       } else if (error instanceof SyncError && (error.status === 400 || error.status === 413)) {
         this.pending = null;
-        this.status = '配置不符合云端要求，请检查数据或导出备份';
+        this.status = '配置不符合云端要求，请检查数据';
       } else this.status = error instanceof Error ? error.message : '同步失败，草稿保留在本地';
+      if (!(error instanceof SyncError && error.status === 409 && error.snapshot)) {
+        this.error = true;
+        this.errorStatus = error instanceof SyncError ? error.status : undefined;
+      }
       this.persist();
       this.view();
     } finally {
       if (generation === this.generation) {
         this.busy = false;
+        this.view();
         // Immediate follow-up only after success, avoiding unbounded failure retries.
         if (this.status === '有修改待上传' && !this.conflict) this.schedule();
       }
@@ -279,6 +312,8 @@ export class TrendSynchronizer {
     this.base = remote;
     this.pending = null;
     this.conflict = null;
+    this.error = false;
+    this.errorStatus = undefined;
     this.status = useCloud ? '已采用云端版本' : '有修改待上传';
     this.persist();
     this.view();
@@ -292,6 +327,9 @@ export class TrendSynchronizer {
     this.pending = null;
     this.conflict = null;
     this.transport = null;
+    this.error = false;
+    this.errorStatus = undefined;
+    this.confirmedAt = null;
     try {
       const raw = this.storage.getItem(STORAGE_KEY);
       this.local = raw ? parseState(raw) : defaultState();

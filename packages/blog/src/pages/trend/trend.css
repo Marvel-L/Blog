@@ -1,23 +1,130 @@
-.trend-sync {
-  margin-bottom: 24px;
-  padding: 16px 20px;
-  border: 1px solid var(--trend-border);
-  border-radius: 14px;
-  background: var(--trend-surface);
-  color: var(--trend-text);
+.trend-sync-float {
+  --trend-sync-bottom: calc(
+    var(--tab-bar-height, 0px) + 92px + env(safe-area-inset-bottom) + var(--cookie-notice-height, 0px) +
+      var(--service-worker-prompt-height, 0px)
+  );
+  position: fixed;
+  right: calc(24px + env(safe-area-inset-right));
+  bottom: var(--trend-sync-bottom);
+  z-index: 45;
   font-size: 13px;
+}
+.trend-sync-orb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 53px;
+  height: 53px;
+  border-radius: 50%;
+  border: 1px solid var(--trend-border);
+  background: var(--trend-glass);
+  color: var(--trend-muted);
+  backdrop-filter: blur(18px);
+  box-shadow:
+    0 8px 30px #234a3b20,
+    inset 0 1px 0 #ffffff50;
+  transition: transform 0.2s;
+}
+.trend-sync-orb:hover {
+  transform: translateY(-3px);
+}
+.trend-sync-orb svg {
+  width: 23px;
+  height: 23px;
+}
+.trend-sync-orb i {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--trend-surface);
+  border-radius: 50%;
+  background: currentColor;
+}
+.trend-sync-orb.is-pending {
+  color: var(--trend-pending);
+}
+.trend-sync-orb.is-synced,
+.trend-sync-orb.is-busy {
+  color: var(--trend-accent);
+}
+.trend-sync-orb.is-error {
+  color: var(--trend-danger);
+}
+.trend-sync-orb.is-busy svg {
+  animation: trend-sync-spin 1s linear infinite;
+}
+.trend-sync-panel {
+  position: absolute;
+  right: 0;
+  bottom: 67px;
+  width: min(325px, calc(100vw - 40px));
+  max-height: calc(100dvh - var(--trend-sync-bottom) - 87px - env(safe-area-inset-top));
+  overflow-y: auto;
+  padding: 20px;
+  border: 1px solid var(--trend-border);
+  border-radius: 18px;
+  background: var(--trend-glass);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 14px 50px #234a3b25;
+  color: var(--trend-text);
+  line-height: 1.8;
+}
+.trend-sync-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.trend-sync-panel h2 {
+  font-size: 15px;
+  font-weight: 600;
+}
+.trend-sync-close {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: var(--trend-muted);
+}
+.trend-sync-close:hover {
+  background: color-mix(in srgb, var(--trend-accent) 8%, transparent);
+  color: var(--trend-accent);
+}
+.trend-sync-orb:focus-visible,
+.trend-sync-close:focus-visible,
+.trend-sync-panel:focus-visible {
+  outline: 2px solid var(--trend-accent);
+  outline-offset: 3px;
 }
 .trend-sync-heading {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 12px;
 }
-.trend-sync-heading > span,
-.trend-sync-note {
-  color: var(--trend-muted);
+.trend-sync-heading > svg {
+  flex-shrink: 0;
+  color: var(--trend-accent);
+}
+.trend-sync-heading > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.trend-sync-heading strong {
   font-size: 12px;
+  font-weight: 500;
+}
+.trend-sync-heading span,
+.trend-sync-note {
+  display: block;
+  color: var(--trend-muted);
+  font-size: 11px;
+}
+.trend-sync-heading .is-error {
+  color: var(--trend-danger);
 }
 .trend-sync-note,
 .trend-sync-conflict {
@@ -30,12 +137,32 @@
 .trend-sync-conflict p {
   margin-bottom: 10px;
 }
+.trend-sync-panel > .trend-field-error {
+  margin-top: 12px;
+  font-size: 11px;
+}
+@keyframes trend-sync-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trend-sync-orb {
+    transition: none;
+  }
+  .trend-sync-orb.is-busy svg {
+    animation: none;
+  }
+}
 .trend-page {
   --trend-border: #e1e5e2;
   --trend-surface: #fff;
   --trend-muted: #7a8583;
   --trend-text: #263b38;
   --trend-accent: #137c6b;
+  --trend-glass: #ffffffed;
+  --trend-danger: #c95058;
+  --trend-pending: #a5761e;
   color: var(--trend-text);
   max-width: 1600px;
   margin: 0 auto;
@@ -47,6 +174,9 @@
   --trend-muted: #93a49e;
   --trend-text: #e0ebe6;
   --trend-accent: #6ed4b8;
+  --trend-glass: #18241fee;
+  --trend-danger: #f39499;
+  --trend-pending: #e4b659;
 }
 .trend-page button,
 .trend-page input,
@@ -60,43 +190,6 @@
   cursor: default;
   opacity: 0.5;
 }
-.trend-page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 32px;
-}
-.trend-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 10px;
-  letter-spacing: 1.8px;
-  color: var(--trend-muted);
-}
-.trend-eyebrow > span {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--trend-accent);
-}
-.trend-page h1 {
-  font-size: clamp(44px, 6vw, 64px);
-  letter-spacing: -3px;
-  line-height: 1.15;
-  font-weight: 650;
-  margin: 10px 0;
-}
-.trend-title-dot {
-  color: var(--trend-accent);
-}
-.trend-intro {
-  font-size: 13px;
-  color: var(--trend-muted);
-  letter-spacing: 0.7px;
-}
-.trend-header-actions,
 .trend-inline-actions {
   display: flex;
   align-items: center;
@@ -857,29 +950,8 @@
   .trend-page {
     padding-top: 10px;
   }
-  .trend-page-header {
-    align-items: flex-start;
-    gap: 10px;
-    margin-bottom: 25px;
-  }
-  .trend-header-actions {
-    justify-content: flex-end;
-    gap: 6px;
-    padding-top: 25px;
-  }
-  .trend-header-actions .trend-button {
-    padding: 8px;
-    font-size: 10px !important;
-  }
-  .trend-header-actions svg {
-    width: 12px;
-  }
-  .trend-eyebrow {
-    font-size: 8px;
-    letter-spacing: 1px;
-  }
-  .trend-intro {
-    font-size: 11px;
+  .trend-sync-float {
+    right: calc(16px + env(safe-area-inset-right));
   }
   .trend-workspace {
     display: block;

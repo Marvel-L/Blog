@@ -3,16 +3,13 @@ import {
   ArrowUpRight,
   Check,
   ChevronRight,
-  Download,
   LayoutDashboard,
   Plus,
   SlidersHorizontal,
   Trash2,
   TrendingUp,
-  Upload,
 } from 'lucide-react';
 import { Seo } from '@/components/Seo';
-import { downloadBlob } from '@/utils/download';
 import { TrendChart } from './trend/TrendChart';
 import {
   STORAGE_KEY,
@@ -99,22 +96,17 @@ export const Trend = () => {
   const [categoryName, setCategoryName] = useState('');
   const [categoryKind, setCategoryKind] = useState<TrendCategory['kind']>('custom');
   const [deletingCategory, setDeletingCategory] = useState(false);
-  const importRef = useRef<HTMLInputElement>(null);
   const initialized = useRef(false);
   const skipInitialSave = useRef(true);
-  const mounted = useRef(false);
-  const importGeneration = useRef(0);
   const syncScope = useRef<string | null>(null);
   const applySyncedState = useCallback((next: TrendState, user: SyncUser | null) => {
     syncScope.current = user?.id ?? null;
-    importGeneration.current += 1;
     const migrated = migrateLegacyNutritionState(next);
     setState(migrated);
     if (migrated !== next) setMessage('旧默认类别已改为每 100g 热量；原纵轴阈值需按新单位重新设置。');
     setDeletingCategory(false);
   }, []);
   useEffect(() => {
-    mounted.current = true;
     if (!initialized.current) {
       initialized.current = true;
       try {
@@ -129,14 +121,10 @@ export const Trend = () => {
           }
         }
       } catch {
-        setMessage('无法读取已保存的配置，当前显示示例。你可以导入备份或重新编辑。');
+        setMessage('无法读取已保存的配置，当前显示示例。你可以检查浏览器存储权限或重新编辑。');
       }
       setStorageReady(true);
     }
-    return () => {
-      mounted.current = false;
-      importGeneration.current += 1;
-    };
   }, []);
   useEffect(() => {
     if (!storageReady || syncScope.current) return;
@@ -148,7 +136,7 @@ export const Trend = () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       setStorageStatus('已保存到当前浏览器');
     } catch {
-      setStorageStatus('浏览器保存失败，请导出 JSON 备份');
+      setStorageStatus('浏览器保存失败，请检查存储权限');
     }
   }, [state, storageReady]);
 
@@ -157,7 +145,6 @@ export const Trend = () => {
   const exceeded = points.filter((point) => point.exceeded).length;
   const previewCategories = state.categories.filter((entry) => entry.onDashboard && entry.id !== category.id);
   const updateCategory = (patch: Partial<TrendCategory>) => {
-    importGeneration.current += 1;
     setState((current) => ({
       ...current,
       categories: current.categories.map((entry) => (entry.id === category.id ? { ...entry, ...patch } : entry)),
@@ -176,7 +163,6 @@ export const Trend = () => {
     if (resetThreshold) setMessage('坐标单位已改变，原阈值已暂停。请按新单位设置数值后重新启用。');
   };
   const selectCategory = (id: string) => {
-    importGeneration.current += 1;
     setState((current) => ({ ...current, selectedId: id }));
     setDeletingCategory(false);
     setMessage('');
@@ -193,7 +179,6 @@ export const Trend = () => {
     }
     const id = crypto.randomUUID();
     const entry = createCategory(id, categoryName.trim(), categoryKind);
-    importGeneration.current += 1;
     setState((current) => ({ ...current, categories: [...current.categories, entry], selectedId: id }));
     setCategoryName('');
     setAddingCategory(false);
@@ -205,7 +190,6 @@ export const Trend = () => {
       setMessage('请至少保留一个类别。');
       return;
     }
-    importGeneration.current += 1;
     setState((current) => {
       const categories = current.categories.filter((entry) => entry.id !== category.id);
       return { ...current, categories, selectedId: categories[0].id };
@@ -213,76 +197,16 @@ export const Trend = () => {
     setDeletingCategory(false);
     setMessage('类别已删除。');
   };
-  const exportData = () => {
-    try {
-      downloadBlob(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }), 'trend-dashboard.json');
-      setMessage('已导出类别、条目与图表配置。');
-    } catch {
-      setMessage('导出失败，请重试。');
-    }
-  };
-  const importData = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-    const generation = ++importGeneration.current;
-    try {
-      if (file.size > 2 * 1024 * 1024) throw new Error('文件不能超过 2MB。');
-      const imported = parseState(await file.text());
-      if (!mounted.current || generation !== importGeneration.current) return;
-      const migrated = migrateLegacyNutritionState(imported);
-      setState(migrated);
-      setDeletingCategory(false);
-      setMessage(
-        migrated !== imported
-          ? '已导入配置。旧默认类别已改为每 100g 热量；原纵轴阈值需按新单位重新设置。'
-          : '已导入配置，并替换当前 dashboard。',
-      );
-    } catch (error) {
-      if (mounted.current && generation === importGeneration.current) {
-        setMessage(error instanceof Error ? `导入失败：${error.message}` : '导入失败，请检查文件。');
-      }
-    }
-  };
-
   return (
     <div className="trend-page">
       <Seo
         title="Trend · 数据趋势"
-        description="用等距对比图与价格分布散点图比较每 100g 价格、每 100g 热量及自定义数据。支持线性与对数刻度、放大画布、阈值颜色渐变、本地保存、云端同步与 JSON 导入导出。"
+        description="用等距对比图与价格分布散点图比较每 100g 价格、每 100g 热量及自定义数据。支持线性与对数刻度、放大画布、阈值颜色渐变、本地保存与云端同步。"
         url="/trend"
       />
-      <header className="trend-page-header">
-        <div>
-          <p className="trend-eyebrow">
-            <span /> EVERYDAY DATA / 日常数据
-          </p>
-          <h1>
-            Trend<span className="trend-title-dot">.</span>
-          </h1>
-          <p className="trend-intro">把日常选择，放在同一张图上。</p>
-        </div>
-        <div className="trend-header-actions">
-          <button className="trend-button" onClick={() => importRef.current?.click()}>
-            <Upload size={15} />
-            导入 JSON
-          </button>
-          <button className="trend-button" onClick={exportData}>
-            <Download size={15} />
-            导出 JSON
-          </button>
-          <input
-            ref={importRef}
-            className="sr-only"
-            type="file"
-            accept=".json,application/json"
-            aria-label="导入 Trend 配置文件"
-            onChange={importData}
-          />
-        </div>
-      </header>
+      <h1 className="sr-only">Trend 数据趋势</h1>
       {storageReady && (
-        <Suspense fallback={<p className="trend-sync-note">正在加载同步功能…</p>}>
+        <Suspense fallback={null}>
           <TrendSync state={state} onApply={applySyncedState} />
         </Suspense>
       )}

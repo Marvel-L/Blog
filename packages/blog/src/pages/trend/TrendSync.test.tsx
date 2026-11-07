@@ -1,7 +1,7 @@
 import { webcrypto } from 'node:crypto';
-import { StrictMode } from 'react';
+import { StrictMode, type ReactNode } from 'react';
 import { renderToString } from 'react-dom/server';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render as renderComponent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import TrendSync from './TrendSync';
 import { defaultState } from './model';
@@ -34,6 +34,11 @@ function mockPopup() {
 }
 function message(popup: Window, data: unknown, origin = api) {
   window.dispatchEvent(new MessageEvent('message', { data, origin, source: popup }));
+}
+function render(ui: ReactNode) {
+  const result = renderComponent(ui);
+  fireEvent.click(screen.getByRole('button', { name: /^云端同步：/ }));
+  return result;
 }
 describe('Trend 同步授权界面', () => {
   beforeEach(() => {
@@ -79,11 +84,147 @@ describe('Trend 同步授权界面', () => {
     expect(options.credentials).toBe('same-origin');
     expect(options.headers).toEqual({});
     act(() => window.dispatchEvent(new Event('dblog-account-change')));
-    expect(screen.getByRole('button', { name: '使用 GitHub 连接同步' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '登录账号并连接' })).toBeEnabled();
     expect(apply).toHaveBeenLastCalledWith(defaultState(), null);
     const calls = fetch.mock.calls.length;
     fireEvent(window, new Event('focus'));
     expect(fetch).toHaveBeenCalledTimes(calls);
+  });
+
+  it('默认只显示浮球，展开聚焦详情，关闭和 Escape 返回浮球，外部点击收起', () => {
+    vi.stubGlobal('fetch', vi.fn());
+    renderComponent(<TrendSync state={defaultState()} onApply={vi.fn()} />);
+    const orb = screen.getByRole('button', { name: '云端同步：连接云端同步' });
+    expect(orb).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('region', { name: '云端同步详情' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '使用 GitHub 连接同步' })).not.toBeInTheDocument();
+    fireEvent.click(orb);
+    expect(screen.getByRole('region', { name: '云端同步详情' })).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: '关闭同步详情' }));
+    expect(orb).toHaveFocus();
+    fireEvent.click(orb);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(orb).toHaveFocus();
+    expect(orb).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(orb);
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole('region', { name: '云端同步详情' })).not.toBeInTheDocument();
+  });
+
+  it('cloud 未登录显示中性浮球，打开统一账号登录，登录事件后经 API 验证身份', async () => {
+    vi.stubEnv('VITE_DEPLOY_TARGET', 'cloud');
+    vi.stubEnv('VITE_TREND_API_ORIGIN', window.location.origin);
+    const fetch = vi.fn(async (_url: string, _options: RequestInit) => dashboard());
+    fetch.mockResolvedValueOnce(new Response(null, { status: 401 }));
+    vi.stubGlobal('fetch', fetch);
+    const openAccount = vi.fn();
+    window.addEventListener('dblog-account-open', openAccount);
+    const popup = vi.spyOn(window, 'open');
+    const apply = vi.fn();
+    const component = render(<TrendSync state={defaultState()} onApply={apply} />);
+    await screen.findByText('登录账号后自动同步');
+    expect(screen.getByRole('button', { name: /^云端同步：/ })).not.toHaveClass('is-error');
+    fireEvent(window, new Event('focus'));
+    expect(fetch).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: '登录账号并连接' }));
+    expect(openAccount).toHaveBeenCalledTimes(1);
+    expect(popup).not.toHaveBeenCalled();
+    act(() =>
+      window.dispatchEvent(new CustomEvent('dblog-account-change', { detail: { user: { id: 'unverified' } } })),
+    );
+    await screen.findByText('alice · 云端同步');
+    expect(apply).toHaveBeenLastCalledWith(defaultState(), user);
+    expect(fetch.mock.calls[1][0]).toBe(`${window.location.origin}/api/v1/trend/dashboard`);
+    component.unmount();
+    window.removeEventListener('dblog-account-open', openAccount);
+  });
+
+  it.each(['disconnect', 'offline'])('cloud %s 后可点击重新连接现有会话，不需要重复登录', async (reason) => {
+    vi.stubEnv('VITE_DEPLOY_TARGET', 'cloud');
+    vi.stubEnv('VITE_TREND_API_ORIGIN', window.location.origin);
+    const fetch = vi.fn(async () => dashboard());
+    if (reason === 'offline') fetch.mockRejectedValueOnce(new Error('网络不可用'));
+    vi.stubGlobal('fetch', fetch);
+    const popup = vi.spyOn(window, 'open');
+    const apply = vi.fn();
+    render(<TrendSync state={defaultState()} onApply={apply} />);
+    if (reason === 'disconnect') {
+      await screen.findByText('alice · 云端同步');
+      fireEvent.click(screen.getByRole('button', { name: '断开同步' }));
+    } else await screen.findByText('网络不可用');
+    fireEvent.click(screen.getByRole('button', { name: reason === 'offline' ? '重试连接' : '登录账号并连接' }));
+    await screen.findByText('alice · 云端同步');
+    expect(apply).toHaveBeenLastCalledWith(defaultState(), user);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(popup).not.toHaveBeenCalled();
+  });
+
+  it('cloud 断开期间会话失效时，重新连接经 401 确认后打开账号登录', async () => {
+    vi.stubEnv('VITE_DEPLOY_TARGET', 'cloud');
+    vi.stubEnv('VITE_TREND_API_ORIGIN', window.location.origin);
+    const fetch = vi.fn(async () => dashboard());
+    vi.stubGlobal('fetch', fetch);
+    const openAccount = vi.fn();
+    window.addEventListener('dblog-account-open', openAccount);
+    const component = render(<TrendSync state={defaultState()} onApply={vi.fn()} />);
+    await screen.findByText('alice · 云端同步');
+    fireEvent.click(screen.getByRole('button', { name: '断开同步' }));
+    fetch.mockResolvedValueOnce(new Response(null, { status: 401 }));
+    fireEvent.click(screen.getByRole('button', { name: '登录账号并连接' }));
+    await waitFor(() => expect(openAccount).toHaveBeenCalledTimes(1));
+    expect(screen.getByText('登录账号后自动同步')).toBeInTheDocument();
+    expect(screen.queryByText('alice · 云端同步')).not.toBeInTheDocument();
+    component.unmount();
+    window.removeEventListener('dblog-account-open', openAccount);
+  });
+
+  it('浮球在编辑和请求等待时不显示已同步，失败标红，重试确认后恢复绿色', async () => {
+    cacheAuthorization();
+    let finish!: (response: Response) => void;
+    const fetch = vi.fn(async () => dashboard());
+    vi.stubGlobal('fetch', fetch);
+    const apply = vi.fn();
+    const component = render(<TrendSync state={defaultState()} onApply={apply} />);
+    await waitFor(() => expect(screen.getByRole('button', { name: /^云端同步：/ })).toHaveClass('is-synced'));
+    const edited = defaultState();
+    edited.categories[0].name = '待确认修改';
+    component.rerender(<TrendSync state={edited} onApply={apply} />);
+    const orb = screen.getByRole('button', { name: '云端同步：有修改待上传' });
+    expect(orb).not.toHaveClass('is-synced');
+    fetch.mockImplementationOnce(() => new Promise<Response>((resolve) => (finish = resolve)));
+    fireEvent.click(screen.getByRole('button', { name: '立即同步' }));
+    expect(orb).toHaveClass('is-busy');
+    expect(orb).not.toHaveClass('is-synced');
+    expect(screen.getByRole('button', { name: '立即同步' })).toBeDisabled();
+    await act(async () => finish(new Response(null, { status: 503 })));
+    expect(orb).toHaveClass('is-error');
+    expect(orb).not.toHaveClass('is-busy');
+    fetch.mockResolvedValueOnce(dashboard(edited, 2));
+    fireEvent.click(screen.getByRole('button', { name: '立即同步' }));
+    await waitFor(() => expect(orb).toHaveClass('is-synced'));
+    expect(orb).not.toHaveClass('is-error');
+    expect(screen.getByText(/^最近确认：/)).toBeInTheDocument();
+  });
+
+  it('版本冲突通过浮球提示并在详情中选择版本，采用云端后更新配置', async () => {
+    cacheAuthorization();
+    const local = defaultState();
+    local.categories[0].name = '本地修改';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => dashboard()),
+    );
+    const apply = vi.fn();
+    renderComponent(<TrendSync state={local} onApply={apply} />);
+    const orb = await screen.findByRole('button', { name: '云端同步：存在版本冲突' });
+    expect(orb).toHaveClass('is-error');
+    expect(screen.queryByText(/本地草稿与云端版本/)).not.toBeInTheDocument();
+    fireEvent.click(orb);
+    expect(screen.getByText(/本地草稿与云端版本 1 不同/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '立即同步' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: '采用云端版本' }));
+    expect(apply).toHaveBeenLastCalledWith(defaultState(), user);
+    expect(orb).not.toHaveClass('is-error');
   });
 
   it('仅接收匹配 origin/source/state 的授权消息，PKCE 交换后授权只保存在标签页', async () => {
@@ -236,8 +377,9 @@ describe('Trend 同步授权界面', () => {
     fetch.mockRejectedValueOnce(new Error('暂时离线'));
     vi.stubGlobal('fetch', fetch);
     await act(async () => {
-      render(<TrendSync state={defaultState()} onApply={vi.fn()} />);
+      renderComponent(<TrendSync state={defaultState()} onApply={vi.fn()} />);
     });
+    fireEvent.click(screen.getByRole('button', { name: /^云端同步：/ }));
     expect(screen.getByText('暂时离线')).toBeInTheDocument();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(15000);

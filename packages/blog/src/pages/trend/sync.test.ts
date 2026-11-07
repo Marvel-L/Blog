@@ -85,6 +85,32 @@ describe('Trend 自动同步', () => {
     f.engine.stop();
   });
 
+  it('连接、检查和上传只有收到成功响应后才确认，等待与失败状态如实发布', async () => {
+    const f = fixture(defaultState(), snapshot(defaultState(), 1));
+    const connection = deferred<SyncResponse>();
+    f.load.mockImplementationOnce(() => connection.promise);
+    const connecting = f.engine.connect(f.transport);
+    expect(f.view()).toMatchObject({ connecting: true, syncing: true, confirmedAt: null });
+    connection.resolve(response(snapshot(defaultState(), 1)));
+    await connecting;
+    expect(f.view()).toMatchObject({ connecting: false, syncing: false, pending: false, error: false });
+    const confirmed = f.view().confirmedAt;
+    expect(confirmed).not.toBeNull();
+    const polling = deferred<SyncResponse>();
+    f.load.mockImplementationOnce(() => polling.promise);
+    const checking = f.engine.tick();
+    expect(f.view()).toMatchObject({ status: '正在检查云端', syncing: true, confirmedAt: confirmed });
+    polling.reject(new Error('offline'));
+    await checking;
+    expect(f.view()).toMatchObject({ error: true, syncing: false, confirmedAt: confirmed });
+    f.engine.edit(state('修改'));
+    expect(f.view().pending).toBe(true);
+    await f.engine.tick();
+    expect(f.view()).toMatchObject({ pending: false, error: false, syncing: false });
+    f.engine.disconnect();
+    expect(f.view()).toMatchObject({ pending: false, syncing: false, confirmedAt: null });
+  });
+
   it('示例自动采用云端，已有本地修改先显示冲突，可显式上传本地版本', async () => {
     const clean = fixture(defaultState(), snapshot(state('云端零食'), 4));
     await clean.engine.connect(clean.transport);
@@ -282,13 +308,15 @@ describe('Trend 自动同步', () => {
     await f.engine.connect(f.transport);
     expect(storage.setItem).toHaveBeenCalledWith(draftKey(user.id), expect.any(String));
     expect(f.view().status).toContain('本地保存失败');
+    expect(f.view().error).toBe(true);
     expect(localStorage.getItem(draftKey(user.id))).toBeNull();
     await vi.advanceTimersByTimeAsync(700);
     expect(f.save).toHaveBeenCalledTimes(1);
-    expect(f.view().status).toBe('已同步到云端；本地保存失败，请导出备份');
+    expect(f.view().status).toBe('已同步到云端；本地保存失败，请检查浏览器存储权限');
     storage.setItem.mockImplementation(localStorage.setItem.bind(localStorage));
     f.engine.edit(state('存储恢复后的修改'));
     expect(f.view().status).not.toContain('本地保存失败');
+    expect(f.view().error).toBe(false);
     await vi.advanceTimersByTimeAsync(700);
     expect(f.view().status).toBe('已同步到云端');
     const saved = JSON.parse(localStorage.getItem(draftKey(user.id))!);

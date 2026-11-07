@@ -250,7 +250,7 @@ export const parseState = (raw: string): TrendState => {
     !hasUniqueIds(value.categories) ||
     !value.categories.some((category) => category.id === value.selectedId)
   ) {
-    throw new Error('Trend 数据格式不正确，请使用此页面导出的 JSON 文件。');
+    throw new Error('Trend 数据格式不正确，无法读取配置。');
   }
   return value as TrendState;
 };
