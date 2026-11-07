@@ -111,6 +111,9 @@ func New(c config.Config, db Persistence, exchange github.Exchange) http.Handler
 	mux.HandleFunc("PUT /api/v1/articles/reading", a.articleReading)
 	mux.HandleFunc("GET /api/v1/love/tasks", a.loveTasks)
 	mux.HandleFunc("PUT /api/v1/love/tasks", a.loveTasks)
+	// Confession archives derive account ownership exclusively from the session.
+	mux.HandleFunc("GET /api/v1/confessions", a.confessions)
+	mux.HandleFunc("PUT /api/v1/confessions", a.confessions)
 	mux.HandleFunc("GET /api/v1/planner/dashboard", a.getPlanner)
 	mux.HandleFunc("PUT /api/v1/planner/dashboard", a.putPlanner)
 	mux.HandleFunc("GET /api/v1/planner/daily", a.dailyPlanner)

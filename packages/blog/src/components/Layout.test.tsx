@@ -131,7 +131,11 @@ describe('Layout', () => {
     expect(screen.queryByRole('link', { name: /^(标签|统计|归档)$/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '积累' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: '沉沦之海' })).toHaveAttribute('href', '/ocean');
+    expect(screen.getByRole('link', { name: '忏悔' })).toHaveAttribute('href', '/confession');
     const links = screen.getAllByRole('link');
+    expect(links.indexOf(screen.getByRole('link', { name: '忏悔' }))).toBe(
+      links.indexOf(screen.getByRole('link', { name: '沉沦之海' })) + 1,
+    );
     expect(links.indexOf(screen.getByRole('link', { name: '沉沦之海' }))).toBeGreaterThan(
       links.indexOf(screen.getByRole('link', { name: 'Planner' })),
     );

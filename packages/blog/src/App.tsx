@@ -7,6 +7,7 @@ import React, { Suspense, lazy, useEffect, useState } from 'react';
 import './books/books.css';
 import './abilities/abilities.css';
 import './pages/ocean/ocean.css';
+import './pages/confession/confession.css';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { flushSync } from 'react-dom';
@@ -48,6 +49,7 @@ const SearchPage = lazy(pageLoaders['/search']);
 const TbdPostsPage = lazy(pageLoaders['/tbd']);
 const AccumulatePage = lazy(pageLoaders['/accumulate']);
 const OceanPage = lazy(pageLoaders['/ocean']);
+const ConfessionPage = lazy(pageLoaders['/confession']);
 const NotFound = lazy(() => import('./pages/NotFound').then((m) => ({ default: m.NotFound })));
 const CookieNotice = lazy(() => import('./components/CookieNotice').then((m) => ({ default: m.CookieNotice })));
 const TypewriterIntro = lazy(() =>
@@ -149,6 +151,28 @@ const AppRoutes: React.FC = () => {
 
   const isAnkiRoute = displayLocation.pathname.startsWith('/anki');
 
+  // 忏悔独立场景保留现有账号组件，场景匿名可见，私密交互由会话鉴权。
+  if (displayLocation.pathname.replace(/\/$/, '') === '/confession') {
+    return (
+      <>
+        {cloudReady && CloudAccount && (
+          <Suspense fallback={null}>
+            <CloudAccount />
+          </Suspense>
+        )}
+        <Suspense
+          fallback={
+            <main className="confession-page confession-loading">
+              <p role="status">正在穿过雾…</p>
+            </main>
+          }
+        >
+          <ConfessionPage />
+        </Suspense>
+      </>
+    );
+  }
+
   // 海洋体验使用独立全屏场景，不挂载博客导航、页脚或阅读区背景特效。
   if (displayLocation.pathname.replace(/\/$/, '') === '/ocean') {
     return (
@@ -225,7 +249,7 @@ const AppRoutes: React.FC = () => {
 
 const AppShell: React.FC = () => {
   const location = useLocation();
-  const isOceanRoute = location.pathname.replace(/\/$/, '') === '/ocean';
+  const isOceanRoute = ['/ocean', '/confession'].includes(location.pathname.replace(/\/$/, ''));
   const [introReady, setIntroReady] = useState(false);
   const [showCookieNotice, setShowCookieNotice] = useState(false);
 

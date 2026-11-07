@@ -23,6 +23,7 @@ const DEFAULT_STATIC_ROUTES = new Set([
   '/about',
   '/accumulate',
   '/ocean',
+  '/confession',
   '/cover',
   '/watermark',
   '/image-compress',

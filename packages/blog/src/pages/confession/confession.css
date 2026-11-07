@@ -1,0 +1,844 @@
+.confession-page {
+  --confession-void: #070c0e;
+  --confession-ink: #e8e9e3;
+  --confession-muted: #a1aaa7;
+  --confession-stone: #394345;
+  --confession-line: #687372;
+  --confession-paper: #d6d7cb;
+  --confession-accent: #bbc9c2;
+  position: relative;
+  width: 100%;
+  min-height: 100svh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--confession-void);
+  color: var(--confession-ink);
+  color-scheme: dark;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  isolation: isolate;
+}
+.confession-page button,
+.confession-page a,
+.confession-page input,
+.confession-page select,
+.confession-page textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+.confession-page button {
+  cursor: pointer;
+}
+.confession-page button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+.confession-page :is(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--confession-paper);
+  outline-offset: 5px;
+}
+.confession-loading {
+  display: grid;
+  place-items: center;
+}
+.confession-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.confession-world {
+  position: absolute;
+  width: max(100%, 177.734375dvh);
+  height: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: confession-arrive 1.5s ease-out both;
+}
+.confession-landscape {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: brightness(0.88);
+}
+.confession-vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 57% 55%, transparent 25%, #070c0e22 55%, #070c0eaa 100%),
+    linear-gradient(90deg, #070c0ecc, transparent 43%);
+  pointer-events: none;
+}
+.confession-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.045;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='.7'/%3E%3C/svg%3E");
+}
+.confession-fog {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--fog-density);
+}
+.confession-fog div {
+  position: absolute;
+  width: 160%;
+  height: 55%;
+  left: -30%;
+  bottom: -8%;
+  background:
+    radial-gradient(ellipse at 35% 60%, #bac5c567, transparent 55%),
+    radial-gradient(ellipse at 70% 80%, #9caeaf88, transparent 55%);
+  filter: blur(30px);
+  animation: confession-fog-breathe 13s ease-in-out infinite alternate;
+}
+.confession-fog div:nth-child(2) {
+  bottom: 17%;
+  height: 40%;
+  opacity: 0.48;
+  animation-duration: 19s;
+  animation-direction: alternate-reverse;
+}
+.confession-fog div:nth-child(3) {
+  bottom: 45%;
+  height: 22%;
+  opacity: 0.3;
+  animation-duration: 24s;
+}
+.confession-header {
+  position: absolute;
+  left: clamp(22px, 4vw, 64px);
+  right: clamp(22px, 4vw, 64px);
+  top: max(28px, env(safe-area-inset-top));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  z-index: 12;
+}
+.confession-brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  letter-spacing: 0.13em;
+  font-size: 13px;
+  color: var(--confession-ink);
+  text-decoration: none;
+}
+.confession-brand i {
+  font-style: normal;
+  opacity: 0.4;
+  margin: 0 9px;
+}
+.confession-header-actions {
+  display: flex;
+  gap: 26px;
+  align-items: center;
+  font-size: 12px;
+}
+.confession-header-actions :is(a, button) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--confession-muted);
+  padding: 8px 0;
+  text-decoration: none;
+  background: none;
+  border: 0;
+}
+.confession-header-actions :is(a, button):hover {
+  color: var(--confession-ink);
+}
+.confession-intro {
+  position: absolute;
+  left: clamp(26px, 6vw, 90px);
+  top: 23%;
+  z-index: 5;
+  pointer-events: none;
+}
+.confession-eyebrow {
+  display: block;
+  color: var(--confession-muted);
+  letter-spacing: 0.28em;
+  font-size: 9px;
+  line-height: 1.8;
+}
+.confession-intro h1,
+.confession-church-intro h1 {
+  font-family: 'Songti SC', 'Noto Serif SC', serif;
+  font-weight: 300;
+  line-height: 1.65;
+  letter-spacing: 0.14em;
+  font-size: clamp(30px, 3.3vw, 52px);
+  margin: 20px 0 18px;
+  text-shadow: 0 3px 20px var(--confession-void);
+}
+.confession-intro p,
+.confession-church-intro p {
+  font-size: 12px;
+  line-height: 2.1;
+  color: var(--confession-muted);
+  letter-spacing: 0.1em;
+}
+.confession-intro-link {
+  pointer-events: auto;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--confession-line);
+  color: var(--confession-ink);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 0;
+  margin-top: 30px;
+  font-size: 12px;
+}
+.confession-door {
+  position: absolute;
+  top: 43%;
+  left: 58%;
+  width: 6%;
+  height: 20%;
+  transform: translate(-50%, -50%);
+  background: none;
+  border: 0;
+  z-index: 4;
+}
+.confession-door-halo {
+  position: absolute;
+  inset: 10% 15%;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  transition:
+    box-shadow 0.4s,
+    border-color 0.4s;
+}
+.confession-door:hover .confession-door-halo {
+  box-shadow: 0 0 55px #e7ead950;
+  border-color: #e7ead938;
+}
+.confession-door-label {
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--confession-paper);
+  text-shadow: 0 2px 7px var(--confession-void);
+}
+.confession-tomb {
+  position: absolute;
+  left: var(--tomb-x);
+  top: var(--tomb-y);
+  width: clamp(98px, 8.2vw, 130px);
+  height: 165px;
+  transform: translate(-50%, -50%) scale(var(--tomb-scale));
+  transform-origin: center bottom;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  border-radius: 53% 53% 4% 4% / 32% 32% 3% 3%;
+  border: 1px solid var(--confession-line);
+  border-bottom: 9px solid #202c2e;
+  background: linear-gradient(105deg, #5a6563, #344143 45%, #253034);
+  color: var(--confession-paper);
+  box-shadow:
+    inset 5px 0 0 #c0c4ab14,
+    8px 12px 13px #0009;
+  transition:
+    filter 0.3s,
+    box-shadow 0.3s;
+}
+.confession-tomb:after {
+  content: '';
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  height: 9px;
+  bottom: -11px;
+  background: #28383b;
+  border: 1px solid #60706f;
+}
+.confession-tomb:hover {
+  filter: brightness(1.25);
+  box-shadow:
+    inset 5px 0 0 #c0c4ab14,
+    0 0 35px #c5d8d336;
+}
+.confession-tomb-cross {
+  position: relative;
+  width: 15px;
+  height: 23px;
+  opacity: 0.55;
+}
+.confession-tomb-cross:before,
+.confession-tomb-cross:after {
+  content: '';
+  position: absolute;
+  background: var(--confession-paper);
+}
+.confession-tomb-cross:before {
+  width: 1px;
+  height: 100%;
+  left: 50%;
+}
+.confession-tomb-cross:after {
+  height: 1px;
+  width: 100%;
+  top: 33%;
+}
+.confession-tomb-name {
+  font-family: 'Songti SC', serif;
+  letter-spacing: 0.14em;
+  font-size: 16px;
+  max-width: 90%;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+.confession-tomb-rule {
+  height: 1px;
+  width: 30%;
+  background: var(--confession-line);
+}
+.confession-tomb-count {
+  font-size: 9px;
+  color: var(--confession-muted);
+}
+.confession-crow-flight {
+  position: absolute;
+  top: 19%;
+  left: 15%;
+  width: 54px;
+  animation: confession-crow 26s linear infinite;
+  pointer-events: none;
+}
+.confession-crow-flight svg {
+  width: 100%;
+  fill: var(--confession-void);
+  animation: confession-wing 1.2s ease-in-out infinite alternate;
+}
+.confession-controls {
+  position: absolute;
+  bottom: max(28px, calc(env(safe-area-inset-bottom) + 20px));
+  left: clamp(22px, 4vw, 64px);
+  right: clamp(22px, 4vw, 64px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  z-index: 12;
+}
+.confession-control-actions {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  padding: 14px 20px;
+  background: #070c0e70;
+  border: 1px solid #899c942a;
+  backdrop-filter: blur(12px);
+  border-radius: 4px;
+}
+.confession-control-actions button {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border: 0;
+  background: none;
+  color: var(--confession-ink);
+  font-size: 12px;
+  padding: 0;
+}
+.confession-control-actions label {
+  font-size: 11px;
+  color: var(--confession-muted);
+  white-space: nowrap;
+}
+.confession-control-actions input[type='range'] {
+  width: 90px;
+  height: 2px;
+  accent-color: var(--confession-paper);
+}
+.confession-fog-value {
+  font-size: 10px;
+  color: var(--confession-muted);
+  font-variant-numeric: tabular-nums;
+  width: 30px;
+}
+.confession-private-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--confession-muted);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+.confession-status {
+  position: absolute;
+  left: 50%;
+  bottom: 110px;
+  transform: translateX(-50%);
+  z-index: 15;
+  color: var(--confession-ink);
+  font-size: 12px;
+  max-width: 80%;
+  text-align: center;
+  background: var(--confession-void);
+  border-radius: 3px;
+  line-height: 1.8;
+}
+.confession-status:not(:empty) {
+  padding: 8px 14px;
+  border: 1px solid var(--confession-line);
+}
+.confession-status button {
+  background: none;
+  border: 0;
+  color: var(--confession-paper);
+  text-decoration: underline;
+  margin-left: 12px;
+}
+.confession-church-intro {
+  position: absolute;
+  top: 23%;
+  left: clamp(26px, 6vw, 90px);
+  z-index: 5;
+}
+.confession-church-intro h1 {
+  font-size: 38px;
+}
+.confession-back {
+  position: absolute;
+  left: clamp(26px, 6vw, 90px);
+  bottom: 150px;
+  z-index: 6;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: none;
+  border: 0;
+  color: var(--confession-muted);
+  font-size: 12px;
+}
+.confession-saint-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 12%;
+  transform: translateX(-50%);
+  width: 44dvh;
+  height: 64dvh;
+  max-height: 680px;
+  z-index: 4;
+}
+.confession-saint {
+  position: absolute;
+  inset: 0;
+  background: none;
+  border: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  color: var(--confession-ink);
+}
+.confession-saint :is(img, video) {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  mask-image: radial-gradient(ellipse at 50% 50%, #000 42%, #000b 63%, transparent 78%);
+}
+.confession-saint-name {
+  position: absolute;
+  left: 50%;
+  bottom: -15px;
+  transform: translateX(-50%);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  white-space: nowrap;
+}
+.confession-saint-name i {
+  font-style: normal;
+  opacity: 0.35;
+}
+.confession-spotlight {
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(
+    from 160deg at 50% -5%,
+    transparent,
+    #f6f4df14 10deg,
+    #f6f4df28 20deg,
+    #f6f4df14 30deg,
+    transparent 40deg
+  );
+  pointer-events: none;
+  animation: confession-light 5s ease-in-out infinite alternate;
+}
+.confession-bubble {
+  position: absolute;
+  left: 82%;
+  top: 25%;
+  width: 210px;
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--confession-paper);
+  color: var(--confession-void);
+  border: 0;
+  border-radius: 20px 20px 20px 3px;
+  box-shadow: 0 7px 40px #0008;
+  animation: confession-bubble-in 0.3s ease-out both;
+  text-align: left;
+}
+.confession-bubble span {
+  font-family: 'Songti SC', serif;
+  font-size: 18px;
+}
+.confession-bubble small {
+  font-size: 10px;
+  opacity: 0.7;
+}
+.confession-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.confession-backdrop {
+  position: absolute;
+  inset: 0;
+  background: #020607b5;
+  backdrop-filter: blur(12px);
+}
+.confession-dialog {
+  position: relative;
+  width: min(540px, 100%);
+  max-height: 85dvh;
+  overflow: auto;
+  padding: 30px;
+  background: var(--confession-void);
+  border: 1px solid var(--confession-line);
+  box-shadow: 0 20px 100px #000a;
+  color: var(--confession-ink);
+  outline: none;
+}
+.confession-dialog > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+.confession-dialog h2 {
+  font-family: 'Songti SC', serif;
+  font-weight: 400;
+  font-size: 25px;
+  letter-spacing: 0.13em;
+  margin: 8px 0 0;
+}
+.confession-dialog > header button {
+  border: 0;
+  background: none;
+  color: var(--confession-muted);
+  padding: 4px;
+}
+.confession-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.confession-form p,
+.confession-login p {
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--confession-muted);
+}
+.confession-form label {
+  font-size: 12px;
+  margin-top: 8px;
+}
+.confession-page :is(input:not([type='range']), select, textarea) {
+  border: 1px solid var(--confession-line);
+  background: #10191c;
+  color: var(--confession-ink);
+  border-radius: 2px;
+  padding: 12px;
+  font: inherit;
+  font-size: 13px;
+}
+.confession-page textarea {
+  resize: vertical;
+  line-height: 1.9;
+}
+.confession-form-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 9px;
+  color: var(--confession-muted);
+}
+.confession-page .confession-primary {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  justify-content: center;
+  padding: 13px 18px;
+  border: 1px solid var(--confession-paper);
+  background: var(--confession-paper);
+  color: var(--confession-void);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+.confession-records {
+  list-style: none;
+  padding: 0;
+  max-height: 45dvh;
+  overflow: auto;
+  margin: 22px 0;
+}
+.confession-records li {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--confession-stone);
+}
+.confession-records time {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--confession-muted);
+}
+.confession-records p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 2;
+  font-size: 13px;
+  margin: 10px 0 0;
+}
+.confession-archive-caption {
+  font-size: 10px;
+  color: var(--confession-muted);
+}
+.confession-empty {
+  font-family: 'Songti SC', serif;
+  color: var(--confession-muted);
+  font-size: 14px;
+  line-height: 2;
+  margin: 35px 0;
+}
+.confession-form-error {
+  min-height: 0;
+}
+@keyframes confession-fog-breathe {
+  from {
+    transform: translate(-4%, 2%) scale(0.96);
+    opacity: 0.5;
+  }
+  to {
+    transform: translate(5%, -5%) scale(1.08);
+    opacity: 1;
+  }
+}
+@keyframes confession-arrive {
+  from {
+    opacity: 0;
+    filter: blur(7px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+@keyframes confession-crow {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  5% {
+    opacity: 0.7;
+  }
+  45% {
+    transform: translate(50vw, -7vh);
+    opacity: 0.7;
+  }
+  55%,
+  100% {
+    transform: translate(90vw, -11vh);
+    opacity: 0;
+  }
+}
+@keyframes confession-wing {
+  from {
+    transform: scaleY(0.5);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes confession-light {
+  from {
+    opacity: 0.7;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes confession-bubble-in {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.confession-grave-pages {
+  position: absolute;
+  left: 50%;
+  bottom: 19%;
+  transform: translateX(-50%);
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  color: var(--confession-muted);
+  font-size: 11px;
+}
+.confession-grave-pages button {
+  padding: 6px;
+  border: 0;
+  background: var(--confession-void);
+  color: var(--confession-ink);
+}
+.confession-grave-pages button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.confession-stage[data-still='true'] * {
+  animation: none !important;
+}
+@media (max-width: 760px) {
+  .confession-header {
+    top: 20px;
+    gap: 10px;
+  }
+  .confession-brand {
+    font-size: 11px;
+    gap: 8px;
+  }
+  .confession-header-actions {
+    gap: 16px;
+    font-size: 10px;
+  }
+  .confession-intro {
+    top: 16%;
+  }
+  .confession-intro h1 {
+    font-size: 29px;
+    margin-top: 12px;
+  }
+  .confession-intro p {
+    font-size: 10px;
+  }
+  .confession-eyebrow {
+    font-size: 7px;
+  }
+  .confession-intro-link {
+    margin-top: 15px;
+    font-size: 10px;
+  }
+  .confession-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+  .confession-control-actions {
+    justify-content: space-between;
+    gap: 10px;
+    padding: 13px;
+  }
+  .confession-control-actions input[type='range'] {
+    width: 70px;
+  }
+  .confession-private-note {
+    justify-content: center;
+  }
+  .confession-world {
+    width: 150dvh;
+  }
+  .confession-tomb {
+    width: 98px;
+    height: 140px;
+  }
+  .confession-tomb:nth-child(1) {
+    left: calc(50% - 108px);
+    top: 69%;
+  }
+  .confession-tomb:nth-child(2) {
+    left: calc(50% + 108px);
+    top: 71%;
+  }
+  .confession-tomb:nth-child(3) {
+    left: calc(50% - 63px);
+    top: 53%;
+  }
+  .confession-tomb:nth-child(4) {
+    left: calc(50% + 105px);
+    top: 52%;
+  }
+  .confession-tomb:nth-child(n + 5) {
+    left: calc(50% - 140px + 65px * (var(--tomb-index) - 4));
+    top: 59%;
+  }
+  .confession-grave-pages {
+    bottom: 23%;
+    gap: 9px;
+    font-size: 9px;
+  }
+  .confession-tomb-name {
+    font-size: 14px;
+  }
+  .confession-church-intro {
+    top: 14%;
+  }
+  .confession-church-intro h1 {
+    font-size: 29px;
+  }
+  .confession-church-intro p {
+    font-size: 10px;
+  }
+  .confession-saint-wrap {
+    bottom: 16%;
+    height: 55dvh;
+    width: 38dvh;
+  }
+  .confession-bubble {
+    left: 45%;
+    top: 17%;
+    width: 170px;
+    transform: translateX(-50%);
+    padding: 17px;
+  }
+  .confession-bubble span {
+    font-size: 16px;
+  }
+  .confession-dialog {
+    padding: 23px;
+  }
+  .confession-status {
+    bottom: 133px;
+  }
+  .confession-back {
+    bottom: 145px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confession-page * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

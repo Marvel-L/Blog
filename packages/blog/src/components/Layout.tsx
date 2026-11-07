@@ -33,6 +33,7 @@ import {
   TrendingUp,
   CalendarDays,
   Waves,
+  Church,
   CloudSun,
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -116,6 +117,7 @@ const navItems: NavPathItem[] = [
   { path: '/trend', label: 'Trend', hint: '数据趋势与比较', icon: TrendingUp },
   { path: '/planner', label: 'Planner', hint: '月度计划与待办', icon: CalendarDays },
   { path: '/ocean', label: '沉沦之海', hint: '坠入一片静谧深海', icon: Waves },
+  { path: '/confession', label: '忏悔', hint: '让过错安眠，向微光倾诉', icon: Church },
   { path: '/about', label: TEXT.navAbout, hint: '站点介绍', icon: Info },
 ];
 
