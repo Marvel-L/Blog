@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowUpRight, Church, Feather, LockKeyhole, Pause, Play, Plus } from 'lucide-react';
+import { ArrowUpRight, Church, Feather, LockKeyhole, Pause, Play, Plus } from 'lucide-react';
 import { Seo } from '@/components/Seo';
 import { ConfessionScene } from './confession/ConfessionScene';
 import { ConfessionDialog } from './confession/ConfessionDialog';
@@ -63,9 +63,11 @@ function ConfessionExperience({ archive }: { archive: ReturnType<typeof useConfe
         fog={fog}
         paused={paused}
         bubble={bubble}
+        blocked={modal !== null}
         onTomb={(category) => guard(() => setModal(category))}
-        onChurch={() => {
-          setChurchView(true);
+        onChurch={(inside) => {
+          setChurchView(inside);
+          if (!inside) setBubble(false);
           setMessage('');
         }}
         onSaint={() => guard(() => setBubble(true))}
@@ -119,19 +121,6 @@ function ConfessionExperience({ archive }: { archive: ReturnType<typeof useConfe
           <h1>我在听。</h1>
           <p>点击凛，把今天想说的留在这里。</p>
         </div>
-      )}
-      {churchView && (
-        <button
-          className="confession-back"
-          type="button"
-          onClick={() => {
-            setChurchView(false);
-            setBubble(false);
-          }}
-        >
-          <ArrowLeft size={16} />
-          回到墓地
-        </button>
       )}
       <footer className="confession-controls">
         <div className="confession-control-actions">

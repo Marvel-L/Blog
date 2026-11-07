@@ -14,6 +14,29 @@ vi.mock('@/cloud/api', async (original) => ({
   ...(await original<typeof import('@/cloud/api')>()),
   cloudRequest: requests.fetch,
 }));
+vi.mock('./ConfessionWorld', () => ({
+  ConfessionWorld: class {
+    constructor(
+      _host: HTMLElement,
+      private callbacks: { onReady: () => void; onRegion: (inside: boolean) => void },
+    ) {
+      queueMicrotask(() => callbacks.onReady());
+    }
+    setState() {}
+    enterChurch() {
+      this.callbacks.onRegion(true);
+    }
+    returnToGraves() {
+      this.callbacks.onRegion(false);
+    }
+    focusGrave() {}
+    projectSaint() {
+      return { x: 50, y: 32, visible: true };
+    }
+    moveTouch() {}
+    dispose() {}
+  },
+}));
 const view = () => (
   <HelmetProvider>
     <MemoryRouter initialEntries={['/confession']}>
@@ -39,6 +62,7 @@ describe('confession experience', () => {
     requests.fetch.mockResolvedValue({ user: null });
     render(view());
     await waitFor(() => expect(requests.fetch).toHaveBeenCalledWith('/me', expect.anything()));
+    await waitFor(() => expect(screen.getByRole('button', { name: '进入教堂' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: '进入教堂' }));
     expect(screen.getByText('我在听。')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '与圣女凛交谈' }));
@@ -46,6 +70,9 @@ describe('confession experience', () => {
     expect(screen.queryByRole('textbox', { name: '你的记事' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '关闭弹窗' }));
     fireEvent.click(screen.getByRole('button', { name: '回到墓地' }));
+    expect(screen.getByRole('button', { name: '进入教堂' })).toBeEnabled();
+    expect(screen.queryByText('我在听。')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '与圣女凛交谈' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '查看墓碑：失败' }));
     expect(screen.getByRole('dialog', { name: '请登录' })).toBeInTheDocument();
     expect(requests.fetch).not.toHaveBeenCalledWith('/confessions', expect.anything());
@@ -116,6 +143,7 @@ describe('confession experience', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: '查看墓碑：拖延' })).toBeInTheDocument());
     fireEvent.change(screen.getByLabelText('雾的浓度'), { target: { value: '80' } });
     expect(screen.getByLabelText('雾的浓度')).toHaveValue('80');
+    await waitFor(() => expect(screen.getByRole('button', { name: '进入教堂' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: '进入教堂' }));
     fireEvent.click(screen.getByRole('button', { name: '与圣女凛交谈' }));
     expect(screen.getByRole('button', { name: /你今天想忏什么/ })).toBeInTheDocument();

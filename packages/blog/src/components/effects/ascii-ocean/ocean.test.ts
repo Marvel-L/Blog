@@ -18,7 +18,8 @@ describe('ASCII 海洋独立场景', () => {
     [1280, 320],
   ])('鲸鱼在 %s×%s 视口中始终可见，且没有鱼群或蓝色粒子', (width, height) => {
     const context = { setTransform: vi.fn(), clearRect: vi.fn(), fillRect: vi.fn(), fillText: vi.fn() };
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context as unknown as CanvasRenderingContext2D);
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(((kind: string) =>
+      kind === '2d' ? context : null) as HTMLCanvasElement['getContext']);
     const renderer = new AsciiRenderer(document.createElement('canvas'));
     renderer.updateSettings({ species: 'whale', dotDensity: 0, cellSize: 7 });
     renderer.resize(width, height, 1);

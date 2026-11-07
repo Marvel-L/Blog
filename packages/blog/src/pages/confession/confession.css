@@ -836,6 +836,153 @@
     bottom: 145px;
   }
 }
+/* World-space scene overrides: no landscape images, CSS gravestones or screen fog. */
+.confession-webgl {
+  position: absolute;
+  inset: 0;
+}
+.confession-webgl canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+.confession-3d .confession-world-hud {
+  position: absolute;
+  bottom: 110px;
+  left: 26px;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  max-width: calc(100% - 52px);
+  font-size: 11px;
+}
+.confession-world-hud p {
+  width: 100%;
+  margin: 0;
+  color: var(--confession-paper);
+  text-shadow: 0 2px 4px #000;
+}
+.confession-world-hud button,
+.confession-grave-index summary {
+  color: var(--confession-paper);
+  border: 1px solid #8b9a8b66;
+  background: #101b20bb;
+  border-radius: 3px;
+  padding: 8px 12px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.confession-grave-index {
+  position: relative;
+}
+.confession-grave-index > div {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 8px;
+  background: #101b20ee;
+  padding: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 280px;
+  max-height: 240px;
+  overflow: auto;
+}
+.confession-crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border: 1px solid #d5dbcf88;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.confession-world-loading,
+.confession-world-error {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9;
+  text-align: center;
+}
+.confession-world-error {
+  background: var(--confession-void);
+  padding: 25px;
+  width: min(420px, 85%);
+}
+.confession-world-error button {
+  background: none;
+  color: var(--confession-paper);
+  border: 1px solid var(--confession-line);
+  padding: 9px 14px;
+}
+.confession-world-bubble {
+  z-index: 25;
+  transform: translate(-50%, -100%);
+  width: 230px;
+  border-radius: 17px 17px 3px 17px;
+}
+.confession-page > .confession-intro,
+.confession-page > .confession-church-intro {
+  top: 100px;
+  pointer-events: none;
+}
+.confession-page > .confession-intro h1,
+.confession-page > .confession-church-intro h1 {
+  font-size: 27px;
+  margin: 8px 0;
+}
+.confession-page > .confession-intro p,
+.confession-page > .confession-church-intro p {
+  font-size: 10px;
+}
+.confession-page > .confession-intro .confession-intro-link {
+  margin-top: 8px;
+}
+.confession-touch-controls {
+  display: none;
+  position: absolute;
+  right: 22px;
+  bottom: 155px;
+  z-index: 10;
+  gap: 6px;
+}
+.confession-touch-controls button {
+  color: var(--confession-ink);
+  background: #172329bb;
+  border: 1px solid var(--confession-line);
+  padding: 14px 10px;
+  touch-action: none;
+  font-size: 11px;
+}
+@media (pointer: coarse) {
+  .confession-touch-controls {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .confession-world-hud {
+    bottom: 155px !important;
+    max-width: 55% !important;
+  }
+}
+@media (max-width: 760px) {
+  .confession-world-bubble {
+    width: 200px;
+  }
+  .confession-page > .confession-intro,
+  .confession-page > .confession-church-intro {
+    top: 74px;
+  }
+  .confession-world-hud {
+    bottom: 150px !important;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .confession-page * {
     animation: none !important;

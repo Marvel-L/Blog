@@ -1,28 +1,14 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import cemetery from '@/assets/confession/cemetery.jpg';
-import church from '@/assets/confession/church-empty.jpg';
-import saint from '@/assets/confession/rin-saint.jpg';
-import saintMotion from '@/assets/confession/rin-saint.mp4';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import type { ConfessionWorld } from './ConfessionWorld';
 import type { ConfessionCategory, ConfessionState } from './model';
-const spots = [
-  { x: 20, y: 69, s: 1 },
-  { x: 76, y: 68, s: 0.94 },
-  { x: 32, y: 53, s: 0.72 },
-  { x: 66, y: 50, s: 0.66 },
-];
-const spotAt = (index: number) =>
-  spots[index] ?? {
-    x: index % 2 ? 69 + (index % 5) * 3 : 17 + (index % 5) * 4,
-    y: 44 + (Math.floor((index - 4) / 2) % 5) * 6,
-    s: 0.54,
-  };
 export function ConfessionScene({
   churchView,
   state,
   fog,
   paused,
   bubble,
+  blocked,
   onTomb,
   onChurch,
   onSaint,
@@ -33,149 +19,174 @@ export function ConfessionScene({
   fog: number;
   paused: boolean;
   bubble: boolean;
+  blocked: boolean;
   onTomb: (category: ConfessionCategory) => void;
-  onChurch: () => void;
+  onChurch: (inside: boolean) => void;
   onSaint: () => void;
   onWrite: () => void;
 }) {
+  const host = useRef<HTMLDivElement>(null);
+  const world = useRef<ConfessionWorld | null>(null);
+  const callbacks = useRef({ onTomb, onChurch, onSaint });
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState('');
+  const [hint, setHint] = useState('正在加载三维素材…');
+  const [retry, setRetry] = useState(0);
   const reduced = useReducedMotion(true);
-  const video = useRef<HTMLVideoElement>(null);
-  const [motionFailed, setMotionFailed] = useState(false);
-  const [tombPage, setTombPage] = useState(0);
-  const pageCount = Math.max(1, Math.ceil(state.categories.length / 8));
-  const activePage = Math.min(tombPage, pageCount - 1);
-  const visibleCategories = state.categories.slice(activePage * 8, activePage * 8 + 8);
+  const settings = useRef({ state, fog, paused, blocked, reduced });
+  const [anchor, setAnchor] = useState({ x: 50, y: 30, visible: true });
   useEffect(() => {
-    const media = video.current;
-    if (!media) return;
+    callbacks.current = { onTomb, onChurch, onSaint };
+  });
+  useEffect(() => {
+    settings.current = { state, fog, paused, blocked, reduced };
+    world.current?.setState(state.categories, fog, paused, blocked, reduced);
+  }, [state, fog, paused, blocked, reduced]);
+  useEffect(() => {
     let disposed = false;
-    const sync = () => {
-      if (paused || reduced || document.hidden) media.pause();
-      else {
-        void media.play().catch(() => {
-          if (!disposed) setMotionFailed(true);
-        });
-      }
-    };
-    sync();
-    document.addEventListener('visibilitychange', sync);
+    setError('');
+    setReady(false);
+    void import('./ConfessionWorld')
+      .then(({ ConfessionWorld }) => {
+        if (disposed || !host.current) return;
+        try {
+          const instance = new ConfessionWorld(host.current, {
+            onTomb: (c) => callbacks.current.onTomb(c),
+            onSaint: () => callbacks.current.onSaint(),
+            onRegion: (v) => callbacks.current.onChurch(v),
+            onReady: () => {
+              if (!disposed) setReady(true);
+            },
+            onError: (m) => {
+              if (!disposed) setError(m);
+            },
+            onHint: (m) => {
+              if (!disposed) setHint(m);
+            },
+          });
+          world.current = instance;
+          const s = settings.current;
+          instance.setState(s.state.categories, s.fog, s.paused, s.blocked, s.reduced);
+        } catch {
+          if (!disposed) setError('当前浏览器无法启动三维场景，请检查WebGL支持并重试');
+        }
+      })
+      .catch(() => {
+        if (!disposed) setError('三维场景加载失败，请重试');
+      });
     return () => {
       disposed = true;
-      media.pause();
-      document.removeEventListener('visibilitychange', sync);
+      world.current?.dispose();
+      world.current = null;
     };
-  }, [churchView, paused, reduced, motionFailed]);
-  const still = paused || reduced;
+  }, [retry]);
+  useEffect(() => {
+    if (!bubble) return;
+    let frame = 0;
+    let last = 0;
+    const update = (now: number) => {
+      if (now - last > 80) {
+        const p = world.current?.projectSaint();
+        if (p) setAnchor(p);
+        last = now;
+      }
+      frame = requestAnimationFrame(update);
+    };
+    frame = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(frame);
+  }, [bubble]);
+  const goInside = () => world.current?.enterChurch();
+  const move = (forward: number, right: number) => world.current?.moveTouch(forward, right);
   return (
-    <div className="confession-stage" data-still={still} data-church={churchView}>
-      <div className="confession-world" key={churchView ? 'church' : 'cemetery'}>
-        <img src={churchView ? church : cemetery} alt="" className="confession-landscape" draggable={false} />
-        {!churchView && (
-          <>
-            <button type="button" className="confession-door" onClick={onChurch} aria-label="进入教堂">
-              <span className="confession-door-halo" />
-              <span className="confession-door-label">循光入内</span>
-            </button>
-            <div className="confession-tombstones" aria-label="归档墓碑">
-              {visibleCategories.map((category, index) => {
-                const spot = spotAt(index);
-                const count = state.entries.filter((entry) => entry.categoryId === category.id).length;
-                return (
-                  <button
-                    type="button"
-                    className="confession-tomb"
-                    key={category.id}
-                    onClick={() => onTomb(category)}
-                    style={
-                      {
-                        '--tomb-x': `${spot.x}%`,
-                        '--tomb-y': `${spot.y}%`,
-                        '--tomb-scale': spot.s,
-                        '--tomb-index': index,
-                      } as CSSProperties
-                    }
-                    aria-label={`查看墓碑：${category.name}`}
-                  >
-                    <span className="confession-tomb-cross" aria-hidden="true" />
-                    <span className="confession-tomb-name">{category.name}</span>
-                    <span className="confession-tomb-rule" />
-                    <span className="confession-tomb-count">{count ? `${count} 则记事` : '静候归档'}</span>
-                  </button>
-                );
-              })}
-            </div>
-            {pageCount > 1 && (
-              <nav className="confession-grave-pages" aria-label="墓碑分区">
-                <button type="button" disabled={activePage === 0} onClick={() => setTombPage(activePage - 1)}>
-                  上一片墓地
-                </button>
-                <span>
-                  {activePage + 1} / {pageCount}
-                </span>
-                <button
-                  type="button"
-                  disabled={activePage === pageCount - 1}
-                  onClick={() => setTombPage(activePage + 1)}
-                >
-                  下一片墓地
-                </button>
-              </nav>
-            )}
-            <div className="confession-crow-flight" aria-hidden="true">
-              <svg viewBox="0 0 120 40">
-                <path d="M2 20 Q24 -7 50 18 Q68 -7 104 15 L63 26 L58 37 L51 27Z" />
-              </svg>
-            </div>
-          </>
+    <div className="confession-stage confession-3d" data-church={churchView}>
+      <div ref={host} className="confession-webgl" />
+      {!ready && !error && (
+        <p className="confession-world-loading" role="status">
+          正在构建墓地与教堂…
+        </p>
+      )}
+      {error && (
+        <div className="confession-world-error" role="alert">
+          <p>{error}</p>
+          <button type="button" onClick={() => setRetry((v) => v + 1)}>
+            重新加载场景
+          </button>
+        </div>
+      )}
+      {ready && <div className="confession-crosshair" aria-hidden="true" />}
+      <div className="confession-world-hud">
+        <p role="status">{error || hint}</p>
+        {!churchView ? (
+          <button type="button" onClick={goInside} disabled={!ready || blocked}>
+            进入教堂
+          </button>
+        ) : (
+          <button type="button" onClick={() => world.current?.returnToGraves()} disabled={blocked}>
+            回到墓地
+          </button>
         )}
-        {churchView && (
-          <>
-            <div className="confession-spotlight" aria-hidden="true" />
-            <div className="confession-saint-wrap">
+        <details className="confession-grave-index">
+          <summary>墓碑目录 · {state.categories.length}</summary>
+          <div>
+            {state.categories.map((c, i) => (
               <button
+                key={c.id}
                 type="button"
-                className="confession-saint"
-                onClick={onSaint}
-                aria-label="与圣女凛交谈"
-                aria-expanded={bubble}
+                aria-label={`查看墓碑：${c.name}`}
+                onClick={() => {
+                  world.current?.focusGrave(i);
+                  onTomb(c);
+                }}
               >
-                {still || motionFailed ? (
-                  <img src={saint} alt="修女服志摩凛" />
-                ) : (
-                  <video
-                    ref={video}
-                    src={saintMotion}
-                    poster={saint}
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    preload="metadata"
-                    onError={() => setMotionFailed(true)}
-                    aria-hidden="true"
-                  />
-                )}
-                <span className="confession-saint-name">
-                  志摩凛 <i>／</i> 圣女
-                </span>
+                {c.name}
               </button>
-              {bubble && (
-                <button type="button" className="confession-bubble" onClick={onWrite}>
-                  <span>你今天想忏什么</span>
-                  <small>点击，写下你的内容</small>
-                </button>
-              )}
-            </div>
-          </>
+            ))}
+          </div>
+        </details>
+        {churchView && (
+          <button type="button" onClick={onSaint}>
+            与圣女凛交谈
+          </button>
         )}
       </div>
-      <div className="confession-vignette" aria-hidden="true" />
-      <div className="confession-fog" aria-hidden="true" style={{ '--fog-density': fog / 100 } as CSSProperties}>
-        <div />
-        <div />
-        <div />
+      <div className="confession-touch-controls" aria-label="场景移动控制">
+        {[
+          ['前进', 1, 0],
+          ['左移', 0, -1],
+          ['后退', -1, 0],
+          ['右移', 0, 1],
+        ].map(([label, f, r]) => (
+          <button
+            key={label}
+            type="button"
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture(e.pointerId);
+              move(Number(f), Number(r));
+            }}
+            onPointerUp={() => move(0, 0)}
+            onPointerCancel={() => move(0, 0)}
+            aria-label={String(label)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
-      <div className="confession-grain" aria-hidden="true" />
+      {bubble && churchView && (
+        <button
+          type="button"
+          className="confession-bubble confession-world-bubble"
+          onClick={onWrite}
+          style={
+            {
+              left: `${Math.min(79, Math.max(20, anchor.x))}%`,
+              top: `${Math.min(58, Math.max(19, anchor.y))}%`,
+            } as CSSProperties
+          }
+        >
+          <span>你今天想忏什么</span>
+          <small>点击，写下你的内容</small>
+        </button>
+      )}
     </div>
   );
 }

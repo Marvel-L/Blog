@@ -18,7 +18,8 @@ describe('AsciiOceanField 渲染与生命周期', () => {
     hidden = false;
     nextFrame = undefined;
     vi.clearAllMocks();
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context as unknown as CanvasRenderingContext2D);
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(((kind: string) =>
+      kind === '2d' ? context : null) as HTMLCanvasElement['getContext']);
     vi.spyOn(document, 'hidden', 'get').mockImplementation(() => hidden);
     vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
       nextFrame = callback;
