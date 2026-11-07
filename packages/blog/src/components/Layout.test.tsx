@@ -200,13 +200,14 @@ describe('Layout', () => {
     await waitFor(() => expect(document.querySelectorAll('.site-shell > canvas')).toHaveLength(2));
   });
 
-  it('Book 的天空随 Love 面进入和退出切换', async () => {
+  it('Book 进入 Love 面沿用天空，退出后恢复书架背景标记', async () => {
     const user = userEvent.setup();
     renderLayout(['/book']);
     await user.click(screen.getByRole('button', { name: '进入 Love 面' }));
     await screen.findByRole('region', { name: 'Love 首页' });
     expect(document.querySelector('.site-shell')).not.toHaveAttribute('data-book-sky');
-    expect(document.querySelector('.book-sky-world')).not.toBeInTheDocument();
+    expect(document.querySelector('.book-sky-world')).toBeInTheDocument();
+    expect(document.querySelector('.site-shell')).toHaveAttribute('data-sky-background', 'true');
     await user.click(screen.getByRole('button', { name: '退出 Love 面' }));
     await waitFor(() => expect(document.querySelector('.site-shell')).toHaveAttribute('data-book-sky', 'true'));
     expect(document.querySelector('.book-sky-world')).toBeInTheDocument();
@@ -266,16 +267,34 @@ describe('Layout', () => {
     });
   });
 
-  it('Love 面覆盖全站天空，退出后恢复个人背景选择', async () => {
+  it('Love 面沿用全站天空，退出后保留个人背景选择', async () => {
     const user = userEvent.setup();
     window.localStorage.setItem(BACKGROUND_APPEARANCE_KEY, 'sky');
     renderLayout(['/archive']);
     await user.click(screen.getByRole('button', { name: '进入 Love 面' }));
     await screen.findByRole('region', { name: 'Love 首页' });
-    expect(document.querySelector('.book-sky-world')).not.toBeInTheDocument();
+    expect(document.querySelector('.book-sky-world')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '退出 Love 面' }));
     await waitFor(() => expect(document.querySelector('.book-sky-world')).toBeInTheDocument());
     expect(window.localStorage.getItem(BACKGROUND_APPEARANCE_KEY)).toBe('sky');
+  });
+
+  it('默认背景进入 Love 时展示全屏天空，退出后恢复默认背景', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(BACKGROUND_APPEARANCE_KEY, 'default');
+    renderLayout(['/archive']);
+    expect(document.querySelector('.book-sky-world')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '进入 Love 面' }));
+    await screen.findByRole('region', { name: 'Love 首页' });
+    const shell = document.querySelector('.site-shell')!;
+    expect(shell).toHaveAttribute('data-sky-background', 'true');
+    expect(shell.firstElementChild).toHaveClass('book-sky-world');
+    expect(shell.querySelector('main .book-sky-world')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '文章' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '退出 Love 面' }));
+    await waitFor(() => expect(shell).not.toHaveAttribute('data-sky-background'));
+    expect(document.querySelector('.book-sky-world')).not.toBeInTheDocument();
+    expect(window.localStorage.getItem(BACKGROUND_APPEARANCE_KEY)).toBe('default');
   });
 
   it('新访客默认开启小雨、Ascall 鲸鱼和 Aa 排版', async () => {
@@ -658,6 +677,27 @@ describe('Layout', () => {
     expect(screen.queryByRole('button', { name: '打开更多菜单' })).not.toBeInTheDocument();
     expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument();
     expect(document.querySelector('canvas')).not.toBeInTheDocument();
+  });
+
+  it('Love 导航提供必做入口，点击后显示登录提示，再次点击收起', async () => {
+    const user = userEvent.setup();
+    renderLayout();
+    expect(screen.queryByRole('button', { name: '必做' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '进入 Love 面' }));
+    await screen.findByRole('region', { name: 'Love 首页' });
+    const buttons = screen.getAllByRole('button', { name: '必做' });
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0].parentElement).toBe(screen.getByRole('button', { name: '退出 Love 面' }).parentElement);
+    expect(screen.getByRole('button', { name: '退出 Love 面' }).nextElementSibling).toBe(buttons[0]);
+    await user.click(buttons[0]);
+    expect(screen.getByText('必做清单需要登录云端账号。')).toBeInTheDocument();
+    expect(buttons[0]).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('navigation', { name: '移动端底部导航' })).not.toBeInTheDocument();
+    await user.click(buttons[0]);
+    expect(screen.queryByText('必做清单需要登录云端账号。')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '退出 Love 面' }));
+    expect((await screen.findAllByRole('link', { name: '文章' })).length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: '必做' })).not.toBeInTheDocument();
   });
 
   it('cloud 构建：头部 Anki 入口是 /anki 同源路由链接，DOM 顺序在品牌与 Love 按钮之间', () => {

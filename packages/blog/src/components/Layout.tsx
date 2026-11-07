@@ -524,14 +524,14 @@ const LoveEffectToggle = ({
       <button
         type="button"
         onClick={() => setIsMenuOpen((open) => !open)}
-        className="group relative inline-flex h-11 w-11 items-center justify-center rounded-icon border border-white/22 bg-white/14 text-white transition-colors hover:border-white/36 hover:bg-white/22"
+        className="frosted-control group relative inline-flex h-11 w-11 items-center justify-center transition-colors"
         aria-label={`Love 面特效，当前${currentEffectLabel}`}
         aria-haspopup="dialog"
         aria-expanded={isMenuOpen}
         aria-controls={menuId}
       >
         <Sparkles size={18} aria-hidden="true" />
-        <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-control border border-white/24 bg-[rgba(96,34,62,0.88)] px-2 py-1 text-xs text-rose-50 opacity-0 transition-opacity group-hover:opacity-100 group-aria-expanded:opacity-0">
+        <span className="frosted-panel pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap px-2 py-1 text-xs opacity-0 transition-opacity group-hover:opacity-100 group-aria-expanded:opacity-0">
           特效
         </span>
       </button>
@@ -541,10 +541,10 @@ const LoveEffectToggle = ({
           id={menuId}
           role="dialog"
           aria-label="Love 面特效"
-          className="absolute right-0 top-full z-popover mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-surface border border-white/22 bg-[rgba(108,38,70,0.84)] p-3 text-white shadow-lg backdrop-blur-xl"
+          className="frosted-panel absolute right-0 top-full z-popover mt-2 w-64 max-w-[calc(100vw-2rem)] p-3"
         >
           <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">Love Effect</p>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] opacity-50">Love Effect</p>
             <div className="grid gap-1.5" role="group" aria-label="Love 面人名特效">
               {LOVE_EFFECT_OPTIONS.map((option) => {
                 const active = loveNameEffect === option.id;
@@ -560,14 +560,12 @@ const LoveEffectToggle = ({
                     }}
                     className={`flex min-h-11 items-center justify-between rounded-control border px-3 py-2 text-left text-sm font-semibold transition-colors ${
                       active
-                        ? 'border-white/20 bg-white text-[#52172a]'
-                        : 'border-white/10 bg-white/6 text-white hover:border-white/20 hover:bg-white/10'
+                        ? 'border-sky-600/30 bg-sky-100/30 text-sky-900 dark:border-sky-200/30 dark:bg-sky-200/10 dark:text-sky-100'
+                        : 'border-transparent text-slate-600 hover:bg-white/10 dark:text-slate-300'
                     }`}
                   >
                     <span>{option.label}</span>
-                    <span className={`text-[10px] font-normal ${active ? 'text-[#7a3149]' : 'text-white/54'}`}>
-                      {option.hint}
-                    </span>
+                    <span className="text-[10px] font-normal opacity-60">{option.hint}</span>
                   </button>
                 );
               })}
@@ -776,6 +774,8 @@ const Navbar = ({
   onAtmosphereEffectToggle,
   isLoveMode,
   onToggleLoveMode,
+  loveTasksOpen,
+  onToggleLoveTasks,
   loveNameEffect,
   onLoveNameEffectChange,
 }: {
@@ -790,6 +790,8 @@ const Navbar = ({
   onAtmosphereEffectToggle: (effect: AtmosphereEffectId) => void;
   isLoveMode: boolean;
   onToggleLoveMode: () => void;
+  loveTasksOpen: boolean;
+  onToggleLoveTasks: () => void;
   loveNameEffect: LoveNameEffect;
   onLoveNameEffectChange: (effect: LoveNameEffect) => void;
 }) => {
@@ -1252,7 +1254,7 @@ const Navbar = ({
       <nav
         className={`site-navbar fixed left-0 right-0 top-0 ${isMobileNavMounted ? 'z-nav-panel' : 'z-nav'} border-b ${
           isLoveMode
-            ? 'border-white/18 bg-[rgba(126,52,84,0.46)] text-white backdrop-blur-xl lg:border-white/16 lg:bg-[rgba(126,52,84,0.34)]'
+            ? 'love-sky-nav border-transparent backdrop-blur-xl'
             : 'border-zinc-200/80 bg-paper/95 dark:border-zinc-800 dark:bg-void/95 lg:border-transparent lg:bg-paper lg:dark:border-transparent lg:dark:bg-void'
         }`}
       >
@@ -1311,6 +1313,26 @@ const Navbar = ({
                 {isLoveMode ? 'Love 面' : 'Love'}
               </span>
             </button>
+            {isLoveMode && (
+              <button
+                type="button"
+                onClick={onToggleLoveTasks}
+                aria-pressed={loveTasksOpen}
+                className={`group relative ml-3 inline-flex h-10 shrink-0 items-center px-2 py-1 text-sm font-semibold tracking-wide transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-100 sm:ml-5 ${
+                  loveTasksOpen ? 'text-white' : 'text-rose-100 hover:text-white'
+                }`}
+              >
+                必做
+                <span
+                  aria-hidden="true"
+                  className={`absolute bottom-[2px] left-2 right-2 h-[2px] bg-rose-100 transition-[transform,opacity] duration-200 ${
+                    loveTasksOpen
+                      ? 'scale-x-100 opacity-100'
+                      : 'scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-70'
+                  }`}
+                />
+              </button>
+            )}
           </div>
 
           <div className="hidden min-w-0 shrink items-center gap-4 lg:flex">
@@ -1393,7 +1415,7 @@ const Navbar = ({
           <div className="flex items-center gap-1.5 lg:hidden">
             {/* 移动端顶栏保留主题切换与待补完入口：搜索/导航入口下沉到底部标签栏 */}
             {isLoveMode ? (
-              <div className="flex items-center">
+              <div className="flex items-center gap-1">
                 <LoveEffectToggle loveNameEffect={loveNameEffect} onLoveNameEffectChange={onLoveNameEffectChange} />
               </div>
             ) : (
@@ -1650,18 +1672,15 @@ const BackgroundWithEffect = ({
   return (
     <div
       className={`pointer-events-none fixed inset-0 z-[-1] overflow-hidden transition-[background,color] duration-700 ${
-        isLoveMode ? 'bg-[#42162a]' : 'bg-paper dark:bg-void'
+        isLoveMode ? 'love-sky-name-field' : 'bg-paper dark:bg-void'
       }`}
     >
       {isLoveMode ? (
         <>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,rgba(255,240,224,0.28),transparent_30%),radial-gradient(circle_at_84%_18%,rgba(255,196,218,0.24),transparent_26%),radial-gradient(circle_at_50%_100%,rgba(255,156,124,0.28),transparent_38%),linear-gradient(180deg,#4d1830_0%,#7a2948_36%,#b1476c_72%,#31111c_100%)]" />
-          <div className="absolute inset-0 opacity-[0.2] [background-image:linear-gradient(rgba(255,255,255,0.26)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.18)_1px,transparent_1px)] [background-size:72px_72px]" />
-          <div className="absolute inset-x-0 top-0 h-56 bg-[linear-gradient(180deg,rgba(255,255,255,0.18),transparent)]" />
           {lovePersonName && loveNameEffect === 'marquee' ? (
             <div
               data-testid="love-name-marquee"
-              className="absolute -left-[46vw] top-[-18vh] flex h-[148vh] w-[192vw] -rotate-[22deg] flex-col justify-around overflow-hidden opacity-[0.22] sm:-left-[38vw] sm:w-[180vw] sm:-rotate-[24deg]"
+              className="absolute -left-[46vw] top-[-18vh] flex h-[148vh] w-[192vw] -rotate-[22deg] flex-col justify-around overflow-hidden opacity-[0.05] sm:-left-[38vw] sm:w-[180vw] sm:-rotate-[24deg]"
             >
               {nameRows.map((rowIndex) => {
                 const fromX = rowIndex % 2 === 0 ? '-18%' : '12%';
@@ -1689,7 +1708,7 @@ const BackgroundWithEffect = ({
             </div>
           ) : null}
           {lovePersonName && loveNameEffect === 'rain' ? (
-            <div data-testid="love-name-rain" className="absolute inset-0 overflow-hidden opacity-[0.28]">
+            <div data-testid="love-name-rain" className="absolute inset-0 overflow-hidden opacity-[0.07]">
               {rainColumns.map((columnIndex) => {
                 const columnText = Array.from({ length: 12 }, () => lovePersonName).join('\n');
                 const duration = 8.8 + (columnIndex % 4) * 0.95;
@@ -1742,6 +1761,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const [atmosphereEffects, setAtmosphereEffects] = useState<readonly AtmosphereEffectId[]>(DEFAULT_ATMOSPHERE_EFFECTS);
   const [hasRestoredAtmosphere, setHasRestoredAtmosphere] = useState(false);
   const [loveNameEffect, setLoveNameEffect] = useState<LoveNameEffect>('marquee');
+  const [loveTasksOpen, setLoveTasksOpen] = useState(false);
   const [isPrivacyDialogOpen, setIsPrivacyDialogOpen] = useState(false);
   // 搜索为独立页面（/search）：所有搜索入口（顶栏按钮、Ctrl+K、移动端抽屉快捷动作）
   // 统一跳转到搜索页。
@@ -1754,7 +1774,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const prefersReducedMotion = useSiteReducedMotion();
   const isParticleFrontRoute = PARTICLE_FRONT_ROUTES.has(location.pathname);
   const isBookSky = !isLoveMode && location.pathname.replace(/\/+$/, '') === '/book';
-  const isSkyBackground = isBookSky || (!isLoveMode && !isReadingMode && backgroundAppearance === 'sky');
+  const isSkyBackground = isLoveMode || isBookSky || (!isReadingMode && backgroundAppearance === 'sky');
   const routeVariants = prefersReducedMotion
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : routeShellVariants;
@@ -1763,7 +1783,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const viewTransitionRouteVariants = { initial: { opacity: 1 }, animate: { opacity: 1 } } as const;
   // 仅 query 变化时保持组件挂载，避免搜索输入导致首页动画重启。
   const routeContentKey = location.pathname;
-  const visibleContent = isLoveMode ? <LoveSurface /> : children;
+  const visibleContent = isLoveMode ? <LoveSurface showTasks={loveTasksOpen} /> : children;
   const surfaceTransitionKey = isLoveMode ? `love:${routeContentKey}` : `default:${routeContentKey}`;
   const surfaceSwitchVariants = prefersReducedMotion
     ? {
@@ -1867,7 +1887,10 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
       data-book-sky={isBookSky ? 'true' : undefined}
       data-sky-background={isSkyBackground ? 'true' : undefined}
     >
-      {isSkyBackground ? <BookSky /> : <BackgroundWithEffect isLoveMode={isLoveMode} loveNameEffect={loveNameEffect} />}
+      {isSkyBackground && <BookSky />}
+      {(!isSkyBackground || isLoveMode) && (
+        <BackgroundWithEffect isLoveMode={isLoveMode} loveNameEffect={loveNameEffect} />
+      )}
       {!isReadingMode &&
         !isLoveMode &&
         !isBookSky &&
@@ -1893,6 +1916,8 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
           onAtmosphereEffectToggle={handleAtmosphereEffectToggle}
           isLoveMode={isLoveMode}
           onToggleLoveMode={handleToggleLoveMode}
+          loveTasksOpen={loveTasksOpen}
+          onToggleLoveTasks={() => setLoveTasksOpen((open) => !open)}
           loveNameEffect={loveNameEffect}
           onLoveNameEffectChange={handleLoveNameEffectChange}
         />

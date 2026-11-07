@@ -207,3 +207,28 @@ html:has(.site-shell[data-sky-background='true']) .trend-page {
   --trend-glass: var(--sky-panel);
   --trend-border: var(--sky-line);
 }
+
+/* Love shares the sky while its name animations remain a faint, independent layer. */
+.love-sky-name-field .love-name-text {
+  color: var(--sky-ink, #233e52);
+  text-shadow: none;
+}
+.site-shell[data-love-mode='true'] .love-sky-nav {
+  color: var(--sky-ink);
+}
+.site-shell[data-love-mode='true'] .love-sky-nav :is(a, button, a > span) {
+  color: var(--sky-ink);
+}
+.site-shell[data-love-mode='true'] .love-sky-nav [aria-label='退出 Love 面'] {
+  border-color: var(--sky-line);
+  background: var(--sky-panel);
+}
+.site-shell[data-love-mode='true'] .love-sky-nav [aria-label='退出 Love 面'] > span {
+  border-color: var(--sky-line);
+  background: var(--sky-panel);
+  color: var(--sky-ink);
+  backdrop-filter: blur(22px);
+}
+.site-shell[data-love-mode='true'] .love-sky-nav button > span[aria-hidden='true'] {
+  background: var(--sky-accent);
+}

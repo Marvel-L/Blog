@@ -109,6 +109,8 @@ func New(c config.Config, db Persistence, exchange github.Exchange) http.Handler
 	mux.HandleFunc("GET /api/v1/me/events", a.recent)
 	mux.HandleFunc("GET /api/v1/articles/reading", a.articleReading)
 	mux.HandleFunc("PUT /api/v1/articles/reading", a.articleReading)
+	mux.HandleFunc("GET /api/v1/love/tasks", a.loveTasks)
+	mux.HandleFunc("PUT /api/v1/love/tasks", a.loveTasks)
 	mux.HandleFunc("GET /api/v1/planner/dashboard", a.getPlanner)
 	mux.HandleFunc("PUT /api/v1/planner/dashboard", a.putPlanner)
 	mux.HandleFunc("GET /api/v1/planner/daily", a.dailyPlanner)

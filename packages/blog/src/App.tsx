@@ -181,43 +181,45 @@ const AppRoutes: React.FC = () => {
   }
 
   return (
-    <Layout hasViewTransition={hasViewTransition}>
+    <>
       {cloudReady && CloudAccount && (
         <Suspense fallback={null}>
           <CloudAccount />
         </Suspense>
       )}
-      <Suspense fallback={<RouteFallback />}>
-        <Routes location={displayLocation} key={displayLocation.pathname}>
-          <Route path="/" element={<Home />} />
-          <Route path="/articles" element={<Articles />} />
-          {ArticlesV2 && <Route path="/articles-v2" element={<ArticlesV2 />} />}
-          <Route path="/post/:id" element={<Post />} />
-          <Route path="/book" element={<BookPage />} />
-          <Route path="/book/:bookId" element={<BookPage />} />
-          <Route path="/book/:bookId/chapter/:chapterId" element={<BookPage />} />
-          <Route path="/archive" element={<ArchivePage />} />
-          <Route path="/tags" element={<Tags />} />
-          <Route path="/stats" element={<Stats />} />
-          <Route path="/trend" element={<Trend />} />
-          <Route path="/planner" element={<Planner />} />
-          <Route path="/friends" element={<Friends />} />
-          <Route path="/shuoshuo" element={<ShuoShuoPage />} />
-          <Route path="/shuoshuo/:id" element={<ShuoShuoDetailPage />} />
-          <Route path="/guestbook" element={<GuestbookPage />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/about/ability/:dimension/:filename" element={<AbilityDocument />} />
-          <Route path="/accumulate" element={<AccumulatePage />} />
-          <Route path="/cover" element={<CoverGenerator />} />
-          <Route path="/watermark" element={<Watermark />} />
-          <Route path="/image-compress" element={<ImageCompress />} />
-          <Route path="/search" element={<SearchPage />} />
-          <Route path="/tbd" element={<TbdPostsPage />} />
-          {AnkiPage && <Route path="/anki" element={<AnkiPage />} />}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Suspense>
-    </Layout>
+      <Layout hasViewTransition={hasViewTransition}>
+        <Suspense fallback={<RouteFallback />}>
+          <Routes location={displayLocation} key={displayLocation.pathname}>
+            <Route path="/" element={<Home />} />
+            <Route path="/articles" element={<Articles />} />
+            {ArticlesV2 && <Route path="/articles-v2" element={<ArticlesV2 />} />}
+            <Route path="/post/:id" element={<Post />} />
+            <Route path="/book" element={<BookPage />} />
+            <Route path="/book/:bookId" element={<BookPage />} />
+            <Route path="/book/:bookId/chapter/:chapterId" element={<BookPage />} />
+            <Route path="/archive" element={<ArchivePage />} />
+            <Route path="/tags" element={<Tags />} />
+            <Route path="/stats" element={<Stats />} />
+            <Route path="/trend" element={<Trend />} />
+            <Route path="/planner" element={<Planner />} />
+            <Route path="/friends" element={<Friends />} />
+            <Route path="/shuoshuo" element={<ShuoShuoPage />} />
+            <Route path="/shuoshuo/:id" element={<ShuoShuoDetailPage />} />
+            <Route path="/guestbook" element={<GuestbookPage />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/about/ability/:dimension/:filename" element={<AbilityDocument />} />
+            <Route path="/accumulate" element={<AccumulatePage />} />
+            <Route path="/cover" element={<CoverGenerator />} />
+            <Route path="/watermark" element={<Watermark />} />
+            <Route path="/image-compress" element={<ImageCompress />} />
+            <Route path="/search" element={<SearchPage />} />
+            <Route path="/tbd" element={<TbdPostsPage />} />
+            {AnkiPage && <Route path="/anki" element={<AnkiPage />} />}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </Layout>
+    </>
   );
 };
 
