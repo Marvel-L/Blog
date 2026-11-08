@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import greeting from '@/assets/confession/voice/greeting.wav';
+import greeting from '@/assets/confession/voice/greeting-v4.wav';
 import listening from '@/assets/confession/voice/listening.wav';
 import welcome from '@/assets/confession/voice/welcome.wav';
 import archive from '@/assets/confession/voice/archive.wav';
 import saved from '@/assets/confession/voice/saved.wav';
 import retry from '@/assets/confession/voice/retry.wav';
 export const RIN_LINES = [
-  { text: '你今天想忏什么？', voice: greeting },
+  { text: '你今天想忏悔什么？', voice: greeting },
   { text: '不用急着整理好语言。我在听。', voice: listening },
   { text: '这里没有评分，也没有判决。你可以只写下此刻想说的话。', voice: welcome },
   { text: '写完了，再决定把它放在哪座墓碑里。只有你自己能看见。', voice: archive },

@@ -40,7 +40,7 @@ vi.mock('./ConfessionWorld', () => ({
 vi.mock('./VolumeFog', () => ({ VolumeFog: () => <canvas data-fog="ray-marched" /> }));
 vi.mock('./useRinVoice', () => ({
   RIN_LINES: [
-    { text: '你今天想忏什么？' },
+    { text: '你今天想忏悔什么？' },
     { text: '不用急着整理好语言。我在听。' },
     { text: '这里没有评分，也没有判决。你可以只写下此刻想说的话。' },
     { text: '写完了，再决定把它放在哪座墓碑里。只有你自己能看见。' },
@@ -169,7 +169,7 @@ describe('confession experience', () => {
     fireEvent.click(screen.getByRole('button', { name: '进入教堂' }));
     fireEvent.click(screen.getByRole('button', { name: '与圣女凛交谈' }));
     expect(screen.getByRole('dialog', { name: '志摩凛' })).toBeInTheDocument();
-    expect(screen.getAllByText('你今天想忏什么？').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('你今天想忏悔什么？').length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: '我想说一说' }));
     expect(screen.getByRole('textbox', { name: '你的记事' })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('你的记事'), { target: { value: '今天重新开始。' } });

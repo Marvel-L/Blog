@@ -33,6 +33,7 @@ afterEach(() => {
 describe('fixed local Rin voices', () => {
   it('plays only the fixed line and stops the old player on next line', () => {
     const hook = renderHook(({ line }) => useRinVoice(line, false), { initialProps: { line: 0 } });
+    expect(RIN_LINES[0].text).toBe('你今天想忏悔什么？');
     expect(FakeAudio.players[0].src).toBe(RIN_LINES[0].voice);
     expect(hook.result.current.speaking).toBe(true);
     hook.rerender({ line: 2 });
