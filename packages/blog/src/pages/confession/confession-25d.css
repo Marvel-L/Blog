@@ -1,500 +1,417 @@
-/* Painted depth layers: independent alpha props and fog planes interleave in one scene. */
-.conf25-stage {
+/* Hand-painted architectural modules use the same ground anchors as the furniture. */
+.confiso-column,
+.confiso-altar-art {
+  position: absolute;
+  transform: translate(-50%, -100%);
+}
+.confiso-column > img,
+.confiso-altar-art > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  filter: brightness(0.67) saturate(0.67);
+}
+/* One orthographic world, not independently sized viewport stickers. */
+.confiso-stage {
   --look-x: 0px;
   --look-y: 0px;
-  --conf25-fog: #b3c7cf;
+  background: radial-gradient(ellipse at 70% 25%, #273e4c 0, #152832 48%, #101e26 100%);
+}
+.confiso-stage[data-church='true'] {
+  background: radial-gradient(ellipse at 60% 40%, #28373d, #101a20 75%);
+}
+.confiso-viewport {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  transform: translate(-50%, -50%);
 }
 .conf25-camera {
   position: absolute;
-  inset: -2%;
-  transform-origin: 74% 48%;
-  transition: transform 1.35s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 1200px;
+  height: 850px;
+  transform-origin: 0 0;
+  transform: translate(calc(var(--look-x) * 0.3), calc(var(--look-y) * 0.3)) scale(var(--scene-scale));
+  transition:
+    filter 0.9s,
+    transform 0.7s ease-out;
 }
-.conf25-stage[data-opening='true'] .conf25-camera {
-  transform: scale(1.16);
-}
-.conf25-base {
+.confiso-ground {
   position: absolute;
+  width: 1200px;
+  height: 850px;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: 65% center;
+  overflow: visible;
 }
-.conf25-depth {
+.confiso-stage[data-opening='true'] .conf25-camera {
+  filter: brightness(1.18);
+}
+.confiso-depth {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  transition: transform 0.65s ease-out;
 }
-.conf25-back {
-  z-index: 2;
-  transform: translate(calc(var(--look-x) * 0.22), calc(var(--look-y) * 0.22));
-}
-.conf25-middle {
-  z-index: 4;
-  transform: translate(calc(var(--look-x) * 0.55), calc(var(--look-y) * 0.55));
-}
-.conf25-front {
-  z-index: 6;
-  transform: translate(var(--look-x), var(--look-y));
-}
-.conf25-depth button {
+.confiso-depth button {
   pointer-events: auto;
 }
-.conf25-chapel {
+.conf25-chapel,
+.conf25-grave,
+.confiso-tree,
+.conf25-pew-row,
+.conf25-saint-wrap {
   position: absolute;
-  left: 74%;
-  bottom: 48%;
-  width: clamp(150px, 21vw, 330px);
-  transform: translateX(-50%);
+  transform: translate(-50%, -100%);
+}
+.conf25-chapel img.conf25-chapel-art,
+.conf25-grave > img,
+.confiso-tree > img:not(.conf25-crow),
+.conf25-pew-row > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 .conf25-chapel-art {
-  width: 100%;
-  display: block;
-  filter: brightness(0.74) saturate(0.78);
+  filter: brightness(0.8) saturate(0.7);
+}
+.conf25-grave {
+  border: 0;
+  background: none;
+  padding: 0;
+  filter: brightness(0.76) saturate(0.7);
+  cursor: pointer;
+  transition: filter 0.25s;
+}
+.conf25-grave:hover,
+.conf25-grave:focus-visible {
+  filter: brightness(1.02);
+  outline: 1px solid #a9c4c0;
+  outline-offset: 4px;
+}
+.confiso-inscription {
+  position: absolute;
+  top: 47%;
+  left: 29%;
+  width: 53%;
+  font:
+    13px/1.2 'Songti SC',
+    serif;
+  color: #253740;
+  transform: skewY(-13deg);
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.conf25-grave[data-facing='west'] .confiso-inscription {
+  left: 14%;
+  width: 51%;
+  transform: skewY(13deg);
+}
+.confiso-contact {
+  position: absolute;
+  left: 15%;
+  width: 74%;
+  height: 15%;
+  bottom: -3%;
+  background: radial-gradient(ellipse, #0009, transparent 70%);
+  transform: skewY(14deg);
+  filter: blur(3px);
+  pointer-events: none;
+  z-index: -1;
+}
+.confiso-tree {
+  filter: brightness(0.43) saturate(0.5);
+}
+.conf25-crow {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  left: 26%;
+  top: 36%;
+  animation: confiso-bird 8s ease-in-out infinite alternate;
 }
 .conf25-door {
   position: absolute;
-  left: 35.8%;
-  bottom: 5.4%;
-  width: 14%;
-  height: 24%;
+  left: 34%;
+  bottom: 6%;
+  width: 13%;
+  height: 22%;
+  padding: 0;
   border: 0;
   background: transparent;
-  padding: 0;
-  perspective: 250px;
+  perspective: 140px;
+  transform: skewY(10deg);
+  cursor: pointer;
 }
 .conf25-door-glow {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 50% 85%, #fffae5, #e7f1e8 45%, #a7cbd2 80%);
-  border-radius: 50% 50% 0 0 / 20% 20% 0 0;
+  border-radius: 45% 45% 0 0;
+  background: #edf4e5;
+  opacity: 0.8;
   box-shadow:
-    0 0 16px #e8f1ce88,
-    0 12px 25px #d5e5b066;
-  opacity: 0.72;
-  transition:
-    opacity 0.8s,
-    box-shadow 0.8s;
-}
-.conf25-door:hover .conf25-door-glow {
-  opacity: 1;
+    0 0 14px #eaf2d977,
+    0 12px 30px #f4f4d466;
 }
 .conf25-leaf {
-  position: absolute;
-  top: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  transition:
-    transform 0.95s ease-in-out,
-    filter 0.8s;
-  filter: brightness(0.68);
+  transform-origin: left center;
+  transform: rotateY(-28deg);
+  transition: transform 0.95s ease-in-out;
+  filter: brightness(0.58);
 }
-.conf25-leaf-left {
-  left: 0;
-  transform-origin: left;
-  transform: rotateY(-24deg);
+.confiso-stage[data-opening='true'] .conf25-leaf {
+  transform: rotateY(-89deg);
 }
-.conf25-stage[data-opening='true'] .conf25-leaf-left {
-  transform: rotateY(-88deg);
-}
-.conf25-stage[data-opening='true'] .conf25-door-glow {
-  opacity: 1;
+.confiso-stage[data-opening='true'] .conf25-door-glow {
   box-shadow:
-    0 0 35px #e8f1ceaa,
-    0 25px 60px #d5e5b088;
+    0 0 24px #eaf2d9,
+    0 16px 42px #f4f4d499;
 }
 .conf25-door-hint {
   position: absolute;
-  top: 125%;
+  top: 120%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) skewY(-10deg);
+  color: #cddacf;
+  font-size: 12px;
   white-space: nowrap;
-  font-size: 11px;
-  color: var(--confession-paper);
-  letter-spacing: 0.15em;
-  text-shadow: 0 2px 8px var(--confession-void);
-  opacity: 0.7;
-}
-.conf25-trees {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-.conf25-trees img {
-  position: absolute;
-  display: block;
-  height: auto;
-  width: 25%;
-  bottom: 24%;
-  filter: brightness(0.38) saturate(0.45);
-}
-.conf25-trees img:first-child {
-  left: -8%;
-}
-.conf25-trees img:last-child {
-  right: -8%;
-  transform: scaleX(-1);
-}
-.conf25-trees-far img {
-  width: 10%;
-  bottom: 48%;
-  opacity: 0.38;
-  filter: brightness(0.55) saturate(0.4);
-}
-.conf25-trees-far img:first-child {
-  left: 48%;
-}
-.conf25-trees-far img:last-child {
-  right: 3%;
-}
-.conf25-trees-middle img {
-  width: 17%;
-  bottom: 34%;
-  opacity: 0.72;
-}
-.conf25-trees-middle img:first-child {
-  left: 3%;
-}
-.conf25-trees-middle img:last-child {
-  right: 1%;
-}
-.conf25-trees-near img {
-  width: 30%;
-  bottom: 4%;
-  filter: brightness(0.21) saturate(0.55);
-}
-.conf25-trees-near img:first-child {
-  left: -18%;
-}
-.conf25-trees-near img:last-child {
-  right: -18%;
-}
-.conf25-grave {
-  position: absolute;
-  left: var(--grave-x);
-  top: var(--grave-y);
-  width: var(--grave-width);
-  padding: 0;
-  border: 0;
-  background: transparent;
-  transform: translate(-50%, -100%);
-  filter: brightness(0.64) saturate(0.6);
-  transition: filter 0.3s;
-}
-.conf25-grave:hover {
-  filter: brightness(0.92) saturate(0.8);
-}
-.conf25-grave img {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-.conf25-grave span {
-  position: absolute;
-  left: 13%;
-  top: 48%;
-  width: 66%;
-  font-family: 'Songti SC', 'Noto Serif SC', serif;
-  font-size: clamp(10px, 1.2vw, 18px);
-  letter-spacing: 0.12em;
-  line-height: 1.4;
-  color: #303c40;
-  overflow-wrap: anywhere;
-  text-shadow: 0 1px 1px #dfebdf55;
-}
-.conf25-grave-far {
-  opacity: 0.65;
-}
-.conf25-crow {
-  position: absolute;
-  left: 8%;
-  top: 48%;
-  width: clamp(24px, 4vw, 60px);
-  filter: brightness(0.38);
-  animation: conf25-bird 8s ease-in-out infinite alternate;
-  pointer-events: none;
-}
-.conf25-fog {
-  position: absolute;
-  left: -15%;
-  right: -15%;
-  pointer-events: none;
-  opacity: var(--fog-density);
-}
-.conf25-fog i {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at 24% 60%, #d6e5e580 0%, #a4c2cb55 22%, transparent 65%),
-    radial-gradient(ellipse at 75% 50%, #afc3cc88, transparent 63%);
-  filter: blur(24px);
-  animation: conf25-drift 18s ease-in-out infinite alternate;
-}
-.conf25-fog i:last-child {
-  opacity: 0.55;
-  transform: scaleX(-1);
-  animation-duration: 27s;
-  animation-direction: alternate-reverse;
-}
-.conf25-fog-far {
-  z-index: 3;
-  bottom: 42%;
-  height: 18%;
-}
-.conf25-fog-middle {
-  z-index: 5;
-  bottom: 23%;
-  height: 28%;
-}
-.conf25-fog-near {
-  z-index: 7;
-  bottom: -7%;
-  height: 28%;
-}
-.conf25-stage[data-church='true'] .conf25-fog {
-  opacity: calc(var(--fog-density) * 0.24);
-}
-.conf25-stage[data-church='true'] .conf25-base {
-  object-position: 50% center;
 }
 .conf25-pew-row {
-  position: absolute;
-  display: flex;
-  justify-content: space-between;
-  left: 7%;
-  right: 7%;
-  bottom: 7%;
+  filter: brightness(0.61) saturate(0.66);
 }
-.conf25-pew-row img {
-  width: 32%;
-  height: auto;
-  filter: brightness(0.36) saturate(0.6);
-}
-.conf25-pew-row img:last-child {
-  transform: scaleX(-1);
-}
-.conf25-pew-row-1 {
-  left: 15%;
-  right: 15%;
-  bottom: 22%;
-}
-.conf25-pew-row-1 img {
-  width: 25%;
-}
-.conf25-pew-row-2 {
-  left: 23%;
-  right: 23%;
-  bottom: 35%;
-}
-.conf25-pew-row-2 img {
-  width: 21%;
-  opacity: 0.78;
-}
-.conf25-light {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  pointer-events: none;
-  background: radial-gradient(ellipse 17% 70% at 50% 36%, #eee8c318, transparent 82%);
+.conf25-pew-row > img {
+  transform: skewY(8deg);
+  transform-origin: 50% 100%;
 }
 .conf25-saint-wrap {
-  inset: auto;
-  left: 50%;
-  bottom: 32%;
-  width: 22dvh;
-  height: 52dvh;
-  max-height: 700px;
-  transform: translate(calc(-50% + var(--look-x) * 0.7), calc(var(--look-y) * 0.7));
+  overflow: visible;
 }
 .conf25-saint {
   position: absolute;
   inset: 0;
-  border: 0;
-  background: transparent;
-  padding: 0;
   width: 100%;
   height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
 }
 .conf25-saint img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 0 14px #f5e8c024);
-  animation: conf25-person 5s ease-in-out infinite alternate;
+  animation: confiso-person 5s ease-in-out infinite alternate;
   transform-origin: 50% 95%;
+  filter: drop-shadow(0 0 8px #f7efd62a);
 }
-.conf25-saint-shadow {
-  position: absolute;
-  left: 26%;
-  right: 24%;
-  bottom: 3%;
-  height: 5%;
-  border-radius: 50%;
-  background: #0008;
-  filter: blur(8px);
+.conf25-saint:focus-visible {
+  outline: 1px solid #c8dacf;
+  outline-offset: 5px;
+}
+.conf25-camera:has(.conf25-bubble) {
+  z-index: 20;
+}
+.confiso-depth:has(.conf25-bubble) {
+  z-index: 50 !important;
 }
 .conf25-bubble {
-  left: 78%;
-  top: 16%;
-  width: 210px;
-  z-index: 10;
-  pointer-events: auto;
+  position: absolute;
+  left: calc(100% + 18px);
+  top: -10px;
+  width: 225px;
+  padding: 14px 18px;
   transform: none;
+  z-index: 35;
+  pointer-events: auto;
+}
+.confiso-saint-shadow {
+  width: 36px;
+  height: 14px;
+  left: 50%;
+  bottom: -5px;
+  transform: translateX(-50%);
+}
+.conf25-fog {
+  position: absolute;
+  left: 0;
+  width: 1200px;
+  height: 120px;
+  pointer-events: none;
+  opacity: calc(var(--fog-density) * 0.65);
+}
+.conf25-fog i {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 25% 50%, #a1bdc160, transparent 62%),
+    radial-gradient(ellipse at 75% 70%, #d1dddf60, transparent 62%);
+  filter: blur(15px);
+  animation: confiso-drift 18s ease-in-out infinite alternate;
+}
+.conf25-fog i:last-child {
+  opacity: 0.55;
+  animation-duration: 27s;
+  animation-direction: alternate-reverse;
+}
+.confiso-stage[data-church='true'] .conf25-fog {
+  opacity: calc(var(--fog-density) * 0.18);
+}
+.confiso-road-edge {
+  stroke: #89999155;
+  stroke-width: 1;
+  fill: none;
+}
+.confiso-floor {
+  stroke: #627580;
+  stroke-width: 2;
+}
+.confiso-coping {
+  fill: none;
+  stroke: #72929b;
+  stroke-width: 5;
+  opacity: 0.6;
+}
+.confiso-window {
+  stroke: #506675;
+  stroke-width: 5;
+}
+.confiso-window-trace {
+  fill: none;
+  stroke: #394f60;
+  stroke-width: 3;
+}
+.confiso-block-side {
+  fill: #283943;
+  stroke: #17262e;
+  stroke-width: 1;
+}
+.confiso-block-front {
+  fill: #374a52;
+  stroke: #20313a;
+  stroke-width: 1;
+}
+.confiso-block-top {
+  fill: url(#confiso-stone);
+  stroke: #627781;
+  stroke-width: 1;
+}
+.confiso-altar .confiso-block-front {
+  fill: #607179;
 }
 .conf25-vignette {
   position: absolute;
   inset: 0;
-  z-index: 8;
+  z-index: 1;
   pointer-events: none;
-  background:
-    radial-gradient(ellipse at 60% 50%, transparent 35%, #070c0e33 72%, #070c0e80 100%),
-    linear-gradient(90deg, #070c0e40, transparent 35%);
+  background: radial-gradient(ellipse at 64% 50%, transparent 25%, #06121b66 85%);
 }
 .conf25-hud {
   position: absolute;
   bottom: 112px;
   left: clamp(26px, 6vw, 90px);
   z-index: 10;
+  color: var(--confession-paper);
   font-size: 11px;
-  max-width: calc(100% - 52px);
 }
 .conf25-hud p {
-  color: var(--confession-paper);
   font-size: 10px;
-  letter-spacing: 0.08em;
-  text-shadow: 0 2px 8px var(--confession-void);
+  color: var(--confession-paper);
 }
 .conf25-hud > div {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 .conf25-hud button,
 .conf25-hud summary {
-  background: #101b20a0;
   color: var(--confession-paper);
-  border: 1px solid #8b9a8b66;
+  background: #13242ba0;
+  border: 1px solid #819c9366;
   padding: 8px 12px;
   font-size: 11px;
   cursor: pointer;
-  border-radius: 3px;
 }
 .conf25-pages {
   position: absolute;
-  z-index: 10;
   bottom: 115px;
   right: 5%;
   display: flex;
   align-items: center;
   gap: 12px;
+  z-index: 10;
   color: var(--confession-paper);
   font-size: 11px;
 }
 .conf25-pages button {
   border: 0;
-  background: #101b20b0;
+  background: #13242ba0;
   color: inherit;
   padding: 8px;
+  cursor: pointer;
 }
-.conf25-stage[data-still='true'] * {
+.confiso-stage[data-still='true'] * {
   animation-play-state: paused !important;
 }
-.conf25-stage[data-still='true'] .conf25-camera,
-.conf25-stage[data-still='true'] .conf25-leaf {
+.confiso-stage[data-still='true'] .conf25-leaf {
   transition: none;
 }
-@keyframes conf25-drift {
+/* Move editorial overlays out of the playable world; scene dimensions never change independently. */
+.confession-page:has(.confiso-stage) .confession-intro {
+  top: 14%;
+}
+.confession-page:has(.confiso-stage) .confession-intro h1 {
+  font-size: clamp(23px, 2.7vw, 36px);
+  line-height: 1.5;
+}
+.confession-page:has(.confiso-stage) .confession-church-intro {
+  top: 14%;
+}
+@keyframes confiso-drift {
   from {
-    transform: translate(-4%, 4%) scale(0.94);
-    opacity: 0.5;
+    transform: translate(-22px, 5px);
+    opacity: 0.45;
   }
   to {
-    transform: translate(6%, -4%) scale(1.1);
-    opacity: 0.95;
+    transform: translate(35px, -7px);
+    opacity: 0.9;
   }
 }
-@keyframes conf25-person {
+@keyframes confiso-person {
   from {
-    transform: scaleY(0.999);
+    transform: translateY(0);
   }
   to {
-    transform: scaleY(1.008);
+    transform: translateY(-0.4px);
   }
 }
-@keyframes conf25-bird {
+@keyframes confiso-bird {
   from {
-    transform: translateY(0) rotate(-1deg);
+    transform: rotate(-1deg);
   }
   to {
-    transform: translateY(-2px) rotate(1deg);
+    transform: rotate(1deg);
   }
 }
 @media (max-width: 760px) {
-  .conf25-chapel {
-    left: 73%;
-    width: 180px;
-    bottom: 46%;
-  }
-  .conf25-grave-near {
-    width: 20%;
-  }
-  .conf25-grave-middle {
-    width: 13%;
-  }
-  .conf25-grave-far {
-    width: 9%;
-  }
-  .conf25-grave span {
-    font-size: 11px;
-  }
-  .conf25-trees-middle img {
-    width: 28%;
-  }
-  .conf25-trees-near img {
-    width: 45%;
-  }
-  .conf25-trees-near img:first-child {
-    left: -30%;
-  }
-  .conf25-trees-near img:last-child {
-    right: -30%;
-  }
-  .conf25-trees-far img {
-    width: 17%;
+  .confiso-viewport {
+    top: 52%;
   }
   .conf25-hud {
-    bottom: 150px;
+    bottom: 148px;
   }
   .conf25-pages {
-    bottom: 200px;
-    right: 5%;
+    bottom: 195px;
   }
-  .conf25-saint-wrap {
-    height: 51dvh;
-    width: 22dvh;
-    bottom: 31%;
+  .confession-page:has(.confiso-stage) .confession-intro {
+    top: 12%;
   }
-  .conf25-bubble {
-    left: 35%;
-    top: 2%;
-    width: 175px;
-    padding: 15px;
+  .confession-page:has(.confiso-stage) .confession-intro p {
+    display: none;
   }
-  .conf25-pew-row {
-    left: -20%;
-    right: -20%;
-  }
-  .conf25-pew-row img {
-    width: 34%;
-  }
-  .conf25-pew-row-1 {
-    left: 0;
-    right: 0;
-  }
-  .conf25-pew-row-2 {
-    left: 12%;
-    right: 12%;
+  .confession-page:has(.confiso-stage) .confession-intro-link {
+    margin-top: 5px;
   }
 }

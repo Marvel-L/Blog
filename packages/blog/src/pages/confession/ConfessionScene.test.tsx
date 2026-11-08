@@ -75,17 +75,17 @@ describe('painted 2.5D confession scene', () => {
     expect(container.querySelector('canvas')).toBeNull();
     expect(container.querySelectorAll('.conf25-grave img')).toHaveLength(4);
     expect(container.querySelectorAll('.conf25-fog')).toHaveLength(3);
-    const children = Array.from(container.querySelector('.conf25-camera')!.children);
-    expect(children.map((e) => e.className)).toEqual([
-      'conf25-base',
-      'conf25-depth conf25-back',
-      'conf25-fog conf25-fog-far',
-      'conf25-depth conf25-middle',
-      'conf25-fog conf25-fog-middle',
-      'conf25-depth conf25-front',
-      'conf25-fog conf25-fog-near',
-      'conf25-vignette',
-    ]);
+    expect(container.querySelector('[data-ground="projected"]')).toBeInTheDocument();
+    expect(container.querySelector('.conf25-base')).toBeNull();
+    const children = Array.from(container.querySelectorAll('.confiso-depth'));
+    const depths = children.map((e) => Number(e.getAttribute('data-depth')));
+    expect(depths).toEqual([...depths].sort((a, b) => a - b));
+    expect(
+      new Set(Array.from(container.querySelectorAll('.conf25-grave')).map((e) => e.getAttribute('data-facing'))),
+    ).toEqual(new Set(['east', 'west']));
+    expect(
+      new Set(Array.from(container.querySelectorAll('.conf25-grave img')).map((e) => e.getAttribute('src'))).size,
+    ).toBe(2);
   });
   it('opens the independent door before entering, then returns both art and controls to the cemetery', async () => {
     const { container } = render(<Harness />);
@@ -98,7 +98,13 @@ describe('painted 2.5D confession scene', () => {
     expect(changeRegion).not.toHaveBeenCalled();
     act(() => vi.advanceTimersByTime(1));
     expect(screen.getByRole('button', { name: '与圣女凛交谈' })).toBeInTheDocument();
-    expect(container.querySelectorAll('.conf25-pew-row')).toHaveLength(3);
+    expect(container.querySelectorAll('.conf25-pew-row')).toHaveLength(6);
+    const pews = Array.from(container.querySelectorAll<HTMLElement>('.conf25-pew-row'));
+    expect(new Set(pews.map((p) => p.style.height))).toEqual(new Set(['58px']));
+    expect(pews.every((p) => p.dataset.facing === 'altar')).toBe(true);
+    expect(new Set(pews.map((p) => p.dataset.row))).toEqual(new Set(['0', '1', '2']));
+    expect(container.querySelectorAll('.confiso-column img')).toHaveLength(4);
+    expect(container.querySelector('.conf25-saint-wrap')).toHaveAttribute('data-world-height', '1.62');
     fireEvent.click(screen.getByRole('button', { name: '回到墓地' }));
     expect(container.querySelector('.conf25-stage')).toHaveAttribute('data-church', 'false');
     expect(screen.getByRole('button', { name: '点击教堂门' })).toBeInTheDocument();

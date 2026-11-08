@@ -1,28 +1,31 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { hasOpenOverlay } from '@/hooks/useModalOverlay';
-import terrain from '@/assets/confession/25d/cemetery-terrain.webp';
-import nave from '@/assets/confession/25d/church-nave.webp';
-import chapel from '@/assets/confession/25d/chapel-exterior.webp';
-import grave from '@/assets/confession/25d/grave.webp';
+import grass from '@/assets/confession/oblique/grass-surface.webp';
+import stone from '@/assets/confession/oblique/stone-surface.webp';
+import chapel from '@/assets/confession/oblique/chapel-iso.webp';
+import graveEast from '@/assets/confession/oblique/grave-east.webp';
+import graveWest from '@/assets/confession/oblique/grave-west.webp';
 import tree from '@/assets/confession/25d/dead-tree.webp';
 import crow from '@/assets/confession/25d/crow.webp';
-import pew from '@/assets/confession/25d/pew.webp';
+import pew from '@/assets/confession/oblique/pew-iso.webp';
 import door from '@/assets/confession/25d/door-leaf.webp';
-import saint from '@/assets/confession/25d/rin-saint.webp';
+import saint from '@/assets/confession/oblique/rin-iso.webp';
+import pillar from '@/assets/confession/oblique/pillar-iso.webp';
+import altar from '@/assets/confession/oblique/altar-iso.webp';
+import windowWall from '@/assets/confession/oblique/window-wall.webp';
+import { SceneGround } from './SceneGround';
+import { CHAPEL, GRAVES, PEWS, SAINT, SPACE, TREES, depth, project, type GroundPoint } from './sceneSpace';
 import type { ConfessionCategory, ConfessionState } from './model';
 import './confession-25d.css';
 
-const assets = [terrain, nave, chapel, grave, tree, crow, pew, door, saint];
-const positions = [
-  { x: 24, y: 77, width: 12, depth: 'near' },
-  { x: 79, y: 79, width: 11, depth: 'near' },
-  { x: 41, y: 65, width: 8, depth: 'middle' },
-  { x: 85, y: 61, width: 7, depth: 'middle' },
-  { x: 20, y: 58, width: 6, depth: 'far' },
-  { x: 55, y: 54, width: 5, depth: 'far' },
-];
-/** A fixed-camera painted space; private archive state remains owned by the page. */
+const assets = [grass, stone, chapel, graveEast, graveWest, tree, crow, pew, door, saint, pillar, altar, windowWall];
+const positions = GRAVES;
+function placed(point: GroundPoint, height: number, width?: number): CSSProperties {
+  const p = project({ ...point, height: 0 });
+  return { left: p.x, top: p.y, height, ...(width ? { width } : {}) };
+}
+/** One ground projection and one scale for the entire hand-painted scene. */
 export function ConfessionScene({
   churchView,
   state,
@@ -115,43 +118,166 @@ export function ConfessionScene({
   const totalPages = Math.max(1, Math.ceil(state.categories.length / positions.length));
   const currentPage = Math.min(page, totalPages - 1);
   const visible = state.categories.slice(currentPage * 6, currentPage * 6 + 6);
-  const fogLayer = (depth: string) => (
-    <div className={`conf25-fog conf25-fog-${depth}`} aria-hidden="true">
-      <i />
-      <i />
-    </div>
-  );
-  const trees = (depth: string) => (
-    <div className={`conf25-trees conf25-trees-${depth}`} aria-hidden="true">
-      <img src={tree} alt="" draggable={false} />
-      <img src={tree} alt="" draggable={false} />
-    </div>
-  );
-  const graves = (depth: string) =>
-    visible.map((category, i) => {
-      const spot = positions[i];
-      if (spot.depth !== depth) return null;
-      return (
+  const [sceneScale, setSceneScale] = useState(1);
+  useEffect(() => {
+    if (!stage.current || typeof ResizeObserver === 'undefined') return;
+    const resize = () => {
+      const box = stage.current!.getBoundingClientRect();
+      setSceneScale(Math.min(box.width / 1040, box.height / 780));
+    };
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(stage.current);
+    return () => observer.disconnect();
+  }, []);
+  const actors: { key: string; order: number; view: React.ReactNode }[] = [];
+  const add = (key: string, point: GroundPoint, view: React.ReactNode) =>
+    actors.push({ key, order: depth(point), view });
+  const fogBand = (name: string, order: number, y: number) =>
+    actors.push({
+      key: name,
+      order,
+      view: (
+        <div className={`conf25-fog confiso-fog-${name}`} style={{ top: y }} aria-hidden="true">
+          <i />
+          <i />
+        </div>
+      ),
+    });
+  if (!churchView) {
+    add(
+      'chapel',
+      CHAPEL,
+      <div className="conf25-chapel" style={placed(CHAPEL, 340, 263)}>
+        <span className="confiso-contact confiso-chapel-shadow" />
+        <img className="conf25-chapel-art" src={chapel} alt="远处的石砌教堂" draggable={false} />
         <button
           type="button"
-          key={category.id}
-          className={`conf25-grave conf25-grave-${depth}`}
+          className="conf25-door"
+          aria-label="点击教堂门"
+          disabled={!ready || opening || paused || blocked}
+          onClick={enter}
+        >
+          <span className="conf25-door-glow" />
+          <img className="conf25-leaf" src={door} alt="" draggable={false} />
+          <span className="conf25-door-hint">循光入内</span>
+        </button>
+      </div>,
+    );
+    TREES.forEach((t, i) =>
+      add(
+        `tree-${i}`,
+        t,
+        <div
+          className="confiso-tree"
+          style={placed(t, t.height * SPACE.rise, t.height * SPACE.rise * 0.753)}
+          aria-hidden="true"
+        >
+          <span className="confiso-contact" />
+          <img src={tree} alt="" draggable={false} />
+          {i === 1 && <img className="conf25-crow" src={crow} alt="枯树枝头的乌鸦" />}
+        </div>,
+      ),
+    );
+    visible.forEach((category, i) => {
+      const spot = GRAVES[i];
+      add(
+        category.id,
+        spot,
+        <button
+          type="button"
+          className="conf25-grave"
+          data-facing={spot.facing}
+          style={placed(spot, 86, 54)}
           disabled={blocked || opening || !ready}
           aria-label={`查看墓碑：${category.name}`}
           onClick={() => onTomb(category)}
-          style={
-            { '--grave-x': `${spot.x}%`, '--grave-y': `${spot.y}%`, '--grave-width': `${spot.width}%` } as CSSProperties
-          }
         >
-          <img src={grave} alt="" draggable={false} />
-          <span>{category.name}</span>
-        </button>
+          <span className="confiso-contact" aria-hidden="true" />
+          <img src={spot.facing === 'east' ? graveEast : graveWest} alt="" draggable={false} />
+          <span className="confiso-inscription">{category.name}</span>
+        </button>,
       );
     });
+    fogBand('far', -2.5, 350);
+    fogBand('middle', 3.7, 455);
+    fogBand('near', 10, 620);
+  } else {
+    [-3.8, -1.15, 1.5, 4.2].forEach((z, i) => {
+      const p = { x: -4.35, z };
+      add(
+        `column-${i}`,
+        p,
+        <div className="confiso-column" style={placed(p, 174, 43)} data-column-height="3.35" aria-hidden="true">
+          <span className="confiso-contact" />
+          <img src={pillar} alt="" />
+        </div>,
+      );
+    });
+    const altarPoint = { x: 0, z: -3.6 };
+    add(
+      'altar',
+      altarPoint,
+      <div className="confiso-altar-art" style={placed(altarPoint, 78, 67)} aria-hidden="true">
+        <span className="confiso-contact" />
+        <img src={altar} alt="" />
+      </div>,
+    );
+    PEWS.forEach((p, i) =>
+      add(
+        `pew-${i}`,
+        p,
+        <div
+          className="conf25-pew-row"
+          data-row={p.row}
+          data-facing={p.facing}
+          data-world-x={p.x}
+          data-world-z={p.z}
+          style={placed(p, 58, 72)}
+          aria-hidden="true"
+        >
+          <span className="confiso-contact" />
+          <img src={pew} alt="" />
+        </div>,
+      ),
+    );
+    add(
+      'saint',
+      SAINT,
+      <div
+        className="conf25-saint-wrap"
+        data-world-height={SAINT.height}
+        style={placed(SAINT, SAINT.height * SPACE.rise, SAINT.height * SPACE.rise * 0.33)}
+      >
+        <span className="confiso-contact confiso-saint-shadow" aria-hidden="true" />
+        <button
+          className="conf25-saint"
+          type="button"
+          onClick={onSaint}
+          aria-label="与圣女凛交谈"
+          aria-expanded={bubble}
+          disabled={blocked}
+        >
+          <img src={saint} alt="黑白修女服志摩凛" draggable={false} />
+        </button>
+        {bubble && (
+          <button type="button" className="confession-bubble conf25-bubble" onClick={onWrite} disabled={blocked}>
+            <span>你今天想忏什么</span>
+            <small>点击，写下你的内容</small>
+          </button>
+        )}
+      </div>,
+    );
+    fogBand('far', -3.6, 340);
+    fogBand('middle', 2.2, 465);
+    fogBand('near', 8.9, 620);
+  }
+  actors.sort((a, b) => a.order - b.order);
+
   return (
     <div
       ref={stage}
-      className="confession-stage conf25-stage"
+      className="confession-stage conf25-stage confiso-stage"
       data-church={churchView}
       data-still={still}
       data-opening={opening}
@@ -167,78 +293,21 @@ export function ConfessionScene({
         stage.current?.style.setProperty('--look-y', '0px');
       }}
     >
-      <div className="conf25-camera" key={churchView ? 'church' : 'cemetery'}>
-        <img className="conf25-base" src={churchView ? nave : terrain} alt="" draggable={false} />
-        {!churchView ? (
-          <>
-            <div className="conf25-depth conf25-back">
-              {trees('far')}
-              <div className="conf25-chapel">
-                <img className="conf25-chapel-art" src={chapel} alt="远处的石砌教堂" draggable={false} />
-                <button
-                  type="button"
-                  className="conf25-door"
-                  aria-label="点击教堂门"
-                  disabled={!ready || opening || paused || blocked}
-                  onClick={enter}
-                >
-                  <span className="conf25-door-glow" />
-                  <img className="conf25-leaf conf25-leaf-left" src={door} alt="" draggable={false} />
-                  <span className="conf25-door-hint">循光入内</span>
-                </button>
-              </div>
-              {graves('far')}
+      <div className="confiso-viewport" style={{ width: SPACE.width * sceneScale, height: SPACE.height * sceneScale }}>
+        <div
+          className="conf25-camera"
+          key={churchView ? 'church' : 'cemetery'}
+          style={{ '--scene-scale': sceneScale } as CSSProperties}
+        >
+          <SceneGround church={churchView} />
+          {actors.map((actor, index) => (
+            <div className="confiso-depth" key={actor.key} data-depth={actor.order} style={{ zIndex: index + 2 }}>
+              {actor.view}
             </div>
-            {fogLayer('far')}
-            <div className="conf25-depth conf25-middle">
-              {trees('middle')}
-              {graves('middle')}
-            </div>
-            {fogLayer('middle')}
-            <div className="conf25-depth conf25-front">
-              {graves('near')}
-              {trees('near')}
-              <img className="conf25-crow" src={crow} alt="枯树枝头的乌鸦" draggable={false} />
-            </div>
-            {fogLayer('near')}
-          </>
-        ) : (
-          <>
-            {fogLayer('far')}
-            <div className="conf25-depth conf25-middle conf25-pews" aria-hidden="true">
-              {[0, 1, 2].map((row) => (
-                <div key={row} className={`conf25-pew-row conf25-pew-row-${row}`}>
-                  <img src={pew} alt="" />
-                  <img src={pew} alt="" />
-                </div>
-              ))}
-            </div>
-            {fogLayer('middle')}
-            <div className="conf25-light" aria-hidden="true" />
-            <div className="conf25-saint-wrap conf25-depth conf25-front">
-              <span className="conf25-saint-shadow" aria-hidden="true" />
-              <button
-                className="conf25-saint"
-                type="button"
-                onClick={onSaint}
-                aria-label="与圣女凛交谈"
-                aria-expanded={bubble}
-                disabled={blocked}
-              >
-                <img src={saint} alt="黑白修女服志摩凛" draggable={false} />
-              </button>
-              {bubble && (
-                <button type="button" className="confession-bubble conf25-bubble" onClick={onWrite} disabled={blocked}>
-                  <span>你今天想忏什么</span>
-                  <small>点击，写下你的内容</small>
-                </button>
-              )}
-            </div>
-            {fogLayer('near')}
-          </>
-        )}
-        <div className="conf25-vignette" aria-hidden="true" />
+          ))}
+        </div>
       </div>
+      <div className="conf25-vignette" aria-hidden="true" />
       {error && (
         <div role="alert" className="confession-world-error">
           <p>场景素材加载失败，请重试</p>
