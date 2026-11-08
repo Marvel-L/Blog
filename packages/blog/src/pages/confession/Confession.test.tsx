@@ -138,7 +138,7 @@ describe('confession experience', () => {
     expect(first).not.toContain('面试失败');
     expect(requests.fetch).not.toHaveBeenCalled();
   });
-  it('creates a new tombstone and uses the saint bubble to open the real editor', async () => {
+  it('creates a new tombstone and opens a private close-up guided conversation', async () => {
     let saved = emptyConfession();
     const user = { id: 'alice', name: 'Alice', login: 'alice' };
     requests.fetch.mockImplementation(async (path: string, init: RequestInit) => {
@@ -152,14 +152,21 @@ describe('confession experience', () => {
     fireEvent.change(screen.getByLabelText('墓碑名称'), { target: { value: '拖延' } });
     fireEvent.click(screen.getByRole('button', { name: '立一座墓碑' }));
     await waitFor(() => expect(screen.getByRole('button', { name: '查看墓碑：拖延' })).toBeInTheDocument());
-    fireEvent.change(screen.getByLabelText('雾的浓度'), { target: { value: '80' } });
-    expect(screen.getByLabelText('雾的浓度')).toHaveValue('80');
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('button', { name: '进入教堂' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: '进入教堂' }));
     fireEvent.click(screen.getByRole('button', { name: '与圣女凛交谈' }));
-    expect(screen.getByRole('button', { name: /你今天想忏什么/ })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /你今天想忏什么/ }));
+    expect(screen.getByRole('dialog', { name: '志摩凛' })).toBeInTheDocument();
+    expect(screen.getByText('你今天想忏什么')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '我想说一说' }));
     expect(screen.getByRole('textbox', { name: '你的记事' })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('你的记事'), { target: { value: '今天重新开始。' } });
+    fireEvent.click(screen.getByRole('button', { name: '对凛说' }));
+    expect(saved.entries).toHaveLength(0);
+    expect(screen.getByText('你对凛说')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '确认归档' }));
+    await waitFor(() => expect(saved.entries).toHaveLength(1));
+    expect(screen.getByText('内容已保存到所选墓碑的私密归档。')).toBeInTheDocument();
   });
   it('retries the same tombstone draft without blocking or duplicating an acknowledged record', async () => {
     let snapshot = emptyConfession();

@@ -14,12 +14,29 @@ import saint from '@/assets/confession/oblique/rin-iso.webp';
 import pillar from '@/assets/confession/oblique/pillar-iso.webp';
 import altar from '@/assets/confession/oblique/altar-iso.webp';
 import windowWall from '@/assets/confession/oblique/window-wall.webp';
+import garden from '@/assets/confession/oblique/garden-cluster.webp';
 import { SceneGround } from './SceneGround';
+import { SceneFog } from './SceneFog';
 import { CHAPEL, GRAVES, PEWS, SAINT, SPACE, TREES, depth, project, type GroundPoint } from './sceneSpace';
 import type { ConfessionCategory, ConfessionState } from './model';
 import './confession-25d.css';
 
-const assets = [grass, stone, chapel, graveEast, graveWest, tree, crow, pew, door, saint, pillar, altar, windowWall];
+const assets = [
+  grass,
+  stone,
+  chapel,
+  graveEast,
+  graveWest,
+  tree,
+  crow,
+  pew,
+  door,
+  saint,
+  pillar,
+  altar,
+  windowWall,
+  garden,
+];
 const positions = GRAVES;
 function placed(point: GroundPoint, height: number, width?: number): CSSProperties {
   const p = project({ ...point, height: 0 });
@@ -29,25 +46,19 @@ function placed(point: GroundPoint, height: number, width?: number): CSSProperti
 export function ConfessionScene({
   churchView,
   state,
-  fog,
   paused,
-  bubble,
   blocked,
   onTomb,
   onChurch,
   onSaint,
-  onWrite,
 }: {
   churchView: boolean;
   state: ConfessionState;
-  fog: number;
   paused: boolean;
-  bubble: boolean;
   blocked: boolean;
   onTomb: (category: ConfessionCategory) => void;
   onChurch: (inside: boolean) => void;
   onSaint: () => void;
-  onWrite: () => void;
 }) {
   const stage = useRef<HTMLDivElement>(null);
   const callbacks = useRef({ onChurch });
@@ -123,7 +134,7 @@ export function ConfessionScene({
     if (!stage.current || typeof ResizeObserver === 'undefined') return;
     const resize = () => {
       const box = stage.current!.getBoundingClientRect();
-      setSceneScale(Math.min(box.width / 1040, box.height / 780));
+      setSceneScale(Math.min(box.width / 1250, box.height / 950));
     };
     resize();
     const observer = new ResizeObserver(resize);
@@ -138,9 +149,8 @@ export function ConfessionScene({
       key: name,
       order,
       view: (
-        <div className={`conf25-fog confiso-fog-${name}`} style={{ top: y }} aria-hidden="true">
-          <i />
-          <i />
+        <div className={`confiso-fog-anchor confiso-fog-${name}`} style={{ top: y }}>
+          <SceneFog still={still} band={name === 'far' ? 0 : name === 'middle' ? 1 : 2} />
         </div>
       ),
     });
@@ -199,6 +209,34 @@ export function ConfessionScene({
         </button>,
       );
     });
+    const gardens = [
+      { x: -2.7, z: 2.8 },
+      { x: -1.9, z: 1.2 },
+      { x: -1.0, z: -1.6 },
+      { x: 1.0, z: 6.3 },
+      { x: 3.2, z: 5.3 },
+      { x: 5.2, z: 3.6 },
+      { x: 5.8, z: 1.5 },
+      { x: 6.7, z: -1.5 },
+      { x: 0.7, z: -4.1 },
+      { x: 6.9, z: -4.1 },
+      { x: -4.0, z: 4.1 },
+      { x: 6.9, z: 6.2 },
+    ];
+    gardens.forEach((point, i) =>
+      add(
+        `garden-${i}`,
+        point,
+        <div
+          className="confiso-garden"
+          style={placed(point, i % 3 === 0 ? 46 : 34, i % 3 === 0 ? 84 : 62)}
+          aria-hidden="true"
+        >
+          <span className="confiso-contact" />
+          <img src={garden} alt="" draggable={false} />
+        </div>,
+      ),
+    );
     fogBand('far', -2.5, 350);
     fogBand('middle', 3.7, 455);
     fogBand('near', 10, 620);
@@ -255,18 +293,27 @@ export function ConfessionScene({
           type="button"
           onClick={onSaint}
           aria-label="与圣女凛交谈"
-          aria-expanded={bubble}
+          aria-haspopup="dialog"
           disabled={blocked}
         >
           <img src={saint} alt="黑白修女服志摩凛" draggable={false} />
         </button>
-        {bubble && (
-          <button type="button" className="confession-bubble conf25-bubble" onClick={onWrite} disabled={blocked}>
-            <span>你今天想忏什么</span>
-            <small>点击，写下你的内容</small>
-          </button>
-        )}
+        <span className="confiso-saint-hint">与凛倾诉</span>
       </div>,
+    );
+    [
+      { x: -3.7, z: -3.5 },
+      { x: 3.6, z: -3.5 },
+      { x: -3.7, z: 4.4 },
+      { x: 3.6, z: 4.4 },
+    ].forEach((point, i) =>
+      add(
+        `church-garden-${i}`,
+        point,
+        <div className="confiso-garden" style={placed(point, 25, 46)} aria-hidden="true">
+          <img src={garden} alt="" />
+        </div>,
+      ),
     );
     fogBand('far', -3.6, 340);
     fogBand('middle', 2.2, 465);
@@ -281,7 +328,7 @@ export function ConfessionScene({
       data-church={churchView}
       data-still={still}
       data-opening={opening}
-      style={{ '--fog-density': Math.max(0, Math.min(fog, 100)) / 100 } as CSSProperties}
+      data-fog="automatic"
       onPointerMove={(event) => {
         if (still || event.pointerType === 'touch' || !stage.current) return;
         const box = stage.current.getBoundingClientRect();
@@ -300,6 +347,7 @@ export function ConfessionScene({
           style={{ '--scene-scale': sceneScale } as CSSProperties}
         >
           <SceneGround church={churchView} />
+          {churchView && <div className="confiso-window-light" aria-hidden="true" />}
           {actors.map((actor, index) => (
             <div className="confiso-depth" key={actor.key} data-depth={actor.order} style={{ zIndex: index + 2 }}>
               {actor.view}

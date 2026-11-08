@@ -50,6 +50,7 @@ const TbdPostsPage = lazy(pageLoaders['/tbd']);
 const AccumulatePage = lazy(pageLoaders['/accumulate']);
 const OceanPage = lazy(pageLoaders['/ocean']);
 const ConfessionPage = lazy(pageLoaders['/confession']);
+const ConfessionDetailPage = lazy(() => import('./pages/Confession').then((m) => ({ default: m.ConfessionDetail })));
 const NotFound = lazy(() => import('./pages/NotFound').then((m) => ({ default: m.NotFound })));
 const CookieNotice = lazy(() => import('./components/CookieNotice').then((m) => ({ default: m.CookieNotice })));
 const TypewriterIntro = lazy(() =>
@@ -152,7 +153,7 @@ const AppRoutes: React.FC = () => {
   const isAnkiRoute = displayLocation.pathname.startsWith('/anki');
 
   // 忏悔独立场景保留现有账号组件，场景匿名可见，私密交互由会话鉴权。
-  if (displayLocation.pathname.replace(/\/$/, '') === '/confession') {
+  if (/^\/confession(?:\/|$)/.test(displayLocation.pathname)) {
     return (
       <>
         {cloudReady && CloudAccount && (
@@ -167,7 +168,11 @@ const AppRoutes: React.FC = () => {
             </main>
           }
         >
-          <ConfessionPage />
+          <Routes location={displayLocation}>
+            <Route path="/confession" element={<ConfessionPage />} />
+            <Route path="/confession/entry/:id" element={<ConfessionDetailPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </Suspense>
       </>
     );
@@ -249,7 +254,8 @@ const AppRoutes: React.FC = () => {
 
 const AppShell: React.FC = () => {
   const location = useLocation();
-  const isOceanRoute = ['/ocean', '/confession'].includes(location.pathname.replace(/\/$/, ''));
+  const isOceanRoute =
+    location.pathname.replace(/\/$/, '') === '/ocean' || /^\/confession(?:\/|$)/.test(location.pathname);
   const [introReady, setIntroReady] = useState(false);
   const [showCookieNotice, setShowCookieNotice] = useState(false);
 

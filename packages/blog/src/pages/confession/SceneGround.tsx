@@ -123,8 +123,8 @@ export function SceneGround({ church }: { church: boolean }) {
           <Wall a={point(-4.7, -4.6)} b={point(-4.7, 5.5)} />
           <polygon
             points={polygon([point(-0.75, -2.8), point(0.75, -2.8), point(0.75, 5.5), point(-0.75, 5.5)])}
-            fill="#8a9c91"
-            opacity=".12"
+            fill="#597670"
+            opacity=".52"
           />
           <Block x={-1.65} z={-3.7} width={3.3} length={1.2} height={0.18} className="confiso-dais" />
           <ellipse

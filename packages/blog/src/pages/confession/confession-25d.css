@@ -10,16 +10,16 @@
   height: 100%;
   object-fit: contain;
   display: block;
-  filter: brightness(0.67) saturate(0.67);
+  filter: brightness(0.86) saturate(0.86);
 }
 /* One orthographic world, not independently sized viewport stickers. */
 .confiso-stage {
   --look-x: 0px;
   --look-y: 0px;
-  background: radial-gradient(ellipse at 70% 25%, #273e4c 0, #152832 48%, #101e26 100%);
+  background: radial-gradient(ellipse at 70% 25%, #45646b 0, #2d4953 48%, #203740 100%);
 }
 .confiso-stage[data-church='true'] {
-  background: radial-gradient(ellipse at 60% 40%, #28373d, #101a20 75%);
+  background: radial-gradient(ellipse at 60% 40%, #35484e, #182b33 75%);
 }
 .confiso-viewport {
   position: absolute;
@@ -32,7 +32,7 @@
   width: 1200px;
   height: 850px;
   transform-origin: 0 0;
-  transform: translate(calc(var(--look-x) * 0.3), calc(var(--look-y) * 0.3)) scale(var(--scene-scale));
+  transform: translate(calc(var(--look-x, 0px) * 0.3), calc(var(--look-y, 0px) * 0.3)) scale(var(--scene-scale));
   transition:
     filter 0.9s,
     transform 0.7s ease-out;
@@ -73,13 +73,13 @@
   display: block;
 }
 .conf25-chapel-art {
-  filter: brightness(0.8) saturate(0.7);
+  filter: brightness(0.98) saturate(0.84);
 }
 .conf25-grave {
   border: 0;
   background: none;
   padding: 0;
-  filter: brightness(0.76) saturate(0.7);
+  filter: brightness(0.98) saturate(0.83);
   cursor: pointer;
   transition: filter 0.25s;
 }
@@ -181,7 +181,7 @@
   white-space: nowrap;
 }
 .conf25-pew-row {
-  filter: brightness(0.61) saturate(0.66);
+  filter: brightness(0.83) saturate(0.82);
 }
 .conf25-pew-row > img {
   transform: skewY(8deg);
@@ -235,30 +235,98 @@
   bottom: -5px;
   transform: translateX(-50%);
 }
-.conf25-fog {
+.confiso-fog-anchor {
   position: absolute;
   left: 0;
   width: 1200px;
-  height: 120px;
+  height: 160px;
   pointer-events: none;
-  opacity: calc(var(--fog-density) * 0.65);
+}
+.conf25-fog {
+  position: absolute;
+  left: -300px;
+  width: 1800px;
+  height: 160px;
+  pointer-events: none;
+  opacity: calc(var(--fog-density) * 0.8);
+  transition: opacity 16s ease-in-out;
+  overflow: hidden;
+  mask-image: linear-gradient(transparent, #000 25%, #000 75%, transparent);
 }
 .conf25-fog i {
   position: absolute;
-  inset: 0;
+  inset: -10% -60%;
   background:
-    radial-gradient(ellipse at 25% 50%, #a1bdc160, transparent 62%),
-    radial-gradient(ellipse at 75% 70%, #d1dddf60, transparent 62%);
-  filter: blur(15px);
-  animation: confiso-drift 18s ease-in-out infinite alternate;
+    radial-gradient(ellipse at 20% 50%, #b1d0ce90, transparent 25%),
+    radial-gradient(ellipse at 50% 70%, #c4dddd85, transparent 27%),
+    radial-gradient(ellipse at 80% 40%, #a1c4ca80, transparent 26%);
+  filter: blur(18px);
+  animation: confiso-flow var(--fog-speed, 44s) linear infinite;
+  animation-delay: calc(var(--fog-phase, 0s) + var(--wisp-phase, 0s));
+}
+.conf25-fog i:nth-child(2) {
+  opacity: 0.65;
+  animation-direction: reverse;
 }
 .conf25-fog i:last-child {
-  opacity: 0.55;
-  animation-duration: 27s;
-  animation-direction: alternate-reverse;
+  opacity: 0.4;
 }
 .confiso-stage[data-church='true'] .conf25-fog {
-  opacity: calc(var(--fog-density) * 0.18);
+  opacity: calc(var(--fog-density) * 0.23);
+}
+@keyframes confiso-flow {
+  0% {
+    transform: translate(-15%, -3%);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.8;
+  }
+  78% {
+    opacity: 0.65;
+  }
+  100% {
+    transform: translate(28%, 5%);
+    opacity: 0;
+  }
+}
+.confiso-garden {
+  position: absolute;
+  transform: translate(-50%, -100%);
+}
+.confiso-garden > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: brightness(0.8) saturate(0.8);
+}
+.confiso-saint-hint {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 11px;
+  color: #e5eddb;
+  border-bottom: 1px solid #bdccb36b;
+  padding-bottom: 4px;
+  pointer-events: none;
+}
+.confiso-window-light {
+  position: absolute;
+  left: 400px;
+  top: 285px;
+  width: 270px;
+  height: 220px;
+  background: linear-gradient(125deg, transparent, #f7e5b521, transparent 65%);
+  clip-path: polygon(0 0, 26% 0, 100% 100%, 35% 100%);
+  pointer-events: none;
+}
+.confiso-stage:not([data-church='true']) .confiso-ground {
+  filter: brightness(1.3) saturate(0.85);
+}
+.confiso-stage[data-church='true'] .confiso-ground {
+  filter: brightness(1.12) saturate(0.85);
 }
 .confiso-road-edge {
   stroke: #89999155;
@@ -307,7 +375,7 @@
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: radial-gradient(ellipse at 64% 50%, transparent 25%, #06121b66 85%);
+  background: radial-gradient(ellipse at 64% 50%, transparent 35%, #06121b3b 95%);
 }
 .conf25-hud {
   position: absolute;

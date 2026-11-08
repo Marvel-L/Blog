@@ -28,17 +28,14 @@ function Harness({
     <ConfessionScene
       churchView={inside}
       state={state}
-      fog={48}
       paused={paused}
       blocked={blocked}
-      bubble={false}
       onChurch={(v) => {
         changeRegion(v);
         setInside(v);
       }}
       onTomb={vi.fn()}
       onSaint={vi.fn()}
-      onWrite={vi.fn()}
     />
   );
 }

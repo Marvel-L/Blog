@@ -1,0 +1,161 @@
+/* Close-up dialogue is its own scene, not a bubble over the map. */
+.confession-conversation {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  overflow: auto;
+  color: var(--confession-paper);
+  background: radial-gradient(ellipse at 30% 24%, #4c666c, #243f45 43%, #152c34 85%);
+}
+.confession-conversation-header {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 28px clamp(24px, 5vw, 80px);
+  font-size: 12px;
+}
+.confession-conversation-header button {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.confession-conversation-light {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 15%, #f7ebce10 25%, transparent 50%);
+  pointer-events: none;
+}
+.confession-conversation-portrait {
+  position: absolute;
+  left: 9%;
+  bottom: 0;
+  width: 32%;
+  height: 82%;
+  overflow: hidden;
+  pointer-events: none;
+}
+.confession-conversation-portrait img {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 0 26px #f5ead530);
+}
+.confession-conversation-dialogue {
+  position: relative;
+  margin: 9vh 7vw 6vh 46%;
+  padding: 28px 0;
+  max-width: 650px;
+}
+.confession-conversation-name {
+  border-bottom: 1px solid #a6c1b852;
+  padding-bottom: 18px;
+  margin-bottom: 24px;
+}
+.confession-conversation-name span {
+  letter-spacing: 0.3em;
+  font-size: 10px;
+  color: var(--confession-muted);
+}
+.confession-conversation-name h2 {
+  margin: 8px 0 0;
+  font:
+    30px/1.3 'Songti SC',
+    serif;
+  letter-spacing: 0.12em;
+}
+.confession-conversation-line {
+  font:
+    clamp(21px, 2.1vw, 30px)/1.8 'Songti SC',
+    serif;
+  letter-spacing: 0.05em;
+}
+.confession-conversation-note {
+  margin: 22px 0;
+  font-size: 14px;
+  line-height: 2;
+  color: var(--confession-muted);
+}
+.confession-conversation-caption {
+  display: block;
+  margin-top: 32px;
+  font-size: 10px;
+  color: var(--confession-muted);
+}
+.confession-conversation .confession-form > p:first-child {
+  display: none;
+}
+.confession-conversation .confession-form textarea {
+  min-height: 150px;
+  background: #142e3588;
+}
+.confession-conversation .confession-form select {
+  background: #142e3588;
+}
+.confession-spoken-preview {
+  padding: 18px 0;
+  border-block: 1px solid #a6c1b844;
+}
+.confession-spoken-preview > span {
+  font-size: 11px;
+  color: var(--confession-muted);
+}
+.confession-spoken-preview p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.9;
+  max-height: 36dvh;
+  overflow: auto;
+  margin: 12px 0;
+}
+.confession-spoken-preview button {
+  background: transparent;
+  color: var(--confession-muted);
+  border: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.confession-conversation button:focus-visible {
+  outline: 2px solid #cde2d2;
+  outline-offset: 4px;
+}
+@media (max-width: 760px) {
+  .confession-conversation-header {
+    padding: 20px;
+  }
+  .confession-conversation-header > span {
+    font-size: 10px;
+  }
+  .confession-conversation-portrait {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    width: 100%;
+    height: 36dvh;
+  }
+  .confession-conversation-portrait img {
+    width: min(74%, 340px);
+    margin: 0 auto;
+  }
+  .confession-spoken-preview p {
+    max-height: 30dvh;
+  }
+  .confession-conversation-dialogue {
+    margin: 0;
+    padding: 20px 26px 40px;
+    max-width: none;
+    background: #18343bea;
+  }
+  .confession-conversation-name {
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+  }
+  .confession-conversation-line {
+    margin: 16px 0;
+  }
+}

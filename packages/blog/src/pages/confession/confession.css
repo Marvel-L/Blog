@@ -367,7 +367,8 @@
   font-size: 10px;
   color: var(--confession-muted);
   font-variant-numeric: tabular-nums;
-  width: 30px;
+  width: auto;
+  white-space: nowrap;
 }
 .confession-private-note {
   display: flex;
@@ -719,7 +720,7 @@
   cursor: default;
 }
 .confession-stage[data-still='true'] * {
-  animation: none !important;
+  animation-play-state: paused !important;
 }
 @media (max-width: 760px) {
   .confession-header {

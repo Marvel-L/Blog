@@ -68,13 +68,17 @@ export function ConfessionEntryForm({
   state,
   busy,
   initialCategory,
+  guided = false,
   onSave,
 }: {
   state: ConfessionState;
   busy: boolean;
   initialCategory?: string;
+  /** Guided mode separates speaking from explicit private archive confirmation. */
+  guided?: boolean;
   onSave: (state: ConfessionState) => Promise<boolean>;
 }) {
+  const [review, setReview] = useState(false);
   const [categoryId, setCategoryId] = useState(initialCategory ?? state.categories[0]?.id ?? '');
   const [content, setContent] = useState('');
   const [error, setError] = useState('');
@@ -84,6 +88,11 @@ export function ConfessionEntryForm({
     const text = content.trim();
     if (!text || [...text].length > 10000) {
       setError('请写下1–10000字的内容');
+      return;
+    }
+    if (guided && !review) {
+      setError('');
+      setReview(true);
       return;
     }
     if (!state.categories.some((category) => category.id === categoryId)) {
@@ -109,31 +118,47 @@ export function ConfessionEntryForm({
       className="confession-form"
     >
       <p>不用组织成完美的句子。把今天想说的，写在这里。</p>
-      <label htmlFor="confession-entry-category">归入哪座墓碑</label>
-      <select
-        id="confession-entry-category"
-        value={categoryId}
-        onChange={(event) => setCategoryId(event.target.value)}
-        disabled={busy}
-        required
-      >
-        {state.categories.map((category) => (
-          <option key={category.id} value={category.id}>
-            {category.name}
-          </option>
-        ))}
-      </select>
-      <label htmlFor="confession-content">你的记事</label>
-      <textarea
-        id="confession-content"
-        value={content}
-        onChange={(event) => setContent(event.target.value)}
-        rows={7}
-        maxLength={10000}
-        required
-        disabled={busy}
-        placeholder="我今天想忏悔的是…"
-      />
+      {(!guided || review) && (
+        <>
+          <label htmlFor="confession-entry-category">归入哪座墓碑</label>
+          <select
+            id="confession-entry-category"
+            value={categoryId}
+            onChange={(event) => setCategoryId(event.target.value)}
+            disabled={busy}
+            required
+          >
+            {state.categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
+      {guided && review ? (
+        <div className="confession-spoken-preview">
+          <span>你对凛说</span>
+          <p>{content}</p>
+          <button type="button" disabled={busy} onClick={() => setReview(false)}>
+            继续修改
+          </button>
+        </div>
+      ) : (
+        <>
+          <label htmlFor="confession-content">你的记事</label>
+          <textarea
+            id="confession-content"
+            value={content}
+            onChange={(event) => setContent(event.target.value)}
+            rows={7}
+            maxLength={10000}
+            required
+            disabled={busy}
+            placeholder="我今天想忏悔的是…"
+          />
+        </>
+      )}
       <div className="confession-form-foot">
         <span>仅本人可见 · 不在本机留存内容</span>
         <span>{[...content].length} / 10000</span>
@@ -143,7 +168,7 @@ export function ConfessionEntryForm({
       </p>
       <button type="submit" className="confession-primary" disabled={busy || state.entries.length >= 2000}>
         <Feather size={16} />
-        {busy ? '保存中…' : '写下，归档'}
+        {busy ? '保存中…' : guided ? (review ? '确认归档' : '对凛说') : '写下，归档'}
       </button>
     </form>
   );
