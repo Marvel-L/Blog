@@ -67,7 +67,7 @@ afterEach(() => {
 });
 
 describe('painted 2.5D confession scene', () => {
-  it('uses independent grave art and interleaves fog at distinct depth layers', async () => {
+  it('uses independent grave art with an integrated volume fog renderer', async () => {
     const { container } = render(<Harness />);
     await waitFor(() => expect(screen.getByRole('button', { name: '进入教堂' })).toBeEnabled());
     expect(container.querySelector('canvas')).toHaveAttribute('data-fog', 'ray-marched');
@@ -136,6 +136,24 @@ describe('painted 2.5D confession scene', () => {
     fireEvent.click(screen.getByRole('button', { name: '重新加载场景' }));
     await waitFor(() => expect(screen.getByRole('button', { name: '进入教堂' })).toBeEnabled());
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+  it('ignores queued resize callbacks after the scene unmounts', () => {
+    let notify: (() => void) | undefined;
+    const disconnect = vi.fn();
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: () => void) {
+          notify = callback;
+        }
+        observe() {}
+        disconnect = disconnect;
+      },
+    );
+    const view = render(<Harness />);
+    view.unmount();
+    expect(disconnect).toHaveBeenCalledOnce();
+    expect(() => notify?.()).not.toThrow();
   });
   it('keeps 100 categories accessible without stacking them into the scene at once', async () => {
     const { container } = render(<Harness many />);

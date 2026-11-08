@@ -135,14 +135,20 @@ export function ConfessionScene({
   const [sceneScale, setSceneScale] = useState(1);
   useEffect(() => {
     if (!stage.current || typeof ResizeObserver === 'undefined') return;
+    const element = stage.current;
+    let disposed = false;
     const resize = () => {
-      const box = stage.current!.getBoundingClientRect();
+      if (disposed || !element.isConnected) return;
+      const box = element.getBoundingClientRect();
       setSceneScale(Math.min(box.width / 1250, box.height / 950));
     };
     resize();
     const observer = new ResizeObserver(resize);
-    observer.observe(stage.current);
-    return () => observer.disconnect();
+    observer.observe(element);
+    return () => {
+      disposed = true;
+      observer.disconnect();
+    };
   }, []);
   const actors: { key: string; order: number; view: React.ReactNode }[] = [];
   const add = (key: string, point: GroundPoint, view: React.ReactNode) =>
