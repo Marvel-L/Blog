@@ -45,6 +45,17 @@ const view = () => (
   </HelmetProvider>
 );
 beforeEach(() => {
+  vi.stubGlobal(
+    'Image',
+    class {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      set src(_value: string) {
+        queueMicrotask(() => this.onload?.());
+      }
+    },
+  );
+  vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
   vi.stubEnv('VITE_DEPLOY_TARGET', 'cloud');
   vi.stubGlobal(
     'matchMedia',

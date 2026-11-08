@@ -1,0 +1,500 @@
+/* Painted depth layers: independent alpha props and fog planes interleave in one scene. */
+.conf25-stage {
+  --look-x: 0px;
+  --look-y: 0px;
+  --conf25-fog: #b3c7cf;
+}
+.conf25-camera {
+  position: absolute;
+  inset: -2%;
+  transform-origin: 74% 48%;
+  transition: transform 1.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.conf25-stage[data-opening='true'] .conf25-camera {
+  transform: scale(1.16);
+}
+.conf25-base {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 65% center;
+}
+.conf25-depth {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: transform 0.65s ease-out;
+}
+.conf25-back {
+  z-index: 2;
+  transform: translate(calc(var(--look-x) * 0.22), calc(var(--look-y) * 0.22));
+}
+.conf25-middle {
+  z-index: 4;
+  transform: translate(calc(var(--look-x) * 0.55), calc(var(--look-y) * 0.55));
+}
+.conf25-front {
+  z-index: 6;
+  transform: translate(var(--look-x), var(--look-y));
+}
+.conf25-depth button {
+  pointer-events: auto;
+}
+.conf25-chapel {
+  position: absolute;
+  left: 74%;
+  bottom: 48%;
+  width: clamp(150px, 21vw, 330px);
+  transform: translateX(-50%);
+}
+.conf25-chapel-art {
+  width: 100%;
+  display: block;
+  filter: brightness(0.74) saturate(0.78);
+}
+.conf25-door {
+  position: absolute;
+  left: 35.8%;
+  bottom: 5.4%;
+  width: 14%;
+  height: 24%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  perspective: 250px;
+}
+.conf25-door-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 85%, #fffae5, #e7f1e8 45%, #a7cbd2 80%);
+  border-radius: 50% 50% 0 0 / 20% 20% 0 0;
+  box-shadow:
+    0 0 16px #e8f1ce88,
+    0 12px 25px #d5e5b066;
+  opacity: 0.72;
+  transition:
+    opacity 0.8s,
+    box-shadow 0.8s;
+}
+.conf25-door:hover .conf25-door-glow {
+  opacity: 1;
+}
+.conf25-leaf {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition:
+    transform 0.95s ease-in-out,
+    filter 0.8s;
+  filter: brightness(0.68);
+}
+.conf25-leaf-left {
+  left: 0;
+  transform-origin: left;
+  transform: rotateY(-24deg);
+}
+.conf25-stage[data-opening='true'] .conf25-leaf-left {
+  transform: rotateY(-88deg);
+}
+.conf25-stage[data-opening='true'] .conf25-door-glow {
+  opacity: 1;
+  box-shadow:
+    0 0 35px #e8f1ceaa,
+    0 25px 60px #d5e5b088;
+}
+.conf25-door-hint {
+  position: absolute;
+  top: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--confession-paper);
+  letter-spacing: 0.15em;
+  text-shadow: 0 2px 8px var(--confession-void);
+  opacity: 0.7;
+}
+.conf25-trees {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.conf25-trees img {
+  position: absolute;
+  display: block;
+  height: auto;
+  width: 25%;
+  bottom: 24%;
+  filter: brightness(0.38) saturate(0.45);
+}
+.conf25-trees img:first-child {
+  left: -8%;
+}
+.conf25-trees img:last-child {
+  right: -8%;
+  transform: scaleX(-1);
+}
+.conf25-trees-far img {
+  width: 10%;
+  bottom: 48%;
+  opacity: 0.38;
+  filter: brightness(0.55) saturate(0.4);
+}
+.conf25-trees-far img:first-child {
+  left: 48%;
+}
+.conf25-trees-far img:last-child {
+  right: 3%;
+}
+.conf25-trees-middle img {
+  width: 17%;
+  bottom: 34%;
+  opacity: 0.72;
+}
+.conf25-trees-middle img:first-child {
+  left: 3%;
+}
+.conf25-trees-middle img:last-child {
+  right: 1%;
+}
+.conf25-trees-near img {
+  width: 30%;
+  bottom: 4%;
+  filter: brightness(0.21) saturate(0.55);
+}
+.conf25-trees-near img:first-child {
+  left: -18%;
+}
+.conf25-trees-near img:last-child {
+  right: -18%;
+}
+.conf25-grave {
+  position: absolute;
+  left: var(--grave-x);
+  top: var(--grave-y);
+  width: var(--grave-width);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  transform: translate(-50%, -100%);
+  filter: brightness(0.64) saturate(0.6);
+  transition: filter 0.3s;
+}
+.conf25-grave:hover {
+  filter: brightness(0.92) saturate(0.8);
+}
+.conf25-grave img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.conf25-grave span {
+  position: absolute;
+  left: 13%;
+  top: 48%;
+  width: 66%;
+  font-family: 'Songti SC', 'Noto Serif SC', serif;
+  font-size: clamp(10px, 1.2vw, 18px);
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+  color: #303c40;
+  overflow-wrap: anywhere;
+  text-shadow: 0 1px 1px #dfebdf55;
+}
+.conf25-grave-far {
+  opacity: 0.65;
+}
+.conf25-crow {
+  position: absolute;
+  left: 8%;
+  top: 48%;
+  width: clamp(24px, 4vw, 60px);
+  filter: brightness(0.38);
+  animation: conf25-bird 8s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+.conf25-fog {
+  position: absolute;
+  left: -15%;
+  right: -15%;
+  pointer-events: none;
+  opacity: var(--fog-density);
+}
+.conf25-fog i {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 24% 60%, #d6e5e580 0%, #a4c2cb55 22%, transparent 65%),
+    radial-gradient(ellipse at 75% 50%, #afc3cc88, transparent 63%);
+  filter: blur(24px);
+  animation: conf25-drift 18s ease-in-out infinite alternate;
+}
+.conf25-fog i:last-child {
+  opacity: 0.55;
+  transform: scaleX(-1);
+  animation-duration: 27s;
+  animation-direction: alternate-reverse;
+}
+.conf25-fog-far {
+  z-index: 3;
+  bottom: 42%;
+  height: 18%;
+}
+.conf25-fog-middle {
+  z-index: 5;
+  bottom: 23%;
+  height: 28%;
+}
+.conf25-fog-near {
+  z-index: 7;
+  bottom: -7%;
+  height: 28%;
+}
+.conf25-stage[data-church='true'] .conf25-fog {
+  opacity: calc(var(--fog-density) * 0.24);
+}
+.conf25-stage[data-church='true'] .conf25-base {
+  object-position: 50% center;
+}
+.conf25-pew-row {
+  position: absolute;
+  display: flex;
+  justify-content: space-between;
+  left: 7%;
+  right: 7%;
+  bottom: 7%;
+}
+.conf25-pew-row img {
+  width: 32%;
+  height: auto;
+  filter: brightness(0.36) saturate(0.6);
+}
+.conf25-pew-row img:last-child {
+  transform: scaleX(-1);
+}
+.conf25-pew-row-1 {
+  left: 15%;
+  right: 15%;
+  bottom: 22%;
+}
+.conf25-pew-row-1 img {
+  width: 25%;
+}
+.conf25-pew-row-2 {
+  left: 23%;
+  right: 23%;
+  bottom: 35%;
+}
+.conf25-pew-row-2 img {
+  width: 21%;
+  opacity: 0.78;
+}
+.conf25-light {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: radial-gradient(ellipse 17% 70% at 50% 36%, #eee8c318, transparent 82%);
+}
+.conf25-saint-wrap {
+  inset: auto;
+  left: 50%;
+  bottom: 32%;
+  width: 22dvh;
+  height: 52dvh;
+  max-height: 700px;
+  transform: translate(calc(-50% + var(--look-x) * 0.7), calc(var(--look-y) * 0.7));
+}
+.conf25-saint {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+.conf25-saint img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 14px #f5e8c024);
+  animation: conf25-person 5s ease-in-out infinite alternate;
+  transform-origin: 50% 95%;
+}
+.conf25-saint-shadow {
+  position: absolute;
+  left: 26%;
+  right: 24%;
+  bottom: 3%;
+  height: 5%;
+  border-radius: 50%;
+  background: #0008;
+  filter: blur(8px);
+}
+.conf25-bubble {
+  left: 78%;
+  top: 16%;
+  width: 210px;
+  z-index: 10;
+  pointer-events: auto;
+  transform: none;
+}
+.conf25-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 60% 50%, transparent 35%, #070c0e33 72%, #070c0e80 100%),
+    linear-gradient(90deg, #070c0e40, transparent 35%);
+}
+.conf25-hud {
+  position: absolute;
+  bottom: 112px;
+  left: clamp(26px, 6vw, 90px);
+  z-index: 10;
+  font-size: 11px;
+  max-width: calc(100% - 52px);
+}
+.conf25-hud p {
+  color: var(--confession-paper);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-shadow: 0 2px 8px var(--confession-void);
+}
+.conf25-hud > div {
+  display: flex;
+  gap: 12px;
+}
+.conf25-hud button,
+.conf25-hud summary {
+  background: #101b20a0;
+  color: var(--confession-paper);
+  border: 1px solid #8b9a8b66;
+  padding: 8px 12px;
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+.conf25-pages {
+  position: absolute;
+  z-index: 10;
+  bottom: 115px;
+  right: 5%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--confession-paper);
+  font-size: 11px;
+}
+.conf25-pages button {
+  border: 0;
+  background: #101b20b0;
+  color: inherit;
+  padding: 8px;
+}
+.conf25-stage[data-still='true'] * {
+  animation-play-state: paused !important;
+}
+.conf25-stage[data-still='true'] .conf25-camera,
+.conf25-stage[data-still='true'] .conf25-leaf {
+  transition: none;
+}
+@keyframes conf25-drift {
+  from {
+    transform: translate(-4%, 4%) scale(0.94);
+    opacity: 0.5;
+  }
+  to {
+    transform: translate(6%, -4%) scale(1.1);
+    opacity: 0.95;
+  }
+}
+@keyframes conf25-person {
+  from {
+    transform: scaleY(0.999);
+  }
+  to {
+    transform: scaleY(1.008);
+  }
+}
+@keyframes conf25-bird {
+  from {
+    transform: translateY(0) rotate(-1deg);
+  }
+  to {
+    transform: translateY(-2px) rotate(1deg);
+  }
+}
+@media (max-width: 760px) {
+  .conf25-chapel {
+    left: 73%;
+    width: 180px;
+    bottom: 46%;
+  }
+  .conf25-grave-near {
+    width: 20%;
+  }
+  .conf25-grave-middle {
+    width: 13%;
+  }
+  .conf25-grave-far {
+    width: 9%;
+  }
+  .conf25-grave span {
+    font-size: 11px;
+  }
+  .conf25-trees-middle img {
+    width: 28%;
+  }
+  .conf25-trees-near img {
+    width: 45%;
+  }
+  .conf25-trees-near img:first-child {
+    left: -30%;
+  }
+  .conf25-trees-near img:last-child {
+    right: -30%;
+  }
+  .conf25-trees-far img {
+    width: 17%;
+  }
+  .conf25-hud {
+    bottom: 150px;
+  }
+  .conf25-pages {
+    bottom: 200px;
+    right: 5%;
+  }
+  .conf25-saint-wrap {
+    height: 51dvh;
+    width: 22dvh;
+    bottom: 31%;
+  }
+  .conf25-bubble {
+    left: 35%;
+    top: 2%;
+    width: 175px;
+    padding: 15px;
+  }
+  .conf25-pew-row {
+    left: -20%;
+    right: -20%;
+  }
+  .conf25-pew-row img {
+    width: 34%;
+  }
+  .conf25-pew-row-1 {
+    left: 0;
+    right: 0;
+  }
+  .conf25-pew-row-2 {
+    left: 12%;
+    right: 12%;
+  }
+}
