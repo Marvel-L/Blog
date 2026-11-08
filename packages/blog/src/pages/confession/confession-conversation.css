@@ -1,161 +1,212 @@
-/* Close-up dialogue is its own scene, not a bubble over the map. */
+/* The chapel remains visible during the Galgame-style performance. */
+/* Avoid the portaled account launcher covering the dialogue; the account stays mounted. */
+body:has(.confession-conversation) > button[aria-label^='打开云端账号'] {
+  visibility: hidden;
+  pointer-events: none;
+}
 .confession-conversation {
-  position: fixed;
-  inset: 0;
-  z-index: 120;
-  overflow: auto;
-  color: var(--confession-paper);
-  background: radial-gradient(ellipse at 30% 24%, #4c666c, #243f45 43%, #152c34 85%);
-}
-.confession-conversation-header {
-  position: relative;
-  z-index: 3;
-  display: flex;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 28px clamp(24px, 5vw, 80px);
-  font-size: 12px;
-}
-.confession-conversation-header button {
-  display: flex;
-  gap: 9px;
-  align-items: center;
-  color: inherit;
-  background: none;
-  border: 0;
-  cursor: pointer;
-}
-.confession-conversation-light {
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, transparent 15%, #f7ebce10 25%, transparent 50%);
+  z-index: 120;
+  color: var(--confession-paper);
+  background: linear-gradient(0deg, #0c2027cc, transparent 58%);
   pointer-events: none;
 }
 .confession-conversation-portrait {
   position: absolute;
-  left: 9%;
-  bottom: 0;
-  width: 32%;
-  height: 82%;
+  bottom: 155px;
+  left: 10%;
+  width: min(29vw, 380px);
+  height: 65%;
   overflow: hidden;
   pointer-events: none;
+  filter: drop-shadow(0 0 22px #e8efda25);
 }
 .confession-conversation-portrait img {
   width: 100%;
   height: auto;
   display: block;
-  filter: drop-shadow(0 0 26px #f5ead530);
+  transform-origin: 50% 60%;
+  animation: conf-gal-idle 6s ease-in-out infinite;
+}
+.confession-conversation[data-speaking='true'] .confession-conversation-portrait img {
+  animation: conf-gal-speak 2.8s ease-in-out infinite;
+}
+.confession-conversation[data-reduced='true'] .confession-conversation-portrait img {
+  animation: none;
+}
+@keyframes conf-gal-idle {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-0.4deg) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) rotate(0.35deg) scale(1.012);
+  }
+}
+@keyframes conf-gal-speak {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-0.3deg);
+  }
+  35% {
+    transform: translateY(-3px) rotate(0.5deg);
+  }
+  70% {
+    transform: translateY(-1px) rotate(-0.2deg);
+  }
 }
 .confession-conversation-dialogue {
-  position: relative;
-  margin: 9vh 7vw 6vh 46%;
-  padding: 28px 0;
-  max-width: 650px;
+  position: absolute;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  left: 5%;
+  right: 5%;
+  padding: 20px 28px;
+  background: linear-gradient(100deg, #19353ff5, #142b33f5);
+  border: 1px solid #a9c5be82;
+  box-shadow: 0 8px 40px #07181c66;
+  pointer-events: auto;
+  max-height: 66dvh;
+  overflow: auto;
 }
-.confession-conversation-name {
-  border-bottom: 1px solid #a6c1b852;
-  padding-bottom: 18px;
-  margin-bottom: 24px;
+.confession-conversation-bar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  border-bottom: 1px solid #b2cbb33b;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
 }
-.confession-conversation-name span {
-  letter-spacing: 0.3em;
-  font-size: 10px;
-  color: var(--confession-muted);
-}
-.confession-conversation-name h2 {
-  margin: 8px 0 0;
+.confession-conversation-bar h2 {
   font:
-    30px/1.3 'Songti SC',
+    23px/1.4 'Songti SC',
     serif;
+  margin: 0;
   letter-spacing: 0.12em;
 }
-.confession-conversation-line {
-  font:
-    clamp(21px, 2.1vw, 30px)/1.8 'Songti SC',
-    serif;
-  letter-spacing: 0.05em;
-}
-.confession-conversation-note {
-  margin: 22px 0;
-  font-size: 14px;
-  line-height: 2;
-  color: var(--confession-muted);
-}
-.confession-conversation-caption {
-  display: block;
-  margin-top: 32px;
+.confession-conversation-bar > span {
   font-size: 10px;
-  color: var(--confession-muted);
+  letter-spacing: 0.1em;
+  opacity: 0.65;
 }
-.confession-conversation .confession-form > p:first-child {
+.confession-conversation-bar > div {
+  display: flex;
+  gap: 14px;
+  margin-left: auto;
+}
+.confession-conversation-bar button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  padding: 5px;
+  cursor: pointer;
+}
+.confession-conversation-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: 100%;
+  min-height: 60px;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  font:
+    clamp(17px, 1.9vw, 24px)/1.85 'Songti SC',
+    serif;
+  cursor: pointer;
+}
+.confession-conversation-line svg {
+  flex-shrink: 0;
+}
+.confession-gal-options {
+  display: flex;
+  gap: 22px;
+  justify-content: flex-end;
+  align-items: center;
+  margin: 12px 0;
+  font-size: 12px;
+}
+.confession-gal-options button {
+  background: #dbe6d5;
+  color: #1b363c;
+  border: 1px solid #cfdbc4;
+  padding: 9px 20px;
+  cursor: pointer;
+}
+.confession-gal-editor {
+  max-width: 780px;
+  margin: 10px auto 0;
+}
+.confession-gal-editor .confession-form > p:first-child {
   display: none;
 }
-.confession-conversation .confession-form textarea {
-  min-height: 150px;
-  background: #142e3588;
-}
-.confession-conversation .confession-form select {
-  background: #142e3588;
-}
-.confession-spoken-preview {
-  padding: 18px 0;
-  border-block: 1px solid #a6c1b844;
-}
-.confession-spoken-preview > span {
-  font-size: 11px;
-  color: var(--confession-muted);
+.confession-gal-editor .confession-form textarea {
+  min-height: 110px;
+  height: 110px;
 }
 .confession-spoken-preview p {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  line-height: 1.9;
-  max-height: 36dvh;
+  max-height: 16dvh;
   overflow: auto;
-  margin: 12px 0;
+}
+.confession-spoken-preview > span {
+  font-size: 11px;
+  opacity: 0.65;
 }
 .confession-spoken-preview button {
-  background: transparent;
-  color: var(--confession-muted);
+  color: inherit;
+  background: none;
   border: 0;
   text-decoration: underline;
   cursor: pointer;
+  font-size: 11px;
+}
+.confession-conversation-dialogue > footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 9px;
+  opacity: 0.65;
+  margin-top: 14px;
 }
 .confession-conversation button:focus-visible {
-  outline: 2px solid #cde2d2;
+  outline: 2px solid #d7e4ce;
   outline-offset: 4px;
 }
 @media (max-width: 760px) {
-  .confession-conversation-header {
-    padding: 20px;
-  }
-  .confession-conversation-header > span {
-    font-size: 10px;
-  }
   .confession-conversation-portrait {
-    position: relative;
-    left: auto;
-    bottom: auto;
-    width: 100%;
-    height: 36dvh;
-  }
-  .confession-conversation-portrait img {
-    width: min(74%, 340px);
-    margin: 0 auto;
-  }
-  .confession-spoken-preview p {
-    max-height: 30dvh;
+    left: 8%;
+    width: 48%;
+    height: 57%;
+    bottom: 165px;
   }
   .confession-conversation-dialogue {
-    margin: 0;
-    padding: 20px 26px 40px;
-    max-width: none;
-    background: #18343bea;
+    left: 3%;
+    right: 3%;
+    padding: 15px 18px;
+    bottom: 12px;
+    max-height: 70dvh;
   }
-  .confession-conversation-name {
-    padding-bottom: 10px;
-    margin-bottom: 16px;
+  .confession-conversation-bar {
+    gap: 8px;
+  }
+  .confession-conversation-bar > span {
+    display: none;
   }
   .confession-conversation-line {
-    margin: 16px 0;
+    font-size: 18px;
+  }
+  .confession-conversation-dialogue > footer {
+    flex-direction: column;
+  }
+  .confession-gal-options {
+    gap: 12px;
+  }
+  .confession-gal-options button {
+    padding: 9px 14px;
   }
 }

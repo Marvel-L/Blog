@@ -69,6 +69,7 @@ export function ConfessionEntryForm({
   busy,
   initialCategory,
   guided = false,
+  onReview,
   onSave,
 }: {
   state: ConfessionState;
@@ -76,6 +77,8 @@ export function ConfessionEntryForm({
   initialCategory?: string;
   /** Guided mode separates speaking from explicit private archive confirmation. */
   guided?: boolean;
+  /** Notifies the fixed dialogue when the draft reaches archive review; no content is passed. */
+  onReview?: () => void;
   onSave: (state: ConfessionState) => Promise<boolean>;
 }) {
   const [review, setReview] = useState(false);
@@ -93,6 +96,7 @@ export function ConfessionEntryForm({
     if (guided && !review) {
       setError('');
       setReview(true);
+      onReview?.();
       return;
     }
     if (!state.categories.some((category) => category.id === categoryId)) {

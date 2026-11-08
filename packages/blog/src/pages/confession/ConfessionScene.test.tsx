@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ConfessionScene } from './ConfessionScene';
 import { emptyConfession } from './model';
 
+vi.mock('./VolumeFog', () => ({ VolumeFog: () => <canvas data-fog="ray-marched" /> }));
 let imageFails = false;
 let hidden = false;
 const changeRegion = vi.fn();
@@ -69,9 +70,9 @@ describe('painted 2.5D confession scene', () => {
   it('uses independent grave art and interleaves fog at distinct depth layers', async () => {
     const { container } = render(<Harness />);
     await waitFor(() => expect(screen.getByRole('button', { name: '进入教堂' })).toBeEnabled());
-    expect(container.querySelector('canvas')).toBeNull();
+    expect(container.querySelector('canvas')).toHaveAttribute('data-fog', 'ray-marched');
     expect(container.querySelectorAll('.conf25-grave img')).toHaveLength(4);
-    expect(container.querySelectorAll('.conf25-fog')).toHaveLength(3);
+    expect(container.querySelectorAll('.conf25-fog')).toHaveLength(0);
     expect(container.querySelector('[data-ground="projected"]')).toBeInTheDocument();
     expect(container.querySelector('.conf25-base')).toBeNull();
     const children = Array.from(container.querySelectorAll('.confiso-depth'));
@@ -102,6 +103,7 @@ describe('painted 2.5D confession scene', () => {
     expect(new Set(pews.map((p) => p.dataset.row))).toEqual(new Set(['0', '1', '2']));
     expect(container.querySelectorAll('.confiso-column img')).toHaveLength(4);
     expect(container.querySelector('.conf25-saint-wrap')).toHaveAttribute('data-world-height', '1.62');
+    expect(container.querySelectorAll('.confiso-garden')).toHaveLength(0);
     fireEvent.click(screen.getByRole('button', { name: '回到墓地' }));
     expect(container.querySelector('.conf25-stage')).toHaveAttribute('data-church', 'false');
     expect(screen.getByRole('button', { name: '点击教堂门' })).toBeInTheDocument();

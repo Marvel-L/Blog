@@ -17,6 +17,8 @@ import windowWall from '@/assets/confession/oblique/window-wall.webp';
 import garden from '@/assets/confession/oblique/garden-cluster.webp';
 import { SceneGround } from './SceneGround';
 import { SceneFog } from './SceneFog';
+import { VolumeFog } from './VolumeFog';
+import { useSaintWander } from './useSaintWander';
 import { CHAPEL, GRAVES, PEWS, SAINT, SPACE, TREES, depth, project, type GroundPoint } from './sceneSpace';
 import type { ConfessionCategory, ConfessionState } from './model';
 import './confession-25d.css';
@@ -110,6 +112,7 @@ export function ConfessionScene({
     };
   }, [retry]);
   const still = paused || reduced || blocked || hidden;
+  const saintPoint = useSaintWander(churchView, still);
   useEffect(() => {
     if (!opening || paused || blocked || hidden) return;
     const timer = window.setTimeout(
@@ -158,7 +161,7 @@ export function ConfessionScene({
     add(
       'chapel',
       CHAPEL,
-      <div className="conf25-chapel" style={placed(CHAPEL, 340, 263)}>
+      <div className="conf25-chapel" data-fog-occluder style={placed(CHAPEL, 340, 263)}>
         <span className="confiso-contact confiso-chapel-shadow" />
         <img className="conf25-chapel-art" src={chapel} alt="远处的石砌教堂" draggable={false} />
         <button
@@ -180,6 +183,7 @@ export function ConfessionScene({
         t,
         <div
           className="confiso-tree"
+          data-fog-occluder
           style={placed(t, t.height * SPACE.rise, t.height * SPACE.rise * 0.753)}
           aria-hidden="true"
         >
@@ -197,6 +201,7 @@ export function ConfessionScene({
         <button
           type="button"
           className="conf25-grave"
+          data-fog-occluder
           data-facing={spot.facing}
           style={placed(spot, 86, 54)}
           disabled={blocked || opening || !ready}
@@ -237,9 +242,6 @@ export function ConfessionScene({
         </div>,
       ),
     );
-    fogBand('far', -2.5, 350);
-    fogBand('middle', 3.7, 455);
-    fogBand('near', 10, 620);
   } else {
     [-3.8, -1.15, 1.5, 4.2].forEach((z, i) => {
       const p = { x: -4.35, z };
@@ -281,11 +283,13 @@ export function ConfessionScene({
     );
     add(
       'saint',
-      SAINT,
+      saintPoint,
       <div
         className="conf25-saint-wrap"
+        data-walking={saintPoint.walking && !still}
+        data-facing={saintPoint.facing}
         data-world-height={SAINT.height}
-        style={placed(SAINT, SAINT.height * SPACE.rise, SAINT.height * SPACE.rise * 0.33)}
+        style={placed(saintPoint, SAINT.height * SPACE.rise, SAINT.height * SPACE.rise * 0.33)}
       >
         <span className="confiso-contact confiso-saint-shadow" aria-hidden="true" />
         <button
@@ -300,20 +304,6 @@ export function ConfessionScene({
         </button>
         <span className="confiso-saint-hint">与凛倾诉</span>
       </div>,
-    );
-    [
-      { x: -3.7, z: -3.5 },
-      { x: 3.6, z: -3.5 },
-      { x: -3.7, z: 4.4 },
-      { x: 3.6, z: 4.4 },
-    ].forEach((point, i) =>
-      add(
-        `church-garden-${i}`,
-        point,
-        <div className="confiso-garden" style={placed(point, 25, 46)} aria-hidden="true">
-          <img src={garden} alt="" />
-        </div>,
-      ),
     );
     fogBand('far', -3.6, 340);
     fogBand('middle', 2.2, 465);
@@ -353,6 +343,9 @@ export function ConfessionScene({
               {actor.view}
             </div>
           ))}
+          {!churchView && (
+            <VolumeFog key={`fog-${currentPage}-${ready}-${visible.map((c) => c.id).join(',')}`} still={still} />
+          )}
         </div>
       </div>
       <div className="conf25-vignette" aria-hidden="true" />
