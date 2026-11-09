@@ -423,7 +423,10 @@ export default function TrendSync({
             : '连接云端同步';
   const detail = authorizing ? '请在登录窗口完成 GitHub 授权' : loginNeeded ? '登录账号后自动同步' : view.status;
   return (
-    <section className="trend-sync-float" aria-label="Trend 云端同步">
+    <section
+      className={`trend-sync-float${import.meta.env.VITE_DEPLOY_TARGET === 'cloud' ? ' trend-sync-float--cloud' : ''}`}
+      aria-label="Trend 云端同步"
+    >
       <button
         ref={orb}
         className={`trend-sync-orb ${busy ? 'is-busy' : ''} ${failed || view.conflict ? 'is-error' : ''} ${synced ? 'is-synced' : ''} ${view.pending ? 'is-pending' : ''}`}

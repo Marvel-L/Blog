@@ -1,4 +1,6 @@
 import { webcrypto } from 'node:crypto';
+import { MemoryRouter } from 'react-router-dom';
+import CloudAccount from '../../cloud/CloudAccount';
 import { StrictMode, type ReactNode } from 'react';
 import { renderToString } from 'react-dom/server';
 import { act, fireEvent, render as renderComponent, screen, waitFor } from '@testing-library/react';
@@ -53,6 +55,39 @@ describe('Trend 同步授权界面', () => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
+  });
+
+  it.each(['cloud', 'pages'])('%s 部署只在存在全局账号浮球时启用避让', (target) => {
+    vi.stubEnv('VITE_DEPLOY_TARGET', target);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(null, { status: 401 })),
+    );
+    renderComponent(<TrendSync state={defaultState()} onApply={vi.fn()} />);
+    const launcher = screen.getByRole('region', { name: 'Trend 云端同步' });
+    expect(launcher.classList.contains('trend-sync-float--cloud')).toBe(target === 'cloud');
+    if (target === 'cloud') {
+      // 该部署标记必须在 SSR 首帧就存在，不能等待账号请求或 effect 才避让。
+      expect(renderToString(<TrendSync state={defaultState()} onApply={vi.fn()} />)).toContain(
+        'trend-sync-float--cloud',
+      );
+    }
+  });
+
+  it('云端同步浮球共用账号底部基准，账号原位不变并预留完整球高与间距', async () => {
+    vi.stubEnv('VITE_DEPLOY_TARGET', 'cloud');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ user: null }))),
+    );
+    renderComponent(
+      <MemoryRouter>
+        <CloudAccount />
+      </MemoryRouter>,
+    );
+    const account = await screen.findByRole('button', { name: '打开云端账号：账号登录' });
+    expect(account.style.bottom).toBe('var(--cloud-account-bottom)');
+    expect(account).toHaveClass('h-14');
   });
 
   it('Pages 未连接不请求 API，弹窗被拦截给出可操作提示', async () => {

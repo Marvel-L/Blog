@@ -10,6 +10,16 @@
   --cookie-notice-height: 0px;
   --service-worker-prompt-height: 0px;
   --tab-bar-height: 0px;
+  /* 账号浮球与页面同步浮球共用底部基准，统一避让导航、提示条和安全区。 */
+  --cloud-account-bottom: calc(
+    var(--tab-bar-height, 0px) +
+      max(
+        1.25rem,
+        var(--cookie-notice-height, 0px) + var(--service-worker-prompt-height, 0px) + env(safe-area-inset-bottom, 0px) +
+          1.25rem
+      ) +
+      4rem
+  );
 }
 
 @keyframes typewriter-caret {

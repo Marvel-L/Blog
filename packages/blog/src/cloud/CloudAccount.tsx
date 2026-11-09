@@ -149,8 +149,7 @@ export default function CloudAccount() {
 
   const accountLabel = loading ? '正在检查登录状态' : user ? user.name || user.login : '账号登录';
   const floatingStyle = {
-    bottom:
-      'calc(var(--tab-bar-height, 0px) + max(1.25rem, var(--cookie-notice-height, 0px) + var(--service-worker-prompt-height, 0px) + env(safe-area-inset-bottom, 0px) + 1.25rem) + 4rem)',
+    bottom: 'var(--cloud-account-bottom)',
     right: 'max(1rem, calc(env(safe-area-inset-right, 0px) + 1rem))',
   };
 
