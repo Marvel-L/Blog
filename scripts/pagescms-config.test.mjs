@@ -21,6 +21,26 @@ import yaml from 'js-yaml';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const pagesConfig = yaml.load(readFileSync(path.join(repoRoot, '.pages.yml'), 'utf8'));
+const contentConfig = JSON.parse(readFileSync(path.join(repoRoot, 'config/content.config.json'), 'utf8'));
+
+describe('面经分类注册', () => {
+  it('构建白名单与 CMS 分类选项均包含面经，且不重复', () => {
+    const posts = pagesConfig.content.find((item) => item.name === 'posts');
+    const category = posts.fields.find((field) => field.name === 'category');
+    expect(contentConfig.postCategories.filter((value) => value === '面经')).toEqual(['面经']);
+    expect(category.options.values.filter((value) => value === '面经')).toEqual(['面经']);
+  });
+
+  it('面经文章的 @ 开头标题可解析，分类属于构建白名单', () => {
+    const source = readFileSync(path.join(repoRoot, 'posts/面经/长沙得物/nk_261019.md'), 'utf8');
+    const frontMatter = source.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    expect(frontMatter).not.toBeNull();
+    const article = yaml.load(frontMatter[1]);
+    expect(article.title).toBe('@wwwp 长沙得物一面 10.19');
+    expect(article.category).toBe('面经');
+    expect(contentConfig.postCategories).toContain(article.category);
+  });
+});
 
 const SLUG_PATTERN = '^[A-Za-z0-9_-]+$';
 

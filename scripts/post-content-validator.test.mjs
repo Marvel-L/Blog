@@ -9,6 +9,27 @@ const makePost = (content) => ({
   filePath: '/posts/test-post.md',
 });
 
+describe('validatePostContent — 文章链接使用已发布站点路由', () => {
+  const publishedPosts = new Map([['merge-intervals-0x01', { id: 'merge-intervals-0x01' }]]);
+
+  it('已发布的 /post/<id> 链接通过校验', () => {
+    expect(
+      validatePostContent(makePost('[56. 合并区间](/post/merge-intervals-0x01)'), {
+        skipFrontMatter: true,
+        publishedPosts,
+      }),
+    ).toEqual([]);
+  });
+
+  it('Markdown 文件相对路径不是站点路由，保持 fail-closed', () => {
+    const errors = validatePostContent(makePost('[56. 合并区间](../../杂项/区间合并/56_合并区间.md)'), {
+      skipFrontMatter: true,
+      publishedPosts,
+    });
+    expect(errors.some((message) => message.includes('unknown site route'))).toBe(true);
+  });
+});
+
 describe('validatePostContent — /shuoshuo/<id> 链接存在性校验', () => {
   it('链接到存在的说说：不报错', () => {
     const errors = validatePostContent(makePost('[一条说说](/shuoshuo/hello)'), {

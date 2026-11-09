@@ -24,7 +24,7 @@ content:
         label: 分类
         type: select
         options:
-          values: ["教程", "技术", "随笔", "分享", "重要决策", "其他"]
+          values: ["教程", "技术", "随笔", "分享", "重要决策", "其他", "面经"]
       - name: rank
         label: 分级（留空则普通展示；配置后列表与阅读页启用对应闪卡）
         type: select
