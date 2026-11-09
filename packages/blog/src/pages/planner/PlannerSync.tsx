@@ -318,7 +318,10 @@ export default function PlannerSync({
         notify={notify}
         onConnect={() => setOpen(true)}
       />
-      <section className="planner-sync-float" aria-label="计划同步">
+      <section
+        className={`planner-sync-float${import.meta.env.VITE_DEPLOY_TARGET === 'cloud' ? ' planner-sync-float--cloud' : ''}`}
+        aria-label="计划同步"
+      >
         <button
           ref={orb}
           className={`planner-sync-orb ${busy ? 'is-busy' : ''} ${failed || conflict ? 'is-error' : ''} ${synced ? 'is-synced' : ''}`}

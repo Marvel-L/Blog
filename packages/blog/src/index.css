@@ -20,6 +20,10 @@
       ) +
       4rem
   );
+  /* 云端账号与同步入口同尺寸、同右边距；同步球固定放在账号球上方。 */
+  --cloud-orb-size: 3.5rem;
+  --cloud-orb-right: max(1rem, calc(env(safe-area-inset-right, 0px) + 1rem));
+  --cloud-sync-bottom: calc(var(--cloud-account-bottom) + var(--cloud-orb-size) + 0.75rem);
 }
 
 @keyframes typewriter-caret {

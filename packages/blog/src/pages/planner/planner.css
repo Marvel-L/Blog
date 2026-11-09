@@ -774,6 +774,11 @@
   );
   z-index: 45;
 }
+.planner-sync-float--cloud {
+  /* 账号球只在 cloud 部署挂载，Pages 继续使用原位置。 */
+  right: var(--cloud-orb-right);
+  bottom: var(--cloud-sync-bottom);
+}
 .planner-sync-orb {
   position: relative;
   width: 53px;
@@ -789,6 +794,10 @@
     0 8px 30px #234a3b20,
     inset 0 1px 0 #ffffff50;
   transition: transform 0.2s;
+}
+.planner-sync-float--cloud .planner-sync-orb {
+  width: var(--cloud-orb-size);
+  height: var(--cloud-orb-size);
 }
 .planner-sync-orb:hover {
   transform: translateY(-3px);
@@ -829,6 +838,9 @@
   box-shadow: 0 14px 50px #234a3b25;
   max-height: calc(100dvh - 190px);
   overflow-y: auto;
+}
+.planner-sync-float--cloud .planner-sync-panel {
+  max-height: calc(100dvh - var(--cloud-sync-bottom) - 87px - env(safe-area-inset-top, 0px));
 }
 .planner-sync-panel > header {
   display: flex;
@@ -1161,7 +1173,7 @@
         var(--service-worker-prompt-height, 0px)
     );
   }
-  .planner-sync-float {
+  .planner-sync-float:not(.planner-sync-float--cloud) {
     right: 16px;
     bottom: calc(
       var(--tab-bar-height, 0px) + 92px + env(safe-area-inset-bottom) + var(--cookie-notice-height, 0px) +

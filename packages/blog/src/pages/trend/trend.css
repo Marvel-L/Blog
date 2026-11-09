@@ -10,8 +10,9 @@
   font-size: 13px;
 }
 .trend-sync-float--cloud {
-  /* 云端才有账号浮球：在同一基准上预留账号高度 3.5rem 和间距 0.75rem。 */
-  --trend-sync-bottom: calc(var(--cloud-account-bottom) + 3.5rem + 0.75rem);
+  /* 云端使用全局账号球的共同占位，不再独立设置间距。 */
+  --trend-sync-bottom: var(--cloud-sync-bottom);
+  right: var(--cloud-orb-right);
 }
 .trend-sync-orb {
   position: relative;
@@ -28,6 +29,10 @@
     0 8px 30px #234a3b20,
     inset 0 1px 0 #ffffff50;
   transition: transform 0.2s;
+}
+.trend-sync-float--cloud .trend-sync-orb {
+  width: var(--cloud-orb-size);
+  height: var(--cloud-orb-size);
 }
 .trend-sync-orb:hover {
   transform: translateY(-3px);
@@ -954,7 +959,7 @@
   .trend-page {
     padding-top: 10px;
   }
-  .trend-sync-float {
+  .trend-sync-float:not(.trend-sync-float--cloud) {
     right: calc(16px + env(safe-area-inset-right));
   }
   .trend-workspace {
