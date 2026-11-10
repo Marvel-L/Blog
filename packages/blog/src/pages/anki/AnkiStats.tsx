@@ -7,7 +7,6 @@ import { useMemo, useState } from 'react';
 import { lastNDays, type DateKey } from './anki-date';
 import type { NormalizedDashboard } from './anki-api';
 import { AnkiHeatmap, AnkiTrendLine } from './AnkiCharts';
-import { AnkiActivityLog } from './AnkiActivityLog';
 
 const T = {
   ink: '#202124',
@@ -20,10 +19,9 @@ interface AnkiStatsProps {
   dashboard: NormalizedDashboard;
   onBack: () => void;
   onEditGoal: () => void;
-  refreshToken?: number;
 }
 
-export function AnkiStats({ dashboard, onBack, onEditGoal, refreshToken }: AnkiStatsProps) {
+export function AnkiStats({ dashboard, onBack, onEditGoal }: AnkiStatsProps) {
   const todayKey: DateKey = dashboard.history.length > 0 ? dashboard.history[dashboard.history.length - 1].date : '';
 
   const counts = useMemo(() => {
@@ -169,7 +167,6 @@ export function AnkiStats({ dashboard, onBack, onEditGoal, refreshToken }: AnkiS
           统计按服务端 Asia/Shanghai 自然日分组；目标完成率不等于掌握率。
         </p>
       </section>
-      <AnkiActivityLog today={todayKey} refreshToken={refreshToken} />
     </div>
   );
 }

@@ -23,6 +23,7 @@ import { AnkiReview } from './AnkiReview';
 import { AnkiBrowse } from './AnkiBrowse';
 import { AnkiDeckDetail } from './AnkiDeckDetail';
 import { AnkiStats } from './AnkiStats';
+import { AnkiActivityLog } from './AnkiActivityLog';
 import { AnkiDialogs, type AnkiDialogState } from './AnkiDialogs';
 import { AnkiDrafts } from './AnkiDrafts';
 import { readAnkiView, writeAnkiView, type AnkiView } from './anki-view';
@@ -355,10 +356,11 @@ export default function AnkiPage() {
   );
 }
 
-const ANKI_TABS: Array<{ key: AnkiView['name']; label: string }> = [
+const ANKI_TABS: Array<{ key: 'overview' | 'review' | 'stats' | 'activity'; label: string }> = [
   { key: 'overview', label: '卡片库' },
   { key: 'review', label: '今日练习' },
   { key: 'stats', label: '学习统计' },
+  { key: 'activity', label: '操作记录' },
 ];
 
 function AnkiTopBar({
@@ -411,7 +413,7 @@ function AnkiTopBar({
         {showNav && (
           <nav
             aria-label="Anki 导航"
-            className="order-3 flex w-full justify-center gap-[26px] min-[1000px]:order-none min-[1000px]:w-auto min-[1000px]:gap-[30px]"
+            className="order-3 flex w-full justify-center gap-3 min-[400px]:gap-[26px] min-[1000px]:order-none min-[1000px]:w-auto min-[1000px]:gap-[30px]"
           >
             {ANKI_TABS.map((tab) => {
               const active = view.name === tab.key;
@@ -421,15 +423,9 @@ function AnkiTopBar({
                   type="button"
                   aria-current={active ? 'page' : undefined}
                   onClick={() =>
-                    onNavigate(
-                      tab.key === 'overview'
-                        ? { name: 'overview' }
-                        : tab.key === 'stats'
-                          ? { name: 'stats' }
-                          : { name: 'review', deckId: null },
-                    )
+                    onNavigate(tab.key === 'review' ? { name: 'review', deckId: null } : { name: tab.key })
                   }
-                  className="relative min-h-[49px] px-0 pb-2 text-sm min-[1000px]:min-h-[44px] min-[1000px]:pb-0"
+                  className="relative min-h-[49px] whitespace-nowrap px-0 pb-2 text-sm min-[1000px]:min-h-[44px] min-[1000px]:pb-0"
                   style={{
                     color: active ? T.ink : T.muted,
                     fontWeight: active ? 550 : 400,
@@ -525,6 +521,10 @@ function AnkiWorkspace({
   refresh,
   showToast,
 }: WorkspaceProps) {
+  const today =
+    typeof dashboard.today === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dashboard.today)
+      ? dashboard.today
+      : (dashboard.history[dashboard.history.length - 1]?.date ?? '');
   const deckById = useMemo(() => {
     const map = new Map<string, (typeof dashboard.decks)[number]>();
     dashboard.decks.forEach((deck) => map.set(deck.id, deck));
@@ -586,11 +586,12 @@ function AnkiWorkspace({
       {view.name === 'stats' && (
         <AnkiStats
           dashboard={dashboard}
-          refreshToken={refreshToken}
           onBack={() => onViewChange({ name: 'overview' })}
           onEditGoal={() => onDialogChange({ kind: 'goal' })}
         />
       )}
+
+      {view.name === 'activity' && <AnkiActivityLog today={today} refreshToken={refreshToken} />}
 
       {view.name === 'drafts' && (
         <AnkiDrafts

@@ -1,8 +1,26 @@
 /* Anki 是独立浅色学习面；不修改 html.dark 或博客主题。弹层经 portal 挂到 body，单独隔离。 */
 .anki-activity {
-  margin-top: 38px;
-  padding-top: 27px;
-  border-top: 1px solid var(--anki-line);
+  min-width: 0;
+}
+.anki-activity-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--anki-line);
+}
+.anki-activity-day-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+}
+.anki-activity-day-title span {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--anki-muted);
 }
 .anki-activity-help,
 .anki-activity-empty {

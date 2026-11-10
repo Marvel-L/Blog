@@ -5,7 +5,7 @@
  * mutationId 重试幂等、仅浏览无写入、主动自评入账、账号切换清理、热力/折线渲染。
  */
 import { StrictMode } from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 import { HelmetProvider } from 'react-helmet-async';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -251,9 +251,51 @@ describe('账号切换与统计', () => {
     fireEvent.click(target);
     await waitFor(() => expect(screen.getByText('2026-10-26')).toBeInTheDocument());
     expect(screen.getByText('2026-10-26 · 1 张卡片')).toBeInTheDocument();
-    expect(screen.getByLabelText('第1天操作日期')).toHaveValue('2026-10-24');
-    expect(screen.getByLabelText('第2天操作日期')).toHaveValue('2026-10-25');
+    expect(screen.queryByRole('region', { name: '用户操作记录' })).not.toBeInTheDocument();
+    expect(request.mock.calls.filter(([url]) => String(url).includes('/anki/activity?'))).toHaveLength(0);
+  });
+
+  it('操作记录位于学习统计右侧，独立路由可刷新恢复，退出后清理日志', async () => {
+    function QueryProbe() {
+      return <output data-testid="anki-query">{useLocation().search}</output>;
+    }
+    const { unmount } = render(
+      <StrictMode>
+        <HelmetProvider>
+          <MemoryRouter initialEntries={['/anki?view=stats']}>
+            <AnkiPage />
+            <QueryProbe />
+          </MemoryRouter>
+        </HelmetProvider>
+      </StrictMode>,
+    );
+    await screen.findByRole('heading', { name: '学习统计' });
+    const nav = within(screen.getByRole('navigation', { name: 'Anki 导航' }));
+    expect(nav.getAllByRole('button').map((button) => button.textContent)).toEqual([
+      '卡片库',
+      '今日练习',
+      '学习统计',
+      '操作记录',
+    ]);
+    fireEvent.click(nav.getByRole('button', { name: '操作记录' }));
+    expect(await screen.findByRole('heading', { level: 1, name: '操作记录' })).toBeInTheDocument();
+    expect(screen.getByTestId('anki-query')).toHaveTextContent('?view=activity');
+    expect(nav.getByRole('button', { name: '操作记录' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.queryByRole('img', { name: /近7日去重练习量/ })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('操作日期')).toHaveValue('2026-10-26');
     await waitFor(() => expect(screen.getAllByText('这一天没有操作记录。')).toHaveLength(2));
+    unmount();
+    render(
+      <StrictMode>
+        <HelmetProvider>
+          <MemoryRouter initialEntries={['/anki?view=activity']}>
+            <AnkiPage />
+          </MemoryRouter>
+        </HelmetProvider>
+      </StrictMode>,
+    );
+    expect(await screen.findByRole('heading', { level: 1, name: '操作记录' })).toBeInTheDocument();
+    expect(screen.getByLabelText('操作日期')).toHaveValue('2026-10-26');
     act(() => window.dispatchEvent(new Event('dblog-account-change')));
     expect(await screen.findByText('登录后，查看自己的卡片库')).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: '用户操作记录' })).not.toBeInTheDocument();

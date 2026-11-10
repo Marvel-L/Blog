@@ -1,6 +1,7 @@
 export type AnkiView =
   | { name: 'overview' }
   | { name: 'stats' }
+  | { name: 'activity' }
   | { name: 'drafts' }
   | { name: 'review'; deckId: string | null; tag?: string | null }
   | { name: 'browse' | 'deck'; deckId: string; tag?: string | null };
@@ -10,7 +11,7 @@ export function readAnkiView(params: URLSearchParams): AnkiView {
   const name = params.get('view');
   const deckId = params.get('deck');
   const tag = params.has('tag') ? params.get('tag') : null;
-  if (name === 'stats' || name === 'drafts') return { name };
+  if (name === 'stats' || name === 'activity' || name === 'drafts') return { name };
   if (name === 'review') return { name, deckId, tag };
   if ((name === 'deck' || name === 'browse') && deckId) return { name, deckId, tag };
   return { name: 'overview' };

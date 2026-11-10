@@ -34,34 +34,41 @@ const timeFormat = new Intl.DateTimeFormat('zh-CN', {
 });
 
 export function AnkiActivityLog({ today, refreshToken = 0 }: { today: string; refreshToken?: number }) {
+  const [chosenDate, setChosenDate] = useState<string | null>(null);
   if (!today) return null;
-  const yesterday = shiftDateKey(today, -1);
+  const selected = chosenDate && chosenDate <= today ? chosenDate : today;
+  const previous = shiftDateKey(selected, -1);
   return (
     <section aria-label="用户操作记录" className="anki-activity">
-      <h2 className="text-[18px] font-medium">用户操作记录</h2>
-      <p className="anki-activity-help">默认展示前天和昨天，可分别选择更早的日期。每次新增和记忆逐条保留。</p>
+      <header className="anki-activity-header">
+        <div>
+          <h1 className="text-[21px] font-medium">操作记录</h1>
+          <p className="anki-activity-help">展示所选日期及前一天的操作，每次新增和记忆逐条保留。</p>
+        </div>
+        <label className="anki-activity-date">
+          <span>日期</span>
+          <input
+            type="date"
+            aria-label="操作日期"
+            value={selected}
+            max={today}
+            onChange={(event) => {
+              const value = event.target.value;
+              if (/^\d{4}-\d{2}-\d{2}$/.test(value) && value <= today && value !== selected) setChosenDate(value);
+            }}
+          />
+        </label>
+      </header>
       <div className="anki-activity-days">
-        {[shiftDateKey(today, -2), yesterday].map((date, index) => (
-          <ActivityDay key={index} defaultDate={date} latestDate={yesterday} slot={index} refreshToken={refreshToken} />
+        {[selected, previous].map((date, index) => (
+          <ActivityDay key={`${index}:${date}`} date={date} slot={index} refreshToken={refreshToken} />
         ))}
       </div>
     </section>
   );
 }
 
-function ActivityDay({
-  defaultDate,
-  latestDate,
-  slot,
-  refreshToken,
-}: {
-  defaultDate: string;
-  latestDate: string;
-  slot: number;
-  refreshToken: number;
-}) {
-  const [chosenDate, setChosenDate] = useState<string | null>(null);
-  const date = chosenDate && chosenDate <= latestDate ? chosenDate : defaultDate;
+function ActivityDay({ date, slot, refreshToken }: { date: string; slot: number; refreshToken: number }) {
   const [loaded, setLoaded] = useState<{ date: string; entries: AnkiActivity[] } | null>(null);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
@@ -69,12 +76,10 @@ function ActivityDay({
   const [copying, setCopying] = useState(false);
   const generation = useRef(0);
   const copyPending = useRef(false);
-  const controllerRef = useRef<AbortController | null>(null);
   const entries = loaded?.date === date ? loaded.entries : null;
 
   useEffect(() => {
     const controller = new AbortController();
-    controllerRef.current = controller;
     const current = ++generation.current;
     copyPending.current = false;
     setLoaded(null);
@@ -94,18 +99,6 @@ function ActivityDay({
       generation.current += 1;
     };
   }, [date, refreshToken, retry]);
-
-  const changeDate = (value: string) => {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || value > latestDate || value === date) return;
-    generation.current += 1;
-    controllerRef.current?.abort();
-    setChosenDate(value);
-    setLoaded(null);
-    setError('');
-    setCopyStatus('');
-    setCopying(false);
-    copyPending.current = false;
-  };
 
   const copy = async () => {
     if (!entries?.length || copyPending.current) return;
@@ -128,18 +121,11 @@ function ActivityDay({
   };
 
   return (
-    <section aria-label={`第${slot + 1}天操作记录`} className="anki-activity-day">
+    <section aria-label={slot === 0 ? '所选日操作记录' : '前一天操作记录'} className="anki-activity-day">
       <header className="anki-activity-day-header">
-        <label className="anki-activity-date">
-          <span>日期</span>
-          <input
-            type="date"
-            aria-label={`第${slot + 1}天操作日期`}
-            value={date}
-            max={latestDate}
-            onChange={(event) => changeDate(event.target.value)}
-          />
-        </label>
+        <h2 className="anki-activity-day-title">
+          {date} <span>{slot === 0 ? '所选日' : '前一天'}</span>
+        </h2>
         <div className="anki-activity-day-actions">
           {entries && <span>{entries.length} 条操作</span>}
           <button type="button" disabled={!entries?.length || copying} onClick={() => void copy()}>
