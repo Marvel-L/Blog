@@ -233,6 +233,70 @@ export const isUnauthorized = (error: unknown): boolean =>
 export const fetchDashboard = (signal?: AbortSignal) =>
   ankiRequest<AnkiDashboard>('/anki/dashboard', { signal }).then(normalizeDashboard);
 
+export interface AnkiActivity {
+  id: string;
+  kind: 'create' | 'review';
+  occurredAt: string;
+  deckName: string;
+  categoryName: string;
+  question: string;
+  rating: AnkiRating | 'custom' | '';
+  customDays: number | null;
+  /** 旧日志补入时没有当时的文本快照，不能冒充原始内容。 */
+  historical: boolean;
+}
+
+interface AnkiActivityPage {
+  date: string;
+  today: string;
+  timeZone: string;
+  entries: AnkiActivity[];
+  nextCursor: string;
+}
+
+/** 单日分页全部成功才交给 UI；不截断、不对同一卡片的重复练习去重。 */
+export async function fetchAnkiActivities(date: string, signal: AbortSignal): Promise<AnkiActivity[]> {
+  const entries: AnkiActivity[] = [];
+  const cursors = new Set<string>();
+  let cursor = '';
+  do {
+    const query = new URLSearchParams({ date });
+    if (cursor) query.set('cursor', cursor);
+    const page = await ankiRequest<AnkiActivityPage>(`/anki/activity?${query}`, { signal });
+    if (
+      page.date !== date ||
+      page.timeZone !== 'Asia/Shanghai' ||
+      !Array.isArray(page.entries) ||
+      typeof page.nextCursor !== 'string' ||
+      page.entries.some(
+        (entry) =>
+          !entry ||
+          typeof entry.id !== 'string' ||
+          !entry.id ||
+          !['create', 'review'].includes(entry.kind) ||
+          typeof entry.occurredAt !== 'string' ||
+          !Number.isFinite(Date.parse(entry.occurredAt)) ||
+          typeof entry.deckName !== 'string' ||
+          typeof entry.categoryName !== 'string' ||
+          typeof entry.question !== 'string' ||
+          typeof entry.historical !== 'boolean' ||
+          (entry.kind === 'create'
+            ? entry.rating !== ''
+            : !['correct', 'hard', 'wrong', 'custom'].includes(entry.rating)) ||
+          (entry.rating === 'custom' && (!Number.isInteger(entry.customDays) || (entry.customDays ?? 0) < 1)),
+      )
+    )
+      throw new Error('操作记录响应无效，请重试');
+    entries.push(...page.entries);
+    cursor = page.nextCursor;
+    if (cursor && (!/^[1-9]\d*$/.test(cursor) || cursors.has(cursor) || page.entries.length === 0))
+      throw new Error('操作记录分页异常，请重试');
+    cursors.add(cursor);
+  } while (cursor && !signal.aborted);
+  if (signal.aborted) throw new DOMException('请求已取消', 'AbortError');
+  return entries;
+}
+
 export const createCategory = (name: string, signal?: AbortSignal) =>
   ankiRequest<AnkiCategory>('/anki/categories', {
     method: 'POST',

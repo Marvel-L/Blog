@@ -586,6 +586,7 @@ function AnkiWorkspace({
       {view.name === 'stats' && (
         <AnkiStats
           dashboard={dashboard}
+          refreshToken={refreshToken}
           onBack={() => onViewChange({ name: 'overview' })}
           onEditGoal={() => onDialogChange({ kind: 'goal' })}
         />

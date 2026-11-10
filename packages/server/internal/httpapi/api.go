@@ -53,6 +53,7 @@ type Persistence interface {
 	FindTrendUser(context.Context, string, string) (*store.User, error)
 	RevokeTrend(context.Context, string, string) error
 	AnkiDashboard(context.Context, string, int) (store.AnkiDashboard, error)
+	AnkiActivities(context.Context, string, string, int64) (store.AnkiActivityPage, error)
 	CreateAnkiCategory(context.Context, string, string) (store.AnkiCategory, error)
 	CreateAnkiDeck(context.Context, string, string, string) (store.AnkiDeck, error)
 	ListAnkiTags(context.Context, string, string) ([]store.AnkiTag, error)
@@ -124,6 +125,7 @@ func New(c config.Config, db Persistence, exchange github.Exchange) http.Handler
 	mux.HandleFunc("POST /api/v1/trend/exchange", a.exchangeTrend)
 	mux.HandleFunc("DELETE /api/v1/trend/session", a.revokeTrend)
 	mux.HandleFunc("GET /api/v1/anki/dashboard", a.ankiDashboard)
+	mux.HandleFunc("GET /api/v1/anki/activity", a.ankiActivity)
 	mux.HandleFunc("POST /api/v1/anki/categories", a.ankiCreateCategory)
 	mux.HandleFunc("POST /api/v1/anki/decks", a.ankiCreateDeck)
 	mux.HandleFunc("GET /api/v1/anki/decks/{deckId}/tags", a.ankiTagList)

@@ -58,6 +58,12 @@ beforeEach(() => {
       return new Response(JSON.stringify({ user: { id: 'user1', login: 'alice', name: 'Alice' } }));
     if (url.endsWith('/auth/logout')) return new Response(null, { status: 204 });
     if (url.endsWith('/anki/dashboard')) return new Response(JSON.stringify(DASHBOARD), { status: 200 });
+    if (url.includes('/anki/activity?')) {
+      const date = new URL(url, 'https://example.com').searchParams.get('date');
+      return new Response(
+        JSON.stringify({ date, today: '2026-10-26', timeZone: 'Asia/Shanghai', entries: [], nextCursor: '' }),
+      );
+    }
     if (url.endsWith('/anki/decks/d1/queue'))
       return new Response(
         JSON.stringify({ cards: [makeCard('card1', 'Q1?'), makeCard('card2', 'Q2?')], serverNow: '' }),
@@ -245,6 +251,12 @@ describe('账号切换与统计', () => {
     fireEvent.click(target);
     await waitFor(() => expect(screen.getByText('2026-10-26')).toBeInTheDocument());
     expect(screen.getByText('2026-10-26 · 1 张卡片')).toBeInTheDocument();
+    expect(screen.getByLabelText('第1天操作日期')).toHaveValue('2026-10-24');
+    expect(screen.getByLabelText('第2天操作日期')).toHaveValue('2026-10-25');
+    await waitFor(() => expect(screen.getAllByText('这一天没有操作记录。')).toHaveLength(2));
+    act(() => window.dispatchEvent(new Event('dblog-account-change')));
+    expect(await screen.findByText('登录后，查看自己的卡片库')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: '用户操作记录' })).not.toBeInTheDocument();
   });
 
   it('随机浏览切完所有卡片不重复，切卡隐藏答案且全程无 POST', async () => {

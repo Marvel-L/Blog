@@ -1,4 +1,111 @@
 /* Anki 是独立浅色学习面；不修改 html.dark 或博客主题。弹层经 portal 挂到 body，单独隔离。 */
+.anki-activity {
+  margin-top: 38px;
+  padding-top: 27px;
+  border-top: 1px solid var(--anki-line);
+}
+.anki-activity-help,
+.anki-activity-empty {
+  margin-top: 10px;
+  color: var(--anki-muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+.anki-activity-day {
+  padding: 24px 0;
+  border-bottom: 1px solid var(--anki-line);
+  min-width: 0;
+}
+.anki-activity-day-header,
+.anki-activity-day-actions,
+.anki-activity-date {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.anki-activity-day-header {
+  justify-content: space-between;
+}
+.anki-activity-date,
+.anki-activity-day-actions {
+  font-size: 13px;
+  color: var(--anki-muted);
+}
+.anki-activity-date input {
+  max-width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--anki-line);
+  border-radius: 8px;
+  background: var(--anki-surface);
+  color: var(--anki-ink);
+  font: inherit;
+  color-scheme: light;
+}
+.anki-activity button {
+  min-height: 44px;
+  color: var(--anki-accent);
+  font-size: 13px;
+}
+.anki-activity button:disabled {
+  opacity: 0.4;
+}
+.anki-activity :is(input, button):focus-visible {
+  outline: 2px solid var(--anki-accent);
+  outline-offset: 3px;
+}
+.anki-activity-list {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.anki-activity-list li {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--anki-line);
+  font-size: 13px;
+  line-height: 1.9;
+}
+.anki-activity-list li:last-child {
+  border-bottom: 0;
+}
+.anki-activity-list time {
+  color: var(--anki-muted);
+  font-variant-numeric: tabular-nums;
+}
+.anki-activity-list p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.anki-activity-status,
+.anki-activity-error {
+  color: var(--anki-muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+.anki-activity-status:empty {
+  display: none;
+}
+.anki-activity-error {
+  color: var(--anki-danger);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+@media (max-width: 480px) {
+  .anki-activity-list li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+  .anki-activity-day-actions {
+    gap: 8px;
+  }
+}
+
 .anki-surface,
 .anki-dialog-panel {
   color-scheme: light;

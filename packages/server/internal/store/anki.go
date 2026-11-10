@@ -257,6 +257,13 @@ func (s *Store) CreateAnkiCard(ctx context.Context, userID, deckID, question, an
 	if err != nil {
 		return AnkiCard{}, err
 	}
+	var createdAt time.Time
+	if err = tx.QueryRow(ctx, "SELECT clock_timestamp()").Scan(&createdAt); err != nil {
+		return AnkiCard{}, err
+	}
+	if err = insertAnkiActivity(ctx, tx, userID, c, "create", "", "", nil, createdAt); err != nil {
+		return AnkiCard{}, err
+	}
 	return c, tx.Commit(ctx)
 }
 
@@ -453,8 +460,11 @@ func (s *Store) reviewAnkiCard(ctx context.Context, userID, cardID string, versi
 	if err != nil {
 		return AnkiCard{}, err
 	}
-	if _, err = tx.Exec(ctx, `INSERT INTO anki_reviews(user_id,mutation_id,card_id,card_version,rating,custom_days,review_date,deck_id_snapshot,review_mode) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-		userID, mutationID, cardID, version, effRating, customDays, today, c.DeckID, mode); err != nil {
+	if _, err = tx.Exec(ctx, `INSERT INTO anki_reviews(user_id,mutation_id,card_id,card_version,rating,custom_days,review_date,deck_id_snapshot,review_mode,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+		userID, mutationID, cardID, version, effRating, customDays, today, c.DeckID, mode, dbNow); err != nil {
+		return AnkiCard{}, err
+	}
+	if err = insertAnkiActivity(ctx, tx, userID, c, "review", mutationID, effRating, customDays, dbNow); err != nil {
 		return AnkiCard{}, err
 	}
 	// 当日聚合：reviews 恒 +1；unique_cards 仅在当日首次评价此卡时 +1；goal 仅在新建日行快照。
