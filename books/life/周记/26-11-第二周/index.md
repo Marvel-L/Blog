@@ -36,3 +36,16 @@ LeetCode 完成 :
 [乘积最大子数组](https://leetcode.cn/problems/maximum-product-subarray/)
 
 [最长回文子串](https://leetcode.cn/problems/longest-palindromic-substring/)
+
+昨天晚上回去大概只学了 半个小时，是的， 半个小时 提不起劲
+
+# 周三
+
+LeetCode 完成 :
+
+[分割等和子集](https://leetcode.cn/problems/partition-equal-subset-sum/)
+[采购的最小花费](https://leetcode.cn/problems/minimum-cost-to-acquire-required-items/)
+
+遗留问题 :
+
+1. 分割等和子集 怎么区别 循环版本 和 当前节点版本 时间误差内容
