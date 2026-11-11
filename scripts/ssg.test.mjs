@@ -3,9 +3,20 @@ import { describe, it, expect } from 'vitest';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { flattenSuspenseBoundaries, getAnkiStaticPages, getArticleReadingStaticPages, runSsg } from './ssg.mjs';
+import {
+  flattenSuspenseBoundaries,
+  getAnkiStaticPages,
+  getArticleReadingStaticPages,
+  getWeeklyJournalStaticPages,
+  runSsg,
+} from './ssg.mjs';
 
 describe('Anki cloud 静态入口', () => {
+  it('周记独立静态入口仅在 cloud 构建生成', () => {
+    expect(getWeeklyJournalStaticPages('cloud')).toEqual([{ path: 'weekly-journal', schemaFromSeo: true }]);
+    expect(getWeeklyJournalStaticPages('pages')).toEqual([]);
+    expect(getWeeklyJournalStaticPages(undefined)).toEqual([]);
+  });
   it('仅 cloud 生成独立的文章回看入口', () => {
     expect(getArticleReadingStaticPages('cloud')).toEqual([{ path: 'articles-v2', schemaFromSeo: true }]);
     expect(getArticleReadingStaticPages('pages')).toEqual([]);

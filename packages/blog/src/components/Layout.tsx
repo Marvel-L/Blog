@@ -94,7 +94,7 @@ const TEXT = {
 
 type NavIcon = typeof BookOpen;
 type NavPathItem = { path: string; label: string; hint: string; icon: NavIcon; key?: string };
-type NavHrefItem = { href: string; label: string; hint: string; icon: NavIcon; key?: string };
+type NavHrefItem = { href: string; label: string; hint: string; icon: NavIcon; key?: string; sameTab?: boolean };
 type NavItem = NavPathItem | NavHrefItem;
 type LoveNameEffect = 'marquee' | 'rain';
 
@@ -579,7 +579,7 @@ const LoveEffectToggle = ({
   );
 };
 
-// Static 与「更多」共用面板样式、悬停/点击开关和键盘焦点管理。
+// 共用菜单焦点管理；说说以点击展开，移动端从底栏向上展开。
 const DesktopNavMenu = ({
   id,
   label,
@@ -587,6 +587,8 @@ const DesktopNavMenu = ({
   isOpen,
   onOpenChange,
   activePath,
+  clickOnly = false,
+  mobile = false,
 }: {
   id: string;
   label: string;
@@ -594,11 +596,14 @@ const DesktopNavMenu = ({
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   activePath?: string;
+  clickOnly?: boolean;
+  mobile?: boolean;
 }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const itemRefs = useRef<Array<HTMLElement | null>>([]);
   const focusFrameRef = useRef<number | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const isActive = items.some((item) => 'path' in item && item.path === activePath);
 
   const cancelFocusFrame = useCallback(() => {
@@ -614,6 +619,14 @@ const DesktopNavMenu = ({
     }
   }, [cancelFocusFrame, isOpen]);
   useEffect(() => cancelFocusFrame, [cancelFocusFrame]);
+  useEffect(() => {
+    if (!isOpen || !clickOnly) return;
+    const outside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !containerRef.current?.contains(event.target)) onOpenChange(false);
+    };
+    document.addEventListener('pointerdown', outside);
+    return () => document.removeEventListener('pointerdown', outside);
+  }, [clickOnly, isOpen, onOpenChange]);
 
   const closeMenu = (restoreFocus = false) => {
     cancelFocusFrame();
@@ -663,9 +676,10 @@ const DesktopNavMenu = ({
 
   return (
     <div
-      className="nav-more-menu relative"
-      onMouseEnter={() => onOpenChange(true)}
-      onMouseLeave={() => closeMenu()}
+      ref={containerRef}
+      className={`nav-more-menu relative ${mobile ? 'flex min-w-0' : ''}`}
+      onMouseEnter={clickOnly ? undefined : () => onOpenChange(true)}
+      onMouseLeave={clickOnly ? undefined : () => closeMenu()}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) {
           closeMenu();
@@ -676,28 +690,39 @@ const DesktopNavMenu = ({
         ref={buttonRef}
         id={`${id}-button`}
         type="button"
-        className={`group relative inline-flex h-10 items-center gap-1 px-2 py-1 text-sm font-semibold tracking-wide transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${
+        className={`${
+          mobile
+            ? 'relative flex w-full min-w-0 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold'
+            : 'group relative inline-flex h-10 items-center gap-1 px-2 py-1 text-sm font-semibold tracking-wide'
+        } transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${
           isActive
             ? 'text-ink dark:text-white'
             : 'text-zinc-700 hover:text-ink dark:text-zinc-300 dark:hover:text-white'
         }`}
-        aria-label={`展开${label}菜单`}
+        aria-label={`展开${mobile ? '移动端' : ''}${label}菜单`}
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-controls={id}
         onClick={() => onOpenChange(!isOpen)}
         onKeyDown={handleButtonKeyDown}
       >
-        <span>{label}</span>
-        <ChevronDown
-          size={14}
-          className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-          aria-hidden="true"
-        />
+        {mobile && <MessageCircle size={19} strokeWidth={isActive ? 2.2 : 1.8} aria-hidden="true" />}
+        <span className="inline-flex items-center gap-1">
+          {label}
+          <ChevronDown
+            size={mobile ? 10 : 14}
+            className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+            aria-hidden="true"
+          />
+        </span>
         {isActive && (
           <span
             aria-hidden="true"
-            className="absolute bottom-[2px] left-2 right-2 h-[2px] bg-zinc-900 dark:bg-zinc-100"
+            className={
+              mobile
+                ? 'absolute top-0 h-0.5 w-8 bg-zinc-900 dark:bg-zinc-100'
+                : 'absolute bottom-[2px] left-2 right-2 h-[2px] bg-zinc-900 dark:bg-zinc-100'
+            }
           />
         )}
       </button>
@@ -707,7 +732,11 @@ const DesktopNavMenu = ({
         aria-labelledby={`${id}-button`}
         aria-hidden={!isOpen}
         data-open={isOpen}
-        className="frosted-panel nav-more-menu-panel absolute right-0 top-full z-popover w-64 max-w-[calc(100vw-2rem)] p-1.5"
+        className={`nav-more-menu-panel absolute z-popover w-64 max-w-[calc(100vw-2rem)] p-1.5 ${
+          clickOnly
+            ? 'rounded-xl border border-[#dce3d9] bg-[#fffefa] shadow-lg dark:border-[#3a483f] dark:bg-[#202923]'
+            : 'frosted-panel'
+        } ${mobile ? 'bottom-full left-0 mb-2' : 'right-0 top-full'}`}
       >
         {items.map((item, index) => {
           const Icon = item.icon;
@@ -749,7 +778,13 @@ const DesktopNavMenu = ({
             );
           }
           return (
-            <a key={item.key ?? item.href} {...itemProps} href={item.href} target="_blank" rel="noopener noreferrer">
+            <a
+              key={item.key ?? item.href}
+              {...itemProps}
+              href={item.href}
+              target={item.sameTab ? undefined : '_blank'}
+              rel={item.sameTab ? undefined : 'noopener noreferrer'}
+            >
               {content}
               <ExternalLink size={11} className="shrink-0" aria-hidden="true" />
             </a>
@@ -799,7 +834,9 @@ const Navbar = ({
 }) => {
   const [mobileNavPhase, setMobileNavPhase] = useState<MobileNavPhase>('closed');
   const [isMobileNavMounted, setIsMobileNavMounted] = useState(false);
-  const [openDesktopMenu, setOpenDesktopMenu] = useState<'static' | 'more' | null>(null);
+  const [openDesktopMenu, setOpenDesktopMenu] = useState<'static' | 'more' | 'shuoshuo' | 'mobile-shuoshuo' | null>(
+    null,
+  );
   const location = useLocation();
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
@@ -824,6 +861,18 @@ const Navbar = ({
     location.pathname === path ||
     (path === '/articles' && location.pathname.startsWith('/post/')) ||
     (path === '/book' && location.pathname.startsWith('/book/'));
+  const shuoshuoMenuItems: NavItem[] = [
+    shuoshuoNavItem,
+    {
+      ...(import.meta.env.VITE_DEPLOY_TARGET === 'cloud'
+        ? { path: '/weekly-journal' }
+        : { href: 'https://43.138.216.53/Blog/weekly-journal', sameTab: true }),
+      label: '周记',
+      hint: '每周记录与当天随想',
+      icon: CalendarDays,
+    },
+  ];
+  const shuoshuoActivePath = location.pathname.startsWith('/shuoshuo/') ? '/shuoshuo' : location.pathname;
 
   const clearAnimationFrame = useCallback(() => {
     if (animationFrameRef.current === null) {
@@ -907,6 +956,7 @@ const Navbar = ({
     }
 
     afterCloseActionRef.current = null;
+    setOpenDesktopMenu(null);
     previousActiveElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     clearAnimationFrame();
     clearTransitionTimer();
@@ -1348,6 +1398,20 @@ const Navbar = ({
                   {desktopNavItems.map((item) => {
                     const isActive = isNavItemActive(item.path);
 
+                    if (item.path === '/shuoshuo')
+                      return (
+                        <DesktopNavMenu
+                          key={item.path}
+                          id="desktop-shuoshuo-menu"
+                          label="说说"
+                          items={shuoshuoMenuItems}
+                          clickOnly
+                          isOpen={openDesktopMenu === 'shuoshuo'}
+                          onOpenChange={(open) => setOpenDesktopMenu(open ? 'shuoshuo' : null)}
+                          activePath={shuoshuoActivePath}
+                        />
+                      );
+
                     return (
                       <React.Fragment key={item.path}>
                         {item.path === '/trend' && (
@@ -1453,6 +1517,21 @@ const Navbar = ({
             {mobileTabItems.map((item) => {
               const isActive = isNavItemActive(item.path);
               const Icon = item.icon;
+
+              if (item.path === '/shuoshuo')
+                return (
+                  <DesktopNavMenu
+                    key={item.key}
+                    id="mobile-shuoshuo-menu"
+                    label="说说"
+                    items={shuoshuoMenuItems}
+                    clickOnly
+                    mobile
+                    isOpen={openDesktopMenu === 'mobile-shuoshuo'}
+                    onOpenChange={(open) => setOpenDesktopMenu(open ? 'mobile-shuoshuo' : null)}
+                    activePath={shuoshuoActivePath}
+                  />
+                );
 
               return (
                 <Link
@@ -1927,7 +2006,10 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
       {/* 非阅读模式：main 顶部内边距 = 导航栏高度 + 呼吸间距，并补偿导航栏
           因 safe-area-inset-top 增高的部分，避免内容被顶高的导航遮挡。 */}
       <main
+        // 周记书写区高于字符鱼等前景特效（30），低于导航与账号浮层；路由动画本身会形成堆叠上下文。
         className={`relative min-w-0 w-full flex-grow px-3 sm:px-6 ${
+          location.pathname.replace(/\/$/, '') === '/weekly-journal' && !isLoveMode ? 'z-[31]' : ''
+        } ${
           isReadingMode
             ? 'pt-6 sm:pt-8 md:pt-10'
             : 'pt-[calc(5rem+env(safe-area-inset-top,0px))] sm:pt-[calc(6rem+env(safe-area-inset-top,0px))] md:pt-[calc(6rem+env(safe-area-inset-top,0px))] pb-[calc(var(--tab-bar-height,0px)+0.75rem)] lg:pb-0'

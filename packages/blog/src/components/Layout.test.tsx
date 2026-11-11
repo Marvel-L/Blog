@@ -467,11 +467,74 @@ describe('Layout', () => {
     expect(
       within(screen.getByRole('navigation', { name: '移动端底部导航' })).getByRole('link', { name: '文章' }),
     ).toHaveAttribute('href', '/articles');
-    expect(screen.getAllByRole('link', { name: /说说/ }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole('button', { name: '展开移动端说说菜单' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /搜索/ })).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Trend' })).toHaveLength(2);
     expect(screen.queryByRole('link', { name: /友链|留言/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '打开更多菜单' })).toBeInTheDocument();
+  });
+
+  it('说说导航仅点击展开，提供独立页面，点击外部或再次点击关闭', () => {
+    renderLayout();
+    const trigger = screen.getByRole('button', { name: '展开说说菜单' });
+    fireEvent.mouseOver(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('menu', { name: '展开说说菜单' })).not.toBeInTheDocument();
+    fireEvent.click(trigger);
+    const menu = screen.getByRole('menu', { name: '展开说说菜单' });
+    expect(within(menu).getByRole('menuitem', { name: /^说说/ })).toHaveAttribute('href', '/shuoshuo');
+    const weekly = within(menu).getByRole('menuitem', { name: /^周记/ });
+    expect(weekly).toHaveAttribute('href', 'https://43.138.216.53/Blog/weekly-journal');
+    expect(weekly).not.toHaveAttribute('target');
+    fireEvent.mouseLeave(trigger.parentElement!);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(trigger);
+    fireEvent.pointerDown(document.body);
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('cloud 说说菜单通过键盘进入独立周记并标记当前页，Escape 恢复焦点', async () => {
+    vi.stubEnv('VITE_DEPLOY_TARGET', 'cloud');
+    renderLayout();
+    const trigger = screen.getByRole('button', { name: '展开说说菜单' });
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    const items = within(screen.getByRole('menu', { name: '展开说说菜单' })).getAllByRole('menuitem');
+    await waitFor(() => expect(items[0]).toHaveFocus());
+    fireEvent.keyDown(items[0], { key: 'ArrowDown' });
+    await waitFor(() => expect(items[1]).toHaveFocus());
+    expect(items[1]).toHaveAttribute('href', '/weekly-journal');
+    fireEvent.click(items[1]);
+    expect(probePathname).toBe('/weekly-journal');
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.keyDown(trigger, { key: 'ArrowUp' });
+    await waitFor(() => expect(items[1]).toHaveFocus());
+    expect(items[1]).toHaveAttribute('aria-current', 'page');
+    fireEvent.keyDown(items[1], { key: 'Escape' });
+    expect(trigger).toHaveFocus();
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('移动端说说菜单展开后可进入周记，再返回说说列表', async () => {
+    vi.stubEnv('VITE_DEPLOY_TARGET', 'cloud');
+    const user = userEvent.setup();
+    renderLayout();
+    const trigger = within(screen.getByRole('navigation', { name: '移动端底部导航' })).getByRole('button', {
+      name: '展开移动端说说菜单',
+    });
+    await user.click(trigger);
+    await user.click(
+      within(screen.getByRole('menu', { name: '展开移动端说说菜单' })).getByRole('menuitem', { name: /^周记/ }),
+    );
+    expect(probePathname).toBe('/weekly-journal');
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await user.click(trigger);
+    await user.click(
+      within(screen.getByRole('menu', { name: '展开移动端说说菜单' })).getByRole('menuitem', { name: /^说说/ }),
+    );
+    expect(probePathname).toBe('/shuoshuo');
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('Static 悬停展开三个入口，移入选项保持展开，移出后关闭', () => {

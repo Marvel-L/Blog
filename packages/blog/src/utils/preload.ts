@@ -25,6 +25,9 @@ const canPreload = () => {
 };
 
 const pageLoaders: Record<string, ModuleLoader> = {
+  ...(import.meta.env.VITE_DEPLOY_TARGET === 'cloud'
+    ? { '/weekly-journal': () => import('../pages/weekly-journal/WeeklyJournal') }
+    : {}),
   '/articles': () => import('../pages/Articles').then((m) => ({ default: m.Articles })),
   '/book': () => import('../pages/Book').then((m) => ({ default: m.BookPage })),
   '/archive': () => import('../pages/Archive').then((m) => ({ default: m.ArchivePage })),
