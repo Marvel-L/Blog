@@ -1,5 +1,5 @@
 ---
-id: longest-valid-parentheses-0x01
+id: partition-equal-subset-sum-0x01
 title: 416 分割等和子集
 excerpt: 分割等和子集
 category: 算法
