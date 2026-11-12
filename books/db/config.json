@@ -1,0 +1,9 @@
+{
+  "id": "db",
+  "name": "Database",
+  "subtitle": "从入门到入土",
+  "edition": "database",
+  "accent": "#994802",
+  "order": 9,
+  "markdownFirst": true
+}

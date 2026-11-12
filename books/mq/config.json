@@ -1,8 +1,8 @@
 {
-  "id": "mysql",
-  "name": "Mysql",
+  "id": "mq",
+  "name": "MQ",
   "subtitle": "从入门到入土",
-  "edition": "mysql",
+  "edition": "message queue",
   "accent": "#994802",
   "order": 9,
   "markdownFirst": true
