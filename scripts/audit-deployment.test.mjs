@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { auditDeployment } from './audit-deployment.mjs';
+import { auditDeployment, isRawMarkdownModule } from './audit-deployment.mjs';
 
 const directories = [];
 afterEach(async () => {
@@ -19,6 +19,19 @@ async function fixture(cloud = false) {
 }
 
 describe('release isolation audit', () => {
+  it('allows inert Markdown API examples but rejects executable code and interpolated templates', async () => {
+    const raw = 'const n=`---\ntitle: 登录\n---\n示例 fetch("/api/v1/me")`;export{n as default};';
+    expect(isRawMarkdownModule(raw)).toBe(true);
+    expect(isRawMarkdownModule('const n="/api/v1/me";export{n as default};')).toBe(false);
+    expect(isRawMarkdownModule(raw + 'fetch("/api/v1/me")')).toBe(false);
+    const executable = 'const n=`---\ntitle: 登录\n---\n${fetch("/api/v1/me")}`;export{n as default};';
+    expect(isRawMarkdownModule(executable)).toBe(false);
+    const root = await fixture();
+    await writeFile(path.join(root, 'assets', 'article-a.js'), raw);
+    expect((await auditDeployment('pages', root)).hasCloudApi).toBe(false);
+    await writeFile(path.join(root, 'assets', 'article-a.js'), executable);
+    await expect(auditDeployment('pages', root)).rejects.toThrow('隔离检查失败');
+  });
   it('accepts a static release and rejects accidental account code leakage', async () => {
     expect(await auditDeployment('pages', await fixture())).toEqual({
       target: 'pages',

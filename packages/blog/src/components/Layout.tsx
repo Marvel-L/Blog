@@ -35,6 +35,7 @@ import {
   Waves,
   Church,
   CloudSun,
+  GitBranch,
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { preloadPage } from '@/utils/preload';
@@ -116,6 +117,7 @@ const navItems: NavPathItem[] = [
   { path: '/stats', label: TEXT.navStats, hint: '站点数据', icon: BarChart3 },
   { path: '/trend', label: 'Trend', hint: '数据趋势与比较', icon: TrendingUp },
   { path: '/planner', label: 'Planner', hint: '月度计划与待办', icon: CalendarDays },
+  { path: '/mind', label: 'Mind', hint: '思维导图与逻辑图', icon: GitBranch },
   { path: '/ocean', label: '沉沦之海', hint: '坠入一片静谧深海', icon: Waves },
   { path: '/confession', label: '忏悔', hint: '让过错安眠，向微光倾诉', icon: Church },
   { path: '/about', label: TEXT.navAbout, hint: '站点介绍', icon: Info },
@@ -1427,7 +1429,11 @@ const Navbar = ({
                           />
                         )}
                         <Link
-                          to={item.path}
+                          to={
+                            item.path === '/mind' && import.meta.env.VITE_DEPLOY_TARGET !== 'cloud'
+                              ? `https://43.138.216.53/Blog${item.path}`
+                              : item.path
+                          }
                           onMouseEnter={() => preloadPage(item.path)}
                           aria-current={isActive ? 'page' : undefined}
                           className={`group relative inline-flex h-10 items-center px-2 py-1 text-sm font-semibold tracking-wide transition-colors ${
@@ -1657,6 +1663,18 @@ const Navbar = ({
                         </>
                       );
                       if ('path' in item) {
+                        if (item.path === '/mind' && import.meta.env.VITE_DEPLOY_TARGET !== 'cloud') {
+                          return (
+                            <a
+                              key={item.path}
+                              href={`https://43.138.216.53/Blog${item.path}`}
+                              onClick={() => requestCloseMobileNav()}
+                              className={className}
+                            >
+                              {content}
+                            </a>
+                          );
+                        }
                         return (
                           <button
                             key={item.key ?? item.path}
@@ -2010,7 +2028,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
       <main
         // 周记书写区高于字符鱼等前景特效（30），低于导航与账号浮层；路由动画本身会形成堆叠上下文。
         className={`relative min-w-0 w-full flex-grow px-3 sm:px-6 ${
-          location.pathname.replace(/\/$/, '') === '/weekly-journal' && !isLoveMode ? 'z-[31]' : ''
+          ['/weekly-journal', '/mind'].includes(location.pathname.replace(/\/$/, '')) && !isLoveMode ? 'z-[31]' : ''
         } ${
           isReadingMode
             ? 'pt-6 sm:pt-8 md:pt-10'
@@ -2059,12 +2077,12 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
           </motion.div>
         </AnimatePresence>
       </main>
-      {!isReadingMode && (
+      {!isReadingMode && location.pathname.replace(/\/$/, '') !== '/mind' && (
         <Suspense fallback={null}>
           <BackToTop />
         </Suspense>
       )}
-      {hasRestoredAtmosphere && !isReadingMode && !isLoveMode && (
+      {hasRestoredAtmosphere && !isReadingMode && !isLoveMode && location.pathname.replace(/\/$/, '') !== '/mind' && (
         <Suspense fallback={null}>
           <RinMascot />
         </Suspense>

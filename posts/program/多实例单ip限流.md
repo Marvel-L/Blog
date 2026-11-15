@@ -199,4 +199,4 @@ sequenceDiagram
 | `back/historytradev2/asyn/service/task_watcher.go` | 待启动任务扫描、申请入口调用、`packaging_failed` 错误处理 |
 | `back/historytradev2/select_service/async_task.go` | 查询 `not_started` 任务 |
 
-关于后台任务由哪个实例调度，可以结合[《K8s 和主实例》](./k8s和主实例.md)阅读。选主负责协调调度职责，共享限流负责协调出口 IP 的申请额度，任务认领负责避免重复处理。
+关于后台任务由哪个实例调度，可以结合[《K8s 和主实例》](/post/k8s-master-election-0x01)阅读。选主负责协调调度职责，共享限流负责协调出口 IP 的申请额度，任务认领负责避免重复处理。

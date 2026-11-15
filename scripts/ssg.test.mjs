@@ -8,10 +8,16 @@ import {
   getAnkiStaticPages,
   getArticleReadingStaticPages,
   getWeeklyJournalStaticPages,
+  getPrivateWorkspaceStaticPages,
   runSsg,
 } from './ssg.mjs';
 
 describe('Anki cloud 静态入口', () => {
+  it('私人工作区只在 cloud 生成静态入口', () => {
+    expect(getPrivateWorkspaceStaticPages('cloud')).toContainEqual({ path: 'mind', schemaFromSeo: true });
+    expect(getPrivateWorkspaceStaticPages('pages')).toEqual([]);
+    expect(getPrivateWorkspaceStaticPages(undefined)).toEqual([]);
+  });
   it('周记独立静态入口仅在 cloud 构建生成', () => {
     expect(getWeeklyJournalStaticPages('cloud')).toEqual([{ path: 'weekly-journal', schemaFromSeo: true }]);
     expect(getWeeklyJournalStaticPages('pages')).toEqual([]);

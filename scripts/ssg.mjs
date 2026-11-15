@@ -346,6 +346,9 @@ export const getArticleReadingStaticPages = (target) =>
 export const getWeeklyJournalStaticPages = (target) =>
   target === 'cloud' ? [{ path: 'weekly-journal', schemaFromSeo: true }] : [];
 
+export const getPrivateWorkspaceStaticPages = (target) =>
+  target === 'cloud' ? [{ path: 'mind', schemaFromSeo: true }] : [];
+
 // 静态入口先保持白色，再由 React 接管；规则仅作用于 Anki，不改博客主题存储。
 // :has 随 SPA 离开学习面自动失效，避免返回博客后仍被入口样式覆盖。
 const ANKI_BOOT_HEAD = `
@@ -464,6 +467,7 @@ export const runSsg = async ({
     ...getAnkiStaticPages(process.env.VITE_DEPLOY_TARGET),
     ...getArticleReadingStaticPages(process.env.VITE_DEPLOY_TARGET),
     ...getWeeklyJournalStaticPages(process.env.VITE_DEPLOY_TARGET),
+    ...getPrivateWorkspaceStaticPages(process.env.VITE_DEPLOY_TARGET),
     ...getBookRoutes(books).map((path) => ({ path, schemaFromSeo: true, schemaType: 'CollectionPage' })),
     {
       path: 'archive',

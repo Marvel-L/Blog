@@ -450,6 +450,14 @@ describe('Layout', () => {
     expect(screen.getAllByRole('button', { name: '打开搜索页' }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole('link', { name: /搜索/ })).toBeInTheDocument();
   });
+  it.each([
+    ['pages', 'https://43.138.216.53/Blog/mind'],
+    ['cloud', '/mind'],
+  ])('%s 导航中的 Mind 进入对应云端页面', (target, href) => {
+    vi.stubEnv('VITE_DEPLOY_TARGET', target);
+    renderLayout();
+    expect(screen.getByRole('link', { name: 'Mind' })).toHaveAttribute('href', href);
+  });
 
   it('渲染移动端底部标签栏（文章/说说/搜索/Trend/更多），友链和留言移入更多', () => {
     renderLayout();

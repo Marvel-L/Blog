@@ -11,6 +11,7 @@
 | [features/trend.md](features/trend.md) | Trend 数据比较、阈值配色、本地保存与账号同步 |
 | [features/planner.md](features/planner.md) | 月度目标、每日遗留、同步浮球与账号数据隔离 |
 | [features/weekly-journal.md](features/weekly-journal.md) | 按周回顾、每日 Markdown、当天随想与登录权限 |
+| [features/mind.md](features/mind.md) | Mind V1：私有思维导图、逻辑图、自动保存与画布视角恢复 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 部署拓扑、package 边界、架构决策与迁移条件 |
 | [deployments/2026-10-22.md](deployments/2026-10-22.md) | Trend API、云端前端与数据库迁移上线 |
 | [deployments/2026-10-21.md](deployments/2026-10-21.md) | 发文同步、自动发布验收与备份恢复 |
@@ -19,6 +20,7 @@
 | [versions/0.5.1.md](versions/0.5.1.md) | Trend 标签页授权保留、刷新恢复与失效清理 |
 | [versions/0.7.0.md](versions/0.7.0.md) | Planner 工作台本地实现、每日遗留与数据库迁移 |
 | [versions/0.7.11.md](versions/0.7.11.md) | 说说导航下拉、独立周记、当天卡片随想和私密保存 |
+| [versions/0.7.12.md](versions/0.7.12.md) | Mind 导图工作区、节点快捷键、表情标记与私有云端存储 |
 | [versions/0.5.0.md](versions/0.5.0.md) | Trend Go API、PostgreSQL、跨端自动同步与冲突处理 |
 | [versions/0.4.0.md](versions/0.4.0.md) | Book 导航、3D 书架与分类章节预览第一批 |
 | [versions/0.3.0.md](versions/0.3.0.md) | Go 后端、兼容性、SQL 集成测试与部署切换 |

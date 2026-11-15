@@ -1,0 +1,571 @@
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { ArrowLeft, CornerDownRight, GitBranch, Maximize, Minus, Plus, Redo2, Trash2, Undo2 } from 'lucide-react';
+import { hasOpenOverlay } from '@/hooks/useModalOverlay';
+import { MARKERS, clampView, insertNode, layoutMind, removeNode, zoomAt, type MindState, type Viewport } from './model';
+import type { SaveSnapshot } from './sync';
+
+interface Props {
+  snapshot: SaveSnapshot;
+  onChange: (state: MindState) => void;
+  onBack: () => void;
+  onRetry: () => void;
+  onCopy: () => void;
+  onLoadCloud: () => void;
+  busy: boolean;
+}
+const statusText = {
+  saved: '已保存',
+  pending: '等待保存',
+  saving: '正在保存',
+  error: '保存失败 · 重试',
+  conflict: '版本冲突',
+};
+
+export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoadCloud, busy }: Props) {
+  const { state } = snapshot;
+  const canvas = useRef<HTMLDivElement>(null);
+  const editor = useRef<HTMLTextAreaElement>(null);
+  const latest = useRef(state);
+  const frame = useRef(0);
+  const pendingView = useRef<Viewport | null>(null);
+  const [size, setSize] = useState({ width: 800, height: 500 });
+  const [selected, setSelected] = useState(state.nodes.find((n) => n.parentId === null)!.id);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [notice, setNotice] = useState('');
+  const undo = useRef<MindState[]>([]);
+  const redo = useRef<MindState[]>([]);
+  const [historyVersion, setHistoryVersion] = useState(0);
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const gesture = useRef<{ view: Viewport; distance: number; x: number; y: number } | null>(null);
+  const safariGesture = useRef<Viewport | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const geometry = useMemo(() => layoutMind({ nodes: state.nodes, layout: state.layout }), [state.nodes, state.layout]);
+  const selectedNode = state.nodes.find((n) => n.id === selected);
+
+  useEffect(() => {
+    latest.current = state;
+  }, [state]);
+  useEffect(() => {
+    const element = canvas.current;
+    if (!element) return;
+    const observer = new ResizeObserver(([entry]) =>
+      setSize({ width: entry.contentRect.width, height: entry.contentRect.height }),
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    if (editing) {
+      editor.current?.focus();
+      editor.current?.select();
+    }
+  }, [editing]);
+
+  const change = useCallback(
+    (next: MindState) => {
+      latest.current = next;
+      onChange(next);
+    },
+    [onChange],
+  );
+  const changeView = useCallback(
+    (view: Viewport) => {
+      pendingView.current = clampView(view);
+      latest.current = { ...latest.current, viewport: pendingView.current };
+      if (!frame.current)
+        frame.current = requestAnimationFrame(() => {
+          frame.current = 0;
+          if (pendingView.current) {
+            change({ ...latest.current, viewport: pendingView.current });
+            pendingView.current = null;
+          }
+        });
+    },
+    [change],
+  );
+  useEffect(() => () => cancelAnimationFrame(frame.current), []);
+  useEffect(() => {
+    const element = canvas.current;
+    if (!element) return;
+    const wheel = (event: WheelEvent) => {
+      if (hasOpenOverlay()) return;
+      event.preventDefault();
+      const rect = element.getBoundingClientRect();
+      const current = latest.current.viewport;
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? rect.height : 1;
+      if (event.ctrlKey || event.metaKey) {
+        if (safariGesture.current) return;
+        changeView(
+          zoomAt(
+            current,
+            current.zoom * Math.exp(-event.deltaY * unit * 0.01),
+            event.clientX - rect.left - rect.width / 2,
+            event.clientY - rect.top - rect.height / 2,
+          ),
+        );
+      } else {
+        changeView({
+          ...current,
+          x: current.x + (event.deltaX * unit) / current.zoom,
+          y: current.y + (event.deltaY * unit) / current.zoom,
+        });
+      }
+    };
+    const start = (raw: Event) => {
+      raw.preventDefault();
+      safariGesture.current = latest.current.viewport;
+    };
+    const pinch = (raw: Event) => {
+      raw.preventDefault();
+      const event = raw as Event & { scale: number; clientX: number; clientY: number };
+      const initial = safariGesture.current;
+      if (!initial) return;
+      const rect = element.getBoundingClientRect();
+      changeView(
+        zoomAt(
+          initial,
+          initial.zoom * event.scale,
+          (event.clientX || rect.left + rect.width / 2) - rect.left - rect.width / 2,
+          (event.clientY || rect.top + rect.height / 2) - rect.top - rect.height / 2,
+        ),
+      );
+    };
+    const end = () => {
+      safariGesture.current = null;
+    };
+    element.addEventListener('wheel', wheel, { passive: false });
+    element.addEventListener('gesturestart', start, { passive: false });
+    element.addEventListener('gesturechange', pinch, { passive: false });
+    element.addEventListener('gestureend', end);
+    return () => {
+      element.removeEventListener('wheel', wheel);
+      element.removeEventListener('gesturestart', start);
+      element.removeEventListener('gesturechange', pinch);
+      element.removeEventListener('gestureend', end);
+    };
+  }, [changeView]);
+
+  const remember = () => {
+    undo.current = [...undo.current.slice(-79), latest.current];
+    redo.current = [];
+    setHistoryVersion((v) => v + 1);
+  };
+  const commit = (next: MindState) => {
+    if (next === latest.current) return;
+    remember();
+    change(next);
+  };
+  const history = (direction: 'undo' | 'redo') => {
+    const source = direction === 'undo' ? undo : redo;
+    const target = direction === 'undo' ? redo : undo;
+    const next = source.current.pop();
+    if (!next) return;
+    target.current.push(latest.current);
+    change({ ...next, viewport: latest.current.viewport });
+    if (!next.nodes.some((n) => n.id === selected)) setSelected(next.nodes.find((n) => !n.parentId)!.id);
+    setEditing(null);
+    setHistoryVersion((v) => v + 1);
+    canvas.current?.focus();
+  };
+  const reveal = (id: string, next: MindState) => {
+    const node = layoutMind(next).nodes.find((n) => n.id === id);
+    if (!node) return;
+    const view = latest.current.viewport;
+    if (
+      Math.abs(node.x - view.x) * view.zoom + (node.width * view.zoom) / 2 > size.width / 2 - 30 ||
+      Math.abs(node.y - view.y) * view.zoom + (node.height * view.zoom) / 2 > size.height / 2 - 70
+    ) {
+      changeView({ ...view, x: node.x, y: node.y });
+    }
+  };
+  const add = (relation: 'child' | 'sibling') => {
+    const id = crypto.randomUUID();
+    const next = insertNode(latest.current, selected, relation, id);
+    if (next === latest.current) {
+      setNotice('已达到节点数量或层级上限');
+      return;
+    }
+    commit(next);
+    setSelected(id);
+    setEditing(id);
+    reveal(id, next);
+    setNotice('');
+  };
+  const remove = () => {
+    const node = latest.current.nodes.find((n) => n.id === selected);
+    if (!node?.parentId) {
+      setNotice('中心主题不能删除');
+      return;
+    }
+    commit(removeNode(latest.current, selected));
+    setSelected(node.parentId);
+    setEditing(null);
+    setNotice('已删除节点及其子主题，可撤销');
+    canvas.current?.focus();
+  };
+  const startEditing = () => {
+    if (selectedNode) {
+      remember();
+      setEditing(selected);
+    }
+  };
+  const keyDown = (event: KeyboardEvent) => {
+    if (hasOpenOverlay() || event.nativeEvent.isComposing || event.keyCode === 229) return;
+    const target = event.target as HTMLElement;
+    if (target.closest('.mind-canvas-controls')) return;
+    if (target.matches('input, textarea, select') || target.isContentEditable) return;
+    if (event.key === 'Tab' && event.shiftKey) return; // Shift+Tab remains an escape route to the toolbar.
+    const modifier = event.metaKey || event.ctrlKey;
+    if (modifier && event.key.toLowerCase() === 'z') {
+      event.preventDefault();
+      history(event.shiftKey ? 'redo' : 'undo');
+      return;
+    }
+    if (modifier && event.key.toLowerCase() === 's') {
+      event.preventDefault();
+      onRetry();
+      return;
+    }
+    if (modifier || event.altKey) return;
+    if (['Enter', 'Tab', 'Delete', 'Backspace', 'F2', ' '].includes(event.key)) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.key === 'Enter') add('sibling');
+      else if (event.key === 'Tab') add('child');
+      else if (event.key === 'Delete' || event.key === 'Backspace') remove();
+      else startEditing();
+    } else if (event.key.startsWith('Arrow')) {
+      event.preventDefault();
+      event.stopPropagation();
+      const current = geometry.nodes.find((n) => n.id === selected);
+      if (!current) return;
+      const axis = event.key === 'ArrowLeft' || event.key === 'ArrowRight' ? 'x' : 'y';
+      const sign = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1;
+      const next = geometry.nodes
+        .filter((n) => (n[axis] - current[axis]) * sign > 1)
+        .sort((a, b) => Math.hypot(a.x - current.x, a.y - current.y) - Math.hypot(b.x - current.x, b.y - current.y))[0];
+      if (next) {
+        setSelected(next.id);
+        reveal(next.id, state);
+      }
+    } else if (event.key.length === 1) {
+      event.preventDefault();
+      event.stopPropagation();
+      remember();
+      setEditing(selected);
+      change({
+        ...latest.current,
+        nodes: latest.current.nodes.map((n) => (n.id === selected ? { ...n, text: event.key } : n)),
+      });
+    }
+  };
+  const resetGesture = () => {
+    const points = [...pointers.current.values()];
+    if (!points.length) {
+      gesture.current = null;
+      setDragging(false);
+      return;
+    }
+    const a = points[0],
+      b = points[1] ?? a;
+    gesture.current = {
+      view: latest.current.viewport,
+      x: (a.x + b.x) / 2,
+      y: (a.y + b.y) / 2,
+      distance: Math.hypot(b.x - a.x, b.y - a.y),
+    };
+  };
+  const fit = () => {
+    const { bounds } = geometry;
+    changeView({
+      x: (bounds.left + bounds.right) / 2,
+      y: (bounds.top + bounds.bottom) / 2,
+      zoom: Math.min(
+        1.4,
+        (size.width - 80) / (bounds.right - bounds.left),
+        (size.height - 150) / (bounds.bottom - bounds.top),
+      ),
+    });
+  };
+
+  return (
+    <div className="mind-editor">
+      <header className="mind-editor-header">
+        <button className="mind-icon" aria-label="返回 Mind 列表" onClick={onBack} disabled={busy}>
+          <ArrowLeft size={19} />
+        </button>
+        <input
+          aria-label="导图名称"
+          className="mind-title-input"
+          value={state.title}
+          maxLength={120}
+          onFocus={remember}
+          onChange={(event) =>
+            change({ ...latest.current, title: event.target.value.trim() ? event.target.value : '未命名导图' })
+          }
+        />
+        <select
+          aria-label="导图结构"
+          value={state.layout}
+          onChange={(event) => commit({ ...latest.current, layout: event.target.value as MindState['layout'] })}
+        >
+          <option value="mind">思维导图</option>
+          <option value="logic">逻辑图</option>
+        </select>
+        <span className="mind-private">仅自己可见</span>
+      </header>
+      <div className="mind-toolbar" aria-label="节点工具">
+        <button onClick={() => add('child')} title="子主题 · Tab">
+          <CornerDownRight size={16} />
+          <span>子主题</span>
+        </button>
+        <button onClick={() => add('sibling')} title="同级主题 · Enter">
+          <GitBranch size={16} />
+          <span>同级</span>
+        </button>
+        <button onClick={remove} disabled={!selectedNode?.parentId} aria-label="删除节点及子主题" title="删除 · Delete">
+          <Trash2 size={16} />
+        </button>
+        <span className="mind-tool-divider" />
+        <button
+          onClick={() => history('undo')}
+          disabled={!undo.current.length}
+          aria-label="撤销"
+          data-history={historyVersion}
+        >
+          <Undo2 size={16} />
+        </button>
+        <button onClick={() => history('redo')} disabled={!redo.current.length} aria-label="重做">
+          <Redo2 size={16} />
+        </button>
+        <span className="mind-tool-divider" />
+        <div className="mind-markers" aria-label="节点表情标记">
+          {MARKERS.map((emoji) => (
+            <button
+              key={emoji}
+              aria-label={`标记 ${emoji}`}
+              aria-pressed={selectedNode?.emoji === emoji}
+              onClick={() => {
+                commit({
+                  ...latest.current,
+                  nodes: latest.current.nodes.map((n) =>
+                    n.id === selected ? { ...n, emoji: n.emoji === emoji ? '' : emoji } : n,
+                  ),
+                });
+                canvas.current?.focus();
+              }}
+            >
+              {emoji}
+            </button>
+          ))}
+          {selectedNode?.emoji && (
+            <button
+              onClick={() =>
+                commit({
+                  ...latest.current,
+                  nodes: latest.current.nodes.map((n) => (n.id === selected ? { ...n, emoji: '' } : n)),
+                })
+              }
+            >
+              清除
+            </button>
+          )}
+        </div>
+      </div>
+      {(snapshot.error || snapshot.recoveryError) && (
+        <div className="mind-save-error" role="alert">
+          <span>{snapshot.error || snapshot.recoveryError}</span>
+          {snapshot.status === 'conflict' ? (
+            <>
+              <button disabled={busy} onClick={onCopy}>
+                另存为新导图
+              </button>
+              <button
+                onClick={() => {
+                  if (window.confirm('将用云端版本替换本机草稿。需要保留草稿时，请先另存为新导图。')) onLoadCloud();
+                }}
+              >
+                加载云端版本
+              </button>
+            </>
+          ) : (
+            <button onClick={onRetry}>重试保存</button>
+          )}
+        </div>
+      )}
+      <div
+        ref={canvas}
+        className={`mind-canvas${dragging ? ' is-dragging' : ''}`}
+        role="region"
+        aria-label="导图画布"
+        aria-describedby="mind-keyboard-help"
+        tabIndex={0}
+        onKeyDown={keyDown}
+        onPointerDown={(event) => {
+          if (
+            (event.button !== 0 && event.button !== 1) ||
+            (event.target as HTMLElement).closest('[data-mind-node], .mind-canvas-controls')
+          )
+            return;
+          canvas.current?.focus();
+          setEditing(null);
+          event.currentTarget.setPointerCapture(event.pointerId);
+          pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+          setDragging(true);
+          resetGesture();
+        }}
+        onPointerMove={(event) => {
+          if (!pointers.current.has(event.pointerId) || !gesture.current) return;
+          pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+          const [a, second] = [...pointers.current.values()],
+            b = second ?? a;
+          const initial = gesture.current,
+            rect = event.currentTarget.getBoundingClientRect();
+          const centerX = (a.x + b.x) / 2,
+            centerY = (a.y + b.y) / 2;
+          let view = initial.view;
+          if (second && initial.distance > 0)
+            view = zoomAt(
+              view,
+              (view.zoom * Math.hypot(b.x - a.x, b.y - a.y)) / initial.distance,
+              initial.x - rect.left - rect.width / 2,
+              initial.y - rect.top - rect.height / 2,
+            );
+          changeView({
+            ...view,
+            x: view.x - (centerX - initial.x) / view.zoom,
+            y: view.y - (centerY - initial.y) / view.zoom,
+          });
+        }}
+        onPointerUp={(event) => {
+          pointers.current.delete(event.pointerId);
+          resetGesture();
+        }}
+        onPointerCancel={(event) => {
+          pointers.current.delete(event.pointerId);
+          resetGesture();
+        }}
+      >
+        <div
+          className="mind-world"
+          style={{
+            transform: `translate(${size.width / 2 - state.viewport.x * state.viewport.zoom}px, ${size.height / 2 - state.viewport.y * state.viewport.zoom}px) scale(${state.viewport.zoom})`,
+          }}
+        >
+          <svg className="mind-edges" width="1" height="1" aria-hidden="true">
+            {geometry.edges.map((edge) => (
+              <path key={edge.id} d={edge.d} className={`mind-branch-${edge.color}`} />
+            ))}
+          </svg>
+          {geometry.nodes.map((node) => {
+            const style = {
+              left: node.x - node.width / 2,
+              top: node.y - node.height / 2,
+              width: node.width,
+              minHeight: node.height,
+            } as CSSProperties;
+            const className = `mind-node mind-branch-${node.color} ${node.parentId ? '' : 'mind-root'} ${selected === node.id ? 'is-selected' : ''}`;
+            return editing === node.id ? (
+              <div key={node.id} data-mind-node={node.id} className={`${className} is-editing`} style={style}>
+                <textarea
+                  ref={editor}
+                  aria-label="编辑节点"
+                  value={node.text}
+                  maxLength={200}
+                  rows={Math.max(1, node.lines.length)}
+                  onChange={(event) =>
+                    change({
+                      ...latest.current,
+                      nodes: latest.current.nodes.map((n) =>
+                        n.id === node.id ? { ...n, text: event.target.value } : n,
+                      ),
+                    })
+                  }
+                  onBlur={() => setEditing(null)}
+                  onKeyDown={(event) => {
+                    event.stopPropagation();
+                    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
+                    if (event.key === 'Escape') {
+                      event.preventDefault();
+                      setEditing(null);
+                      canvas.current?.focus();
+                    } else if ((event.key === 'Tab' && !event.shiftKey) || (event.key === 'Enter' && !event.shiftKey)) {
+                      event.preventDefault();
+                      add(event.key === 'Tab' ? 'child' : 'sibling');
+                    }
+                  }}
+                />
+              </div>
+            ) : (
+              <button
+                key={node.id}
+                data-mind-node={node.id}
+                className={className}
+                style={style}
+                tabIndex={-1}
+                aria-pressed={selected === node.id}
+                aria-label={`节点：${node.text || '未命名主题'}${node.emoji ? ` ${node.emoji}` : ''}`}
+                onClick={() => {
+                  setSelected(node.id);
+                  setEditing(null);
+                  canvas.current?.focus();
+                }}
+                onDoubleClick={() => {
+                  setSelected(node.id);
+                  remember();
+                  setEditing(node.id);
+                }}
+              >
+                {node.emoji && <span className="mind-node-emoji">{node.emoji}</span>}
+                <span>{node.lines.join('\n')}</span>
+              </button>
+            );
+          })}
+        </div>
+        <details className="mind-help mind-canvas-controls">
+          <summary>快捷键</summary>
+          <p id="mind-keyboard-help">
+            Enter 同级 · Tab 子主题 · Delete 删除分支
+            <br />
+            双击 / F2 编辑 · Shift+Enter 换行
+            <br />⌘ / Ctrl+Z 撤销 · Shift+Tab 离开画布
+            <br />
+            拖动画布 / 双指滑动平移 · 双指捏合缩放
+          </p>
+        </details>
+        <div className="mind-zoom mind-canvas-controls">
+          <button
+            aria-label="缩小"
+            onClick={() => changeView({ ...latest.current.viewport, zoom: latest.current.viewport.zoom / 1.2 })}
+          >
+            <Minus size={16} />
+          </button>
+          <button aria-label="重置为 100%" onClick={() => changeView({ ...latest.current.viewport, zoom: 1 })}>
+            {Math.round(state.viewport.zoom * 100)}%
+          </button>
+          <button
+            aria-label="放大"
+            onClick={() => changeView({ ...latest.current.viewport, zoom: latest.current.viewport.zoom * 1.2 })}
+          >
+            <Plus size={16} />
+          </button>
+          <button aria-label="适应画布" onClick={fit}>
+            <Maximize size={16} />
+          </button>
+        </div>
+        <button
+          className={`mind-sync mind-canvas-controls is-${snapshot.status}`}
+          onClick={onRetry}
+          aria-label={`云端同步：${statusText[snapshot.status]}`}
+        >
+          <span aria-hidden="true" />
+          <span role="status">{statusText[snapshot.status]}</span>
+        </button>
+      </div>
+      <div className="mind-editor-footer">
+        <span>{state.nodes.length} 个主题</span>
+        <span role="status">{notice || '双击主题开始编辑'}</span>
+      </div>
+    </div>
+  );
+}

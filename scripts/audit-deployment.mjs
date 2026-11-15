@@ -2,6 +2,19 @@ import { readdir, readFile } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
 
+// Vite's ?raw Markdown chunks export a single inert string. API examples in
+// prose are not executable account code. Require the complete module shape,
+// frontmatter, and a literal without template interpolation; extra statements,
+// imports, calls, and executable template expressions still pass through the audit.
+export function isRawMarkdownModule(source) {
+  const match = source
+    .trim()
+    .match(
+      /^const\s+([A-Za-z_$][\w$]*)\s*=\s*(`(?:[^`\\$]|\\[\s\S]|\$(?!\{))*`|"(?:[^"\\\r\n]|\\[\s\S])*"|'(?:[^'\\\r\n]|\\[\s\S])*')\s*;?\s*export\s*\{\s*\1\s+as\s+default\s*\};?$/,
+    );
+  return !!match && /^(?:`---\r?\n|"---\\n|'---\\n)/.test(match[2]);
+}
+
 /** Check the actual release bundle, including tree shaking of cloud-only code. */
 export async function auditDeployment(target, distDir = fileURLToPath(new URL('../dist/', import.meta.url))) {
   if (!['pages', 'cloud'].includes(target)) throw new Error('VITE_DEPLOY_TARGET must be pages or cloud');
@@ -16,7 +29,7 @@ export async function auditDeployment(target, distDir = fileURLToPath(new URL('.
       if (/\/api\/v1(?!\/trend)/.test(source)) throw new Error(`${target} Trend API 隔离检查失败`);
     } else if (file.startsWith('PlannerSync-')) {
       if (/\/api\/v1(?!\/(?:planner|trend))/.test(source)) throw new Error(`${target} Planner API 隔离检查失败`);
-    } else if (source.includes('/api/v1')) hasCloudApi = true;
+    } else if (source.includes('/api/v1') && !isRawMarkdownModule(source)) hasCloudApi = true;
   }
   const expected = target === 'cloud';
   if (hasCloudChunk !== expected || hasCloudApi !== expected)
