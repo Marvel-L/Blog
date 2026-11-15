@@ -117,6 +117,8 @@ func New(c config.Config, db Persistence, exchange github.Exchange) http.Handler
 	mux.HandleFunc("PUT /api/v1/confessions", a.confessions)
 	mux.HandleFunc("GET /api/v1/weekly-journal", a.weeklyJournal)
 	mux.HandleFunc("PUT /api/v1/weekly-journal", a.weeklyJournal)
+	mux.HandleFunc("GET /api/v1/resume", a.resume)
+	mux.HandleFunc("PUT /api/v1/resume", a.resume)
 	mux.HandleFunc("GET /api/v1/mind/maps", a.mindMaps)
 	mux.HandleFunc("GET /api/v1/mind/maps/{id}", a.mindMaps)
 	mux.HandleFunc("PUT /api/v1/mind/maps/{id}", a.mindMaps)
@@ -233,6 +235,7 @@ func (a *API) validOAuthReturn(path string) bool {
 	// Only exact application destinations, never arbitrary relative/external redirects.
 	return path == "/Blog/anki" || path == "/anki" ||
 		path == "/Blog/mind" || path == "/mind" ||
+		path == "/Blog/resume" || path == "/resume" ||
 		path == "/Blog/weekly-journal" || path == "/weekly-journal" || a.validTrendReturn(path)
 }
 

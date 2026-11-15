@@ -41,6 +41,7 @@ const Friends = lazy(pageLoaders['/friends']);
 const ShuoShuoPage = lazy(pageLoaders['/shuoshuo']);
 const WeeklyJournalPage = import.meta.env.VITE_DEPLOY_TARGET === 'cloud' ? lazy(pageLoaders['/weekly-journal']) : null;
 const MindPage = import.meta.env.VITE_DEPLOY_TARGET === 'cloud' ? lazy(pageLoaders['/mind']) : null;
+const ResumePage = import.meta.env.VITE_DEPLOY_TARGET === 'cloud' ? lazy(pageLoaders['/resume']) : null;
 const ShuoShuoDetailPage = lazy(() => import('./pages/ShuoShuoDetail').then((m) => ({ default: m.ShuoShuoDetail })));
 const GuestbookPage = lazy(pageLoaders['/guestbook']);
 const Tags = lazy(pageLoaders['/tags']);
@@ -238,6 +239,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/shuoshuo/:id" element={<ShuoShuoDetailPage />} />
             {WeeklyJournalPage && <Route path="/weekly-journal" element={<WeeklyJournalPage />} />}
             {MindPage && <Route path="/mind" element={<MindPage />} />}
+            {ResumePage && <Route path="/resume" element={<ResumePage />} />}
             <Route path="/guestbook" element={<GuestbookPage />} />
             <Route path="/about" element={<About />} />
             <Route path="/about/ability/:dimension/:filename" element={<AbilityDocument />} />

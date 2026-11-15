@@ -12,6 +12,7 @@
 | [features/planner.md](features/planner.md) | 月度目标、每日遗留、同步浮球与账号数据隔离 |
 | [features/weekly-journal.md](features/weekly-journal.md) | 按周回顾、每日 Markdown、当天随想与登录权限 |
 | [features/mind.md](features/mind.md) | Mind V1：私有思维导图、逻辑图、自动保存与画布视角恢复 |
+| [features/resume.md](features/resume.md) | 私有简历、Markdown 与文档编辑、选区批注和云端保存 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 部署拓扑、package 边界、架构决策与迁移条件 |
 | [deployments/2026-10-22.md](deployments/2026-10-22.md) | Trend API、云端前端与数据库迁移上线 |
 | [deployments/2026-10-21.md](deployments/2026-10-21.md) | 发文同步、自动发布验收与备份恢复 |

@@ -15,6 +15,7 @@ import {
 describe('Anki cloud 静态入口', () => {
   it('私人工作区只在 cloud 生成静态入口', () => {
     expect(getPrivateWorkspaceStaticPages('cloud')).toContainEqual({ path: 'mind', schemaFromSeo: true });
+    expect(getPrivateWorkspaceStaticPages('cloud')).toContainEqual({ path: 'resume', schemaFromSeo: true });
     expect(getPrivateWorkspaceStaticPages('pages')).toEqual([]);
     expect(getPrivateWorkspaceStaticPages(undefined)).toEqual([]);
   });

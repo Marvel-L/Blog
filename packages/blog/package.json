@@ -18,12 +18,19 @@
     "test": "node ../../scripts/generate-site-data.mjs && vitest run --config vitest.config.ts"
   },
   "dependencies": {
+    "@tiptap/extension-highlight": "3.34.0",
+    "@tiptap/extension-table": "3.34.0",
+    "@tiptap/extension-text-style": "3.34.0",
+    "@tiptap/pm": "3.34.0",
+    "@tiptap/react": "3.34.0",
+    "@tiptap/starter-kit": "3.34.0",
     "dompurify": "^3.4.5",
     "framer-motion": "^12.29.0",
     "highlight.js": "^11.9.0",
     "jszip": "^3.10.1",
     "katex": "^0.16.38",
     "lucide-react": "^0.563.0",
+    "marked": "18.2.0",
     "mermaid": "^11.13.0",
     "micromark-util-chunked": "2.0.1",
     "micromark-util-classify-character": "2.0.1",
@@ -44,6 +51,7 @@
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
     "three": "0.180.0",
+    "turndown": "7.2.5",
     "unist-util-visit": "^5.1.0"
   },
   "devDependencies": {
@@ -56,6 +64,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@types/three": "0.180.0",
+    "@types/turndown": "5.0.6",
     "@vitejs/plugin-react": "^5.0.0",
     "jsdom": "^30.0.1",
     "typescript": "~5.8.2",

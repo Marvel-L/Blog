@@ -29,6 +29,7 @@ const pageLoaders: Record<string, ModuleLoader> = {
     ? {
         '/weekly-journal': () => import('../pages/weekly-journal/WeeklyJournal'),
         '/mind': () => import('../pages/mind/Mind'),
+        '/resume': () => import('../pages/resume/Resume'),
       }
     : {}),
   '/articles': () => import('../pages/Articles').then((m) => ({ default: m.Articles })),

@@ -1,0 +1,697 @@
+.resume-page {
+  --cv-ink: #293936;
+  --cv-muted: #7b8780;
+  --cv-line: #dde3dc;
+  --cv-paper: #fffefb;
+  --cv-tint: #f1f4ed;
+  --cv-accent: #49654f;
+  max-width: 1200px;
+  margin: 18px auto 70px;
+  color: var(--cv-ink);
+  position: relative;
+  font-size: 14px;
+}
+.dark .resume-page {
+  --cv-ink: #e2e7df;
+  --cv-muted: #a3afa5;
+  --cv-line: #39443c;
+  --cv-paper: #202822;
+  --cv-tint: #2c372e;
+  --cv-accent: #b1c4a7;
+}
+.dark main:has(.resume-page[aria-label='我的简历']) {
+  background: #171e19;
+}
+.resume-heading,
+.resume-title,
+.resume-file-actions,
+.resume-mode-row,
+.resume-modes,
+.resume-button {
+  display: flex;
+  align-items: center;
+}
+.resume-heading {
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px 0 22px;
+}
+.resume-title {
+  gap: 10px;
+}
+.resume-title h1 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+.resume-title > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--cv-muted);
+  font-size: 11px;
+  margin-left: 8px;
+}
+.resume-file-actions {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.resume-button {
+  display: inline-flex;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--cv-line);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  background: var(--cv-paper);
+  min-height: 34px;
+  color: var(--cv-ink);
+}
+.resume-page button:hover {
+  background-color: var(--cv-tint);
+}
+.resume-page button:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+.resume-page :is(button, a, textarea):focus-visible {
+  outline: 2px solid var(--cv-accent);
+  outline-offset: 3px;
+}
+.resume-mode-row {
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--cv-line);
+}
+.resume-modes {
+  gap: 20px;
+}
+.resume-modes button {
+  padding: 12px 0;
+  color: var(--cv-muted);
+  font-size: 12px;
+  border-bottom: 2px solid transparent;
+}
+.resume-modes button[aria-pressed='true'] {
+  color: var(--cv-ink);
+  border-color: var(--cv-accent);
+}
+.resume-save-label {
+  font-size: 11px;
+  color: var(--cv-muted);
+}
+.resume-save-label.is-error {
+  color: #ba574b;
+}
+.resume-toolbar {
+  position: sticky;
+  top: 82px;
+  z-index: 12;
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  padding: 9px 16px;
+  background: var(--cv-paper);
+  border: 1px solid var(--cv-line);
+  border-radius: 8px 8px 0 0;
+  overflow-x: auto;
+}
+.resume-toolbar button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  border-radius: 4px;
+}
+.resume-toolbar button[aria-pressed='true'] {
+  background: var(--cv-tint);
+  color: var(--cv-accent);
+}
+.resume-separator {
+  height: 18px;
+  width: 1px;
+  background: var(--cv-line);
+  margin: 0 5px;
+  flex-shrink: 0;
+}
+.resume-color-letter {
+  font-family: Georgia, serif;
+  font-weight: 700;
+  font-size: 17px;
+  text-decoration: underline;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 4px;
+}
+.resume-mark-red {
+  color: #c2413b;
+}
+.resume-mark-green {
+  color: #18794e;
+}
+.resume-mark-yellow {
+  color: #92741c;
+}
+.dark .resume-mark-red {
+  color: #ffaaa2;
+}
+.dark .resume-mark-green {
+  color: #90d6ae;
+}
+.dark .resume-mark-yellow {
+  color: #eed58a;
+}
+.resume-paper {
+  padding: 48px 48px 64px;
+  min-height: 780px;
+  background: var(--cv-paper);
+  border: 1px solid var(--cv-line);
+  border-top: 0;
+  box-shadow: 0 8px 32px #29393606;
+  border-radius: 0 0 8px 8px;
+}
+.resume-paper.is-preview {
+  border-top: 1px solid var(--cv-line);
+  border-radius: 8px;
+}
+.resume-document {
+  outline: none;
+  min-height: 660px;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+.resume-document > :first-child {
+  margin-top: 0;
+}
+.resume-document h1 {
+  font-size: 30px;
+  line-height: 1.35;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  margin: 0 0 14px;
+}
+.resume-document h2 {
+  font-size: 17px;
+  font-weight: 650;
+  border-bottom: 1px solid var(--cv-line);
+  padding-bottom: 8px;
+  margin: 30px 0 15px;
+  color: var(--cv-accent);
+}
+.resume-document h3 {
+  font-size: 14px;
+  font-weight: 650;
+  margin: 22px 0 6px;
+}
+.resume-document :is(h4, h5, h6) {
+  font-weight: 650;
+  margin: 16px 0 8px;
+}
+.resume-document p {
+  margin: 9px 0;
+}
+.resume-document ul {
+  list-style: disc;
+  padding-left: 22px;
+  margin: 12px 0;
+}
+.resume-document ol {
+  list-style: decimal;
+  padding-left: 22px;
+  margin: 12px 0;
+}
+.resume-document li {
+  margin: 5px 0;
+}
+.resume-document li > p {
+  margin: 3px 0;
+}
+.resume-document li :is(ul, ol) {
+  margin: 5px 0;
+}
+.resume-document blockquote {
+  color: var(--cv-muted);
+  border-left: 2px solid var(--cv-line);
+  padding-left: 16px;
+  margin: 14px 0;
+}
+.resume-document a {
+  color: var(--cv-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.resume-document strong {
+  font-weight: 650;
+}
+.resume-document em {
+  font-style: italic;
+}
+.resume-document code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.9em;
+  border-radius: 3px;
+  padding: 1px 4px;
+  background: var(--cv-tint);
+}
+.resume-document pre {
+  white-space: pre-wrap;
+  border-radius: 6px;
+  padding: 14px;
+  background: var(--cv-tint);
+  margin: 14px 0;
+}
+.resume-document pre code {
+  padding: 0;
+  background: transparent;
+}
+.resume-document hr {
+  border: 0;
+  border-top: 1px solid var(--cv-line);
+  margin: 24px 0;
+}
+.resume-document mark {
+  background: #fef08a;
+  color: #42391c;
+  box-decoration-break: clone;
+}
+.resume-document span[style] mark {
+  color: inherit;
+}
+.dark .resume-document span[style*='194, 65, 59'] mark {
+  color: #c2413b;
+}
+.dark .resume-document span[style*='24, 121, 78'] mark {
+  color: #18794e;
+}
+.dark .resume-document span[style*='194, 65, 59'] {
+  color: #ffaaa2 !important;
+}
+.dark .resume-document span[style*='24, 121, 78'] {
+  color: #90d6ae !important;
+}
+.resume-document table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+  margin: 16px 0;
+}
+.resume-document :is(td, th) {
+  border: 1px solid var(--cv-line);
+  padding: 8px;
+  vertical-align: top;
+}
+.resume-document th {
+  background: var(--cv-tint);
+  font-weight: 600;
+}
+.resume-document .selectedCell {
+  background: var(--cv-tint);
+}
+.resume-document[contenteditable='true'] > p:only-child:has(> br:only-child)::before {
+  content: '在这里写下你的简历，或从右上角导入 Markdown…';
+  color: var(--cv-muted);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+.resume-context-menu {
+  position: fixed;
+  margin: 0;
+  z-index: 220;
+  width: 188px;
+  background: var(--cv-paper);
+  padding: 6px;
+  border: 1px solid var(--cv-line);
+  border-radius: 8px;
+  box-shadow: 0 8px 36px #0002;
+}
+.resume-context-menu button {
+  width: 100%;
+  padding: 10px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border-radius: 4px;
+  font-size: 13px;
+  text-align: left;
+}
+.resume-context-menu button span {
+  width: 18px;
+  font-weight: 700;
+}
+.resume-source {
+  background: var(--cv-paper);
+  border: 1px solid var(--cv-line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.resume-source label {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 22px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--cv-line);
+}
+.resume-source label span {
+  color: var(--cv-muted);
+}
+.resume-source textarea {
+  display: block;
+  width: 100%;
+  min-height: 780px;
+  background: transparent;
+  color: var(--cv-ink);
+  padding: 26px;
+  font:
+    13px/1.9 ui-monospace,
+    SFMono-Regular,
+    monospace;
+  resize: vertical;
+  outline-offset: -3px !important;
+}
+.resume-edit-hint {
+  color: var(--cv-muted);
+  font-size: 11px;
+  margin-top: 14px;
+  text-align: center;
+  line-height: 1.8;
+}
+.resume-access {
+  max-width: 420px;
+  margin: 90px auto;
+  padding: 32px 20px;
+}
+.resume-access-icon {
+  color: var(--cv-accent);
+  margin-bottom: 20px;
+}
+.resume-access h1 {
+  font-size: 26px;
+  font-weight: 600;
+}
+.resume-access > p {
+  color: var(--cv-muted);
+  margin: 12px 0 28px;
+  line-height: 1.8;
+}
+.resume-github {
+  margin-top: 20px;
+}
+.resume-notice {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--cv-tint);
+  padding: 12px 16px;
+  font-size: 12px;
+  border-radius: 6px;
+  margin-bottom: 14px;
+}
+.resume-notice button {
+  flex-shrink: 0;
+}
+.resume-error {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border: 1px solid #c77a6855;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.resume-error p {
+  flex: 1 1 100%;
+  color: #b15a48;
+}
+.resume-sync {
+  position: fixed;
+  margin: 0;
+  bottom: calc(var(--cloud-account-bottom, 24px) + 66px);
+  right: 22px;
+  z-index: 45;
+}
+.resume-sync-orb {
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--cv-line);
+  border-radius: 50%;
+  background: var(--cv-paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 5px 22px #0001;
+  color: var(--cv-accent);
+  position: relative;
+}
+.resume-sync-orb i {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  bottom: 6px;
+  right: 5px;
+  background: #619377;
+  border: 1px solid var(--cv-paper);
+}
+.resume-sync-orb:is(.is-error, .is-conflict) i {
+  background: #c46a58;
+}
+.resume-sync-orb:is(.is-saving, .is-pending) i {
+  background: #d5a847;
+}
+.resume-sync-panel {
+  position: absolute;
+  bottom: 60px;
+  right: 0;
+  width: min(320px, calc(100vw - 32px));
+  padding: 20px;
+  background: var(--cv-paper);
+  border: 1px solid var(--cv-line);
+  border-radius: 10px;
+  box-shadow: 0 8px 36px #0002;
+  outline: none;
+}
+.resume-sync-panel header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.resume-sync-panel p {
+  font-size: 12px;
+  margin: 9px 0;
+}
+.resume-sync-note {
+  color: var(--cv-muted);
+}
+.resume-sync-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}
+.resume-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 276px;
+  align-items: start;
+  gap: 22px;
+}
+.resume-editor {
+  min-width: 0;
+}
+.resume-comments {
+  position: sticky;
+  top: 90px;
+  max-height: calc(100dvh - 120px);
+  overflow-y: auto;
+  padding: 2px 5px 10px;
+  scrollbar-width: thin;
+  scroll-margin-top: 100px;
+}
+.resume-comments > header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 18px;
+  color: var(--cv-accent);
+}
+.resume-comments h2 {
+  font-weight: 600;
+}
+.resume-comments > header span {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--cv-muted);
+}
+.resume-comment,
+.resume-comment-draft {
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--cv-line);
+  border-radius: 7px;
+  background: var(--cv-paper);
+  scroll-margin-block: 12px;
+}
+.resume-comment.is-active,
+.resume-comment-draft {
+  border-color: var(--cv-accent);
+}
+.resume-comments blockquote {
+  border-left: 2px solid var(--cv-line);
+  padding-left: 10px;
+  color: var(--cv-muted);
+  line-height: 1.6;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  max-height: 100px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+.resume-comment-quote {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+.resume-comment-quote:disabled {
+  opacity: 1 !important;
+}
+.resume-comment-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.8;
+  font-size: 13px;
+  margin: 14px 0;
+}
+.resume-comment footer,
+.resume-comment-heading,
+.resume-comment-submit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--cv-muted);
+}
+.resume-comment footer time {
+  margin-right: auto;
+}
+.resume-comment footer button,
+.resume-comment-heading button {
+  padding: 6px;
+  border-radius: 4px;
+}
+.resume-comment-heading {
+  color: var(--cv-ink);
+  margin: -3px 0 12px;
+  font-size: 12px;
+}
+.resume-comment-draft textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 110px;
+  padding: 10px;
+  margin: 14px 0 8px;
+  background: var(--cv-tint);
+  border-radius: 5px;
+  font-size: 13px;
+  color: var(--cv-ink);
+  line-height: 1.7;
+}
+.resume-comments-empty,
+.resume-comments-edit,
+.resume-comment-missing {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--cv-muted);
+  margin: 10px 0;
+}
+.resume-comments-edit {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-align: left;
+}
+.resume-document [data-resume-comments] {
+  border-bottom: 2px solid #d1b773;
+  background: #eedb9b22;
+  cursor: pointer;
+  scroll-margin-top: 160px;
+  box-decoration-break: clone;
+}
+.resume-document .is-comment-active {
+  background: #e6c45b4d;
+  border-bottom-color: #bc9439;
+}
+@media (max-width: 900px) {
+  .resume-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+  .resume-comments {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+  }
+  .resume-comment-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+@media (max-width: 640px) {
+  .resume-comment-list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .resume-page {
+    margin-top: 4px;
+  }
+  .resume-heading {
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  .resume-title {
+    width: 100%;
+  }
+  .resume-title > span {
+    margin-left: auto;
+  }
+  .resume-toolbar {
+    top: 68px;
+    padding: 7px;
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+  .resume-toolbar button {
+    min-width: 34px;
+    height: 36px;
+  }
+  .resume-paper {
+    padding: 28px 20px 40px;
+    min-height: 660px;
+  }
+  .resume-document {
+    font-size: 13px;
+    min-height: 550px;
+  }
+  .resume-document h1 {
+    font-size: 26px;
+  }
+  .resume-document h2 {
+    font-size: 16px;
+  }
+  .resume-source textarea {
+    padding: 18px;
+    font-size: 12px;
+  }
+  .resume-sync {
+    right: 16px;
+  }
+  .resume-edit-hint {
+    text-align: left;
+  }
+}
