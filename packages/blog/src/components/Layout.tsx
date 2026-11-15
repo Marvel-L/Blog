@@ -122,9 +122,9 @@ const navItems: NavPathItem[] = [
 ];
 
 const staticNavItems = ['/tags', '/stats', '/archive'].flatMap((path) => navItems.filter((item) => item.path === path));
-const desktopNavItems = navItems.filter((item) => !staticNavItems.includes(item));
 
 const moreNavItems: NavItem[] = [
+  ...navItems.filter((item) => ['/ocean', '/confession'].includes(item.path)),
   { key: 'friends', path: '/friends', label: TEXT.navFriends, hint: '友情链接', icon: Users },
   { key: 'guestbook', path: '/guestbook', label: TEXT.navGuestbook, hint: '留言互动', icon: MessageSquareText },
   {
@@ -165,6 +165,8 @@ const moreNavItems: NavItem[] = [
     href: ISSUE_SUBSCRIPTION_URL,
   },
 ];
+
+const desktopNavItems = navItems.filter((item) => !staticNavItems.includes(item) && !moreNavItems.includes(item));
 
 // 移动端底部标签栏：高频入口一级直达（文章/说说/搜索/Trend），其余栏目收纳进「更多」面板。
 const mobileTabItems: Array<{ key: string; path: string; label: string; icon: NavIcon }> = [

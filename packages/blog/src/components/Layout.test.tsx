@@ -130,18 +130,7 @@ describe('Layout', () => {
     expect(screen.getByRole('button', { name: '展开Static菜单' })).toHaveTextContent('Static');
     expect(screen.queryByRole('link', { name: /^(标签|统计|归档)$/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '积累' })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '沉沦之海' })).toHaveAttribute('href', '/ocean');
-    expect(screen.getByRole('link', { name: '忏悔' })).toHaveAttribute('href', '/confession');
-    const links = screen.getAllByRole('link');
-    expect(links.indexOf(screen.getByRole('link', { name: '忏悔' }))).toBe(
-      links.indexOf(screen.getByRole('link', { name: '沉沦之海' })) + 1,
-    );
-    expect(links.indexOf(screen.getByRole('link', { name: '沉沦之海' }))).toBeGreaterThan(
-      links.indexOf(screen.getByRole('link', { name: 'Planner' })),
-    );
-    expect(links.indexOf(screen.getByRole('link', { name: '沉沦之海' }))).toBeLessThan(
-      links.indexOf(screen.getByRole('link', { name: '关于' })),
-    );
+    expect(screen.queryByRole('link', { name: /^(沉沦之海|忏悔)$/ })).not.toBeInTheDocument();
   });
 
   it.each(['/articles', '/post/test-post'])('文章入口在 %s 保持高亮并返回独立列表', async (pathname) => {
@@ -607,7 +596,7 @@ describe('Layout', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
-  it('桌面更多菜单可访问友链与留言，移动端更多包含同样入口', async () => {
+  it('桌面更多菜单可访问沉沦之海、忏悔、友链与留言，移动端更多包含同样入口', async () => {
     const user = userEvent.setup();
     stubReducedMotionForDrawer();
     renderLayout();
@@ -615,6 +604,24 @@ describe('Layout', () => {
     // 省去 userEvent 完整指针序列；导航点击仍保留 userEvent 真实交互。
     fireEvent.mouseOver(screen.getByRole('button', { name: '展开更多菜单' }));
     const menu = screen.getByRole('menu');
+    expect(
+      within(menu)
+        .getAllByRole('menuitem')
+        .slice(0, 2)
+        .map((item) => item.getAttribute('href')),
+    ).toEqual(['/ocean', '/confession']);
+    for (const [label, path] of [
+      ['沉沦之海', '/ocean'],
+      ['忏悔', '/confession'],
+    ]) {
+      fireEvent.mouseOver(screen.getByRole('button', { name: '展开更多菜单' }));
+      const item = within(menu).getByRole('menuitem', { name: new RegExp(label) });
+      expect(item).toHaveAttribute('href', path);
+      await user.click(item);
+      expect(probePathname).toBe(path);
+      expect(screen.getByRole('button', { name: '展开更多菜单' })).toHaveAttribute('aria-expanded', 'false');
+    }
+    fireEvent.mouseOver(screen.getByRole('button', { name: '展开更多菜单' }));
     expect(within(menu).getByRole('menuitem', { name: /友链/ })).toHaveAttribute('href', '/friends');
     expect(within(menu).getByRole('menuitem', { name: /留言/ })).toHaveAttribute('href', '/guestbook');
     await user.click(within(menu).getByRole('menuitem', { name: /留言/ }));
@@ -623,6 +630,8 @@ describe('Layout', () => {
     fireEvent.click(screen.getByRole('button', { name: '打开更多菜单' }));
     await screen.findByRole('dialog', { name: '移动端导航菜单' });
     await waitForNavOpen();
+    expect(screen.getAllByRole('button', { name: /沉沦之海/ })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /忏悔/ })).toHaveLength(1);
     expect(screen.getByRole('button', { name: /友链/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /留言/ })).toBeInTheDocument();
   });
