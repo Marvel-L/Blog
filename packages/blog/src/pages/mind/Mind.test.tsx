@@ -7,6 +7,7 @@ import Mind from './Mind';
 import { MindCanvas } from './MindCanvas';
 import { newMindState, type MindState } from './model';
 import type { SaveSnapshot } from './sync';
+import { hasOpenOverlay } from '@/hooks/useModalOverlay';
 
 const owner = { id: 'alice', login: 'alice', name: 'Alice' };
 const json = (body: unknown, status = 200) =>
@@ -189,5 +190,54 @@ describe('Mind UI', () => {
     await act(async () => window.dispatchEvent(new Event('dblog-account-change')));
     await screen.findByRole('heading', { name: '登录后，展开你的想法' });
     expect(screen.queryByRole('button', { name: '新建导图' })).not.toBeInTheDocument();
+  });
+  it('expands to window fullscreen without remounting the canvas or resetting editing history', async () => {
+    render(<Canvas />);
+    const canvas = screen.getByLabelText('导图画布');
+    fireEvent.keyDown(canvas, { key: 'Tab' });
+    fireEvent.change(screen.getByLabelText('编辑节点'), { target: { value: '全屏之前的主题' } });
+    fireEvent.keyDown(screen.getByLabelText('编辑节点'), { key: 'Escape' });
+    fireEvent.wheel(canvas, { ctrlKey: true, deltaY: -30 });
+    await waitFor(() => expect(changed.viewport.zoom).toBeGreaterThan(1));
+    const viewport = changed.viewport;
+    fireEvent.click(screen.getByRole('button', { name: '进入全屏' }));
+    const dialog = await screen.findByRole('dialog', { name: '导图全屏编辑' });
+    expect(dialog.parentElement?.parentElement).toBe(document.body);
+    expect(screen.getByLabelText('导图画布')).toBe(canvas);
+    expect(changed.viewport).toEqual(viewport);
+    expect(hasOpenOverlay()).toBe(false);
+    expect(document.body.style.overflow).toBe('hidden');
+    fireEvent.keyDown(canvas, { key: 'Tab' });
+    const fullscreenInput = screen.getByLabelText('编辑节点');
+    fireEvent.change(fullscreenInput, { target: { value: '全屏中新增的子主题' } });
+    fireEvent.keyDown(screen.getByLabelText('编辑节点'), { key: 'Escape' });
+    // Capture phase Escape exits fullscreen; a second editing action is not needed.
+    fireEvent.keyDown(canvas, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: '导图全屏编辑' })).not.toBeInTheDocument());
+    expect(screen.getByLabelText('导图画布')).toBe(canvas);
+    await waitFor(() => expect(screen.getByRole('button', { name: '进入全屏' })).toHaveFocus());
+    expect(screen.getByLabelText('编辑节点')).toBe(fullscreenInput);
+    expect(fullscreenInput).toHaveValue('全屏中新增的子主题');
+    fireEvent.blur(fullscreenInput);
+    expect(screen.getByRole('button', { name: '节点：全屏中新增的子主题' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '撤销' }));
+    expect(screen.queryByRole('button', { name: '节点：全屏中新增的子主题' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '节点：全屏之前的主题' })).toBeInTheDocument();
+    expect(document.body.style.overflow).toBe('');
+  });
+  it('restores background interaction and scroll lock when leaving a fullscreen document', async () => {
+    const { unmount } = render(<Canvas />);
+    const background = document.createElement('button');
+    background.textContent = '背景导航';
+    document.body.appendChild(background);
+    fireEvent.click(screen.getByRole('button', { name: '进入全屏' }));
+    await screen.findByRole('dialog', { name: '导图全屏编辑' });
+    expect(background).toHaveAttribute('inert');
+    expect(screen.getByRole('button', { name: '退出全屏' })).toHaveAttribute('aria-pressed', 'true');
+    unmount();
+    expect(background).not.toHaveAttribute('inert');
+    expect(document.querySelector('.mind-editor-host')).toBeNull();
+    expect(document.body.style.overflow).toBe('');
+    background.remove();
   });
 });

@@ -23,6 +23,7 @@
 | [versions/0.7.11.md](versions/0.7.11.md) | 说说导航下拉、独立周记、当天卡片随想和私密保存 |
 | [versions/0.7.12.md](versions/0.7.12.md) | Mind 导图工作区、节点快捷键、表情标记与私有云端存储 |
 | [versions/0.7.13.md](versions/0.7.13.md) | Mind 自适应节点、同行表情、手动配色与分支拖动 |
+| [versions/0.7.14.md](versions/0.7.14.md) | Mind 全屏展示与编辑、窗口回退与视角保持 |
 | [versions/0.5.0.md](versions/0.5.0.md) | Trend Go API、PostgreSQL、跨端自动同步与冲突处理 |
 | [versions/0.4.0.md](versions/0.4.0.md) | Book 导航、3D 书架与分类章节预览第一批 |
 | [versions/0.3.0.md](versions/0.3.0.md) | Go 后端、兼容性、SQL 集成测试与部署切换 |

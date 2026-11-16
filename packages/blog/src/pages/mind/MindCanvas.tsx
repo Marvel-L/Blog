@@ -1,5 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
-import { ArrowLeft, CornerDownRight, GitBranch, Maximize, Minus, Plus, Redo2, Trash2, Undo2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import {
+  ArrowLeft,
+  CornerDownRight,
+  Expand,
+  GitBranch,
+  Maximize,
+  Minus,
+  Plus,
+  Redo2,
+  Shrink,
+  Trash2,
+  Undo2,
+} from 'lucide-react';
 import { hasOpenOverlay } from '@/hooks/useModalOverlay';
 import {
   MARKERS,
@@ -17,6 +30,7 @@ import {
 import type { SaveSnapshot } from './sync';
 import { useNodeSizes } from './useNodeSizes';
 import { useNodeDrag } from './useNodeDrag';
+import { useMindFullscreen, type MindFullscreen } from './useMindFullscreen';
 
 interface Props {
   snapshot: SaveSnapshot;
@@ -35,7 +49,25 @@ const statusText = {
   conflict: '版本冲突',
 };
 
-export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoadCloud, busy }: Props) {
+export function MindCanvas(props: Props) {
+  const fullscreen = useMindFullscreen();
+  return (
+    <div ref={fullscreen.mountRef} className="mind-editor-mount">
+      {fullscreen.host && createPortal(<MindCanvasEditor {...props} fullscreen={fullscreen} />, fullscreen.host)}
+    </div>
+  );
+}
+
+function MindCanvasEditor({
+  snapshot,
+  onChange,
+  onBack,
+  onRetry,
+  onCopy,
+  onLoadCloud,
+  busy,
+  fullscreen,
+}: Props & { fullscreen: MindFullscreen }) {
   const { state } = snapshot;
   const canvas = useRef<HTMLDivElement>(null);
   const editor = useRef<HTMLTextAreaElement>(null);
@@ -78,6 +110,9 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
       editor.current?.select();
     }
   }, [editing]);
+  useEffect(() => {
+    if (fullscreen.mode !== 'none' && !editing) canvas.current?.focus({ preventScroll: true });
+  }, [fullscreen.mode, editing]);
 
   const change = useCallback(
     (next: MindState) => {
@@ -335,7 +370,13 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
   };
 
   return (
-    <div className="mind-editor">
+    <div
+      ref={fullscreen.editorRef}
+      className={`mind-editor${fullscreen.mode !== 'none' ? ' is-fullscreen' : ''}`}
+      role={fullscreen.mode === 'window' ? 'dialog' : undefined}
+      aria-modal={fullscreen.mode === 'window' ? true : undefined}
+      aria-label={fullscreen.mode === 'window' ? '导图全屏编辑' : undefined}
+    >
       <header className="mind-editor-header">
         <button className="mind-icon" aria-label="返回 Mind 列表" onClick={onBack} disabled={busy}>
           <ArrowLeft size={19} />
@@ -359,7 +400,30 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
           <option value="logic">逻辑图</option>
         </select>
         <span className="mind-private">仅自己可见</span>
+        <button
+          type="button"
+          className="mind-icon mind-fullscreen-toggle"
+          data-mind-fullscreen-toggle
+          aria-label={fullscreen.mode === 'none' ? '进入全屏' : '退出全屏'}
+          aria-pressed={fullscreen.mode !== 'none'}
+          disabled={fullscreen.busy}
+          title={fullscreen.mode === 'none' ? '全屏展示和编辑' : '退出全屏 · Esc'}
+          onClick={() => {
+            void fullscreen.toggle();
+          }}
+        >
+          {fullscreen.mode === 'none' ? (
+            <Expand size={18} aria-hidden="true" />
+          ) : (
+            <Shrink size={18} aria-hidden="true" />
+          )}
+        </button>
       </header>
+      {fullscreen.error && (
+        <p className="mind-save-error" role="alert">
+          {fullscreen.error}
+        </p>
+      )}
       <div className="mind-toolbar" aria-label="节点工具">
         <button onClick={() => add('child')} title="子主题 · Tab">
           <CornerDownRight size={16} />
@@ -582,7 +646,14 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
                       ),
                     })
                   }
-                  onBlur={() => setEditing(null)}
+                  onBlur={(event) => {
+                    if (
+                      event.relatedTarget instanceof Element &&
+                      event.relatedTarget.closest('[data-mind-fullscreen-toggle]')
+                    )
+                      return;
+                    setEditing(null);
+                  }}
                   onKeyDown={(event) => {
                     event.stopPropagation();
                     if (event.nativeEvent.isComposing || event.keyCode === 229) return;
@@ -682,6 +753,8 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
             拖动画布 / 双指滑动平移 · 双指捏合缩放
             <br />
             拖动主题：上 / 下调整顺序，中间 / 后侧变为子主题
+            <br />
+            全屏时 Esc 退出
           </p>
         </details>
         <div className="mind-zoom mind-canvas-controls">
@@ -715,7 +788,14 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
       </div>
       <div className="mind-editor-footer">
         <span>{state.nodes.length} 个主题</span>
-        <span role="status">{notice || '双击主题开始编辑'}</span>
+        <span role="status">
+          {notice ||
+            (fullscreen.mode === 'window'
+              ? '窗口全屏 · Esc 退出'
+              : fullscreen.mode === 'native'
+                ? '全屏编辑 · Esc 退出'
+                : '双击主题开始编辑')}
+        </span>
       </div>
     </div>
   );
