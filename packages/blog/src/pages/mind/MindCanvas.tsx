@@ -1,8 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { ArrowLeft, CornerDownRight, GitBranch, Maximize, Minus, Plus, Redo2, Trash2, Undo2 } from 'lucide-react';
 import { hasOpenOverlay } from '@/hooks/useModalOverlay';
-import { MARKERS, clampView, insertNode, layoutMind, removeNode, zoomAt, type MindState, type Viewport } from './model';
+import {
+  MARKERS,
+  NODE_COLORS,
+  clampView,
+  customNodeColors,
+  insertNode,
+  layoutMind,
+  moveNode,
+  removeNode,
+  zoomAt,
+  type MindState,
+  type Viewport,
+} from './model';
 import type { SaveSnapshot } from './sync';
+import { useNodeSizes } from './useNodeSizes';
+import { useNodeDrag } from './useNodeDrag';
 
 interface Props {
   snapshot: SaveSnapshot;
@@ -39,7 +53,11 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
   const gesture = useRef<{ view: Viewport; distance: number; x: number; y: number } | null>(null);
   const safariGesture = useRef<Viewport | null>(null);
   const [dragging, setDragging] = useState(false);
-  const geometry = useMemo(() => layoutMind({ nodes: state.nodes, layout: state.layout }), [state.nodes, state.layout]);
+  const sizes = useNodeSizes(state.nodes, canvas);
+  const geometry = useMemo(
+    () => layoutMind({ nodes: state.nodes, layout: state.layout }, sizes),
+    [state.nodes, state.layout, sizes],
+  );
   const selectedNode = state.nodes.find((n) => n.id === selected);
 
   useEffect(() => {
@@ -56,7 +74,7 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
   }, []);
   useEffect(() => {
     if (editing) {
-      editor.current?.focus();
+      editor.current?.focus({ preventScroll: true });
       editor.current?.select();
     }
   }, [editing]);
@@ -155,6 +173,29 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
     remember();
     change(next);
   };
+  const nodeDrag = useNodeDrag(
+    state,
+    geometry.nodes,
+    () => canvas.current?.getBoundingClientRect(),
+    (source, drop) => {
+      const next = moveNode(latest.current, source, drop.id, drop.placement, drop.rootSide);
+      if (next === latest.current) return;
+      commit(next);
+      setSelected(source);
+      setNotice(drop.placement === 'child' ? '已移动为子主题，可撤销' : '已调整主题顺序，可撤销');
+      canvas.current?.focus({ preventScroll: true });
+    },
+  );
+  const setNodeColor = (color?: string) => {
+    const nodes = latest.current.nodes.map((node) => {
+      if (node.id !== selected) return node;
+      if (color) return { ...node, color };
+      const next = { ...node };
+      delete next.color;
+      return next;
+    });
+    commit({ ...latest.current, nodes });
+  };
   const history = (direction: 'undo' | 'redo') => {
     const source = direction === 'undo' ? undo : redo;
     const target = direction === 'undo' ? redo : undo;
@@ -165,10 +206,10 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
     if (!next.nodes.some((n) => n.id === selected)) setSelected(next.nodes.find((n) => !n.parentId)!.id);
     setEditing(null);
     setHistoryVersion((v) => v + 1);
-    canvas.current?.focus();
+    canvas.current?.focus({ preventScroll: true });
   };
   const reveal = (id: string, next: MindState) => {
-    const node = layoutMind(next).nodes.find((n) => n.id === id);
+    const node = layoutMind(next, sizes).nodes.find((n) => n.id === id);
     if (!node) return;
     const view = latest.current.viewport;
     if (
@@ -201,7 +242,7 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
     setSelected(node.parentId);
     setEditing(null);
     setNotice('已删除节点及其子主题，可撤销');
-    canvas.current?.focus();
+    canvas.current?.focus({ preventScroll: true });
   };
   const startEditing = () => {
     if (selectedNode) {
@@ -212,6 +253,11 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
   const keyDown = (event: KeyboardEvent) => {
     if (hasOpenOverlay() || event.nativeEvent.isComposing || event.keyCode === 229) return;
     const target = event.target as HTMLElement;
+    if (event.key === 'Escape' && nodeDrag.current.current) {
+      event.preventDefault();
+      nodeDrag.cancel();
+      return;
+    }
     if (target.closest('.mind-canvas-controls')) return;
     if (target.matches('input, textarea, select') || target.isContentEditable) return;
     if (event.key === 'Tab' && event.shiftKey) return; // Shift+Tab remains an escape route to the toolbar.
@@ -352,7 +398,7 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
                     n.id === selected ? { ...n, emoji: n.emoji === emoji ? '' : emoji } : n,
                   ),
                 });
-                canvas.current?.focus();
+                canvas.current?.focus({ preventScroll: true });
               }}
             >
               {emoji}
@@ -370,6 +416,31 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
               清除
             </button>
           )}
+        </div>
+        <span className="mind-tool-divider" />
+        <div className="mind-node-colors" role="group" aria-label="节点颜色">
+          {NODE_COLORS.map((color) => (
+            <button
+              key={color.value}
+              aria-label={`节点颜色：${color.name}`}
+              title={color.name}
+              aria-pressed={selectedNode?.color?.toLowerCase() === color.value}
+              onClick={() => setNodeColor(color.value)}
+            >
+              <span style={{ backgroundColor: color.value }} />
+            </button>
+          ))}
+          <label className="mind-custom-color" title="自定义颜色">
+            <input
+              type="color"
+              aria-label="自定义节点颜色"
+              value={selectedNode?.color ?? '#e0eee3'}
+              onChange={(event) => setNodeColor(event.target.value)}
+            />
+          </label>
+          <button aria-label="恢复节点自动配色" disabled={!selectedNode?.color} onClick={() => setNodeColor()}>
+            自动
+          </button>
         </div>
       </div>
       {(snapshot.error || snapshot.recoveryError) && (
@@ -402,12 +473,20 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
         tabIndex={0}
         onKeyDown={keyDown}
         onPointerDown={(event) => {
+          const nodePointer = nodeDrag.current.current;
+          const secondTouch = event.pointerType === 'touch' && nodePointer && nodePointer.pointerId !== event.pointerId;
           if (
             (event.button !== 0 && event.button !== 1) ||
-            (event.target as HTMLElement).closest('[data-mind-node], .mind-canvas-controls')
+            (event.target as HTMLElement).closest('.mind-canvas-controls') ||
+            (!secondTouch && (event.target as HTMLElement).closest('[data-mind-node]'))
           )
             return;
-          canvas.current?.focus();
+          // A second touch switches a pending node drag to the normal canvas pinch.
+          if (secondTouch) {
+            pointers.current.set(nodePointer.pointerId, nodePointer.point);
+            nodeDrag.cancel();
+          }
+          canvas.current?.focus({ preventScroll: true });
           setEditing(null);
           event.currentTarget.setPointerCapture(event.pointerId);
           pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
@@ -415,6 +494,10 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
           resetGesture();
         }}
         onPointerMove={(event) => {
+          if (nodeDrag.current.current?.pointerId === event.pointerId) {
+            nodeDrag.move(event.pointerId, { x: event.clientX, y: event.clientY });
+            return;
+          }
           if (!pointers.current.has(event.pointerId) || !gesture.current) return;
           pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
           const [a, second] = [...pointers.current.values()],
@@ -438,12 +521,17 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
           });
         }}
         onPointerUp={(event) => {
+          nodeDrag.finish(event.pointerId, { x: event.clientX, y: event.clientY });
           pointers.current.delete(event.pointerId);
           resetGesture();
         }}
         onPointerCancel={(event) => {
+          nodeDrag.cancel();
           pointers.current.delete(event.pointerId);
           resetGesture();
+        }}
+        onLostPointerCapture={() => {
+          if (nodeDrag.current.current) nodeDrag.cancel();
         }}
       >
         <div
@@ -454,7 +542,12 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
         >
           <svg className="mind-edges" width="1" height="1" aria-hidden="true">
             {geometry.edges.map((edge) => (
-              <path key={edge.id} d={edge.d} className={`mind-branch-${edge.color}`} />
+              <path
+                key={edge.id}
+                d={edge.d}
+                className={`mind-branch-${edge.branchColor}`}
+                style={customNodeColors(edge.color)}
+              />
             ))}
           </svg>
           {geometry.nodes.map((node) => {
@@ -463,16 +556,24 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
               top: node.y - node.height / 2,
               width: node.width,
               minHeight: node.height,
+              ...customNodeColors(node.color),
             } as CSSProperties;
-            const className = `mind-node mind-branch-${node.color} ${node.parentId ? '' : 'mind-root'} ${selected === node.id ? 'is-selected' : ''}`;
+            const drop = nodeDrag.visual?.drop?.id === node.id ? nodeDrag.visual.drop.placement : null;
+            const className = `mind-node mind-branch-${node.branchColor} ${node.color ? 'has-custom-color' : ''} ${node.parentId ? '' : 'mind-root'} ${selected === node.id ? 'is-selected' : ''} ${nodeDrag.visual?.source === node.id ? 'is-moving' : ''} ${drop ? `mind-drop-${drop}` : ''}`;
             return editing === node.id ? (
               <div key={node.id} data-mind-node={node.id} className={`${className} is-editing`} style={style}>
+                {node.emoji && (
+                  <span className="mind-edit-emoji" aria-hidden="true">
+                    {node.emoji}
+                  </span>
+                )}
                 <textarea
                   ref={editor}
                   aria-label="编辑节点"
                   value={node.text}
                   maxLength={200}
                   rows={Math.max(1, node.lines.length)}
+                  wrap="off"
                   onChange={(event) =>
                     change({
                       ...latest.current,
@@ -488,7 +589,7 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
                     if (event.key === 'Escape') {
                       event.preventDefault();
                       setEditing(null);
-                      canvas.current?.focus();
+                      canvas.current?.focus({ preventScroll: true });
                     } else if ((event.key === 'Tab' && !event.shiftKey) || (event.key === 'Enter' && !event.shiftKey)) {
                       event.preventDefault();
                       add(event.key === 'Tab' ? 'child' : 'sibling');
@@ -505,10 +606,26 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
                 tabIndex={-1}
                 aria-pressed={selected === node.id}
                 aria-label={`节点：${node.text || '未命名主题'}${node.emoji ? ` ${node.emoji}` : ''}`}
-                onClick={() => {
+                onPointerDown={(event) => {
+                  if (event.button !== 0 || hasOpenOverlay()) return;
+                  if (
+                    pointers.current.size ||
+                    (nodeDrag.current.current && nodeDrag.current.current.pointerId !== event.pointerId)
+                  )
+                    return;
+                  event.stopPropagation();
                   setSelected(node.id);
                   setEditing(null);
-                  canvas.current?.focus();
+                  canvas.current?.focus({ preventScroll: true });
+                  if (!node.parentId) return;
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  nodeDrag.start(node.id, event.pointerId, { x: event.clientX, y: event.clientY });
+                }}
+                onClick={() => {
+                  if (nodeDrag.consumeClick()) return;
+                  setSelected(node.id);
+                  setEditing(null);
+                  canvas.current?.focus({ preventScroll: true });
                 }}
                 onDoubleClick={() => {
                   setSelected(node.id);
@@ -516,11 +633,43 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
                   setEditing(node.id);
                 }}
               >
-                {node.emoji && <span className="mind-node-emoji">{node.emoji}</span>}
-                <span>{node.lines.join('\n')}</span>
+                <span className="mind-node-content">
+                  {node.emoji && <span className="mind-node-emoji">{node.emoji} </span>}
+                  {node.lines.join('\n')}
+                </span>
+                {drop && (
+                  <span className="mind-drop-label">
+                    {drop === 'before' ? '放到上方' : drop === 'after' ? '放到下方' : '作为子主题'}
+                  </span>
+                )}
               </button>
             );
           })}
+          {nodeDrag.visual &&
+            (() => {
+              const node = geometry.nodes.find((n) => n.id === nodeDrag.visual?.source);
+              if (!node) return null;
+              return (
+                <div
+                  aria-hidden="true"
+                  className={`mind-node mind-drag-ghost mind-branch-${node.branchColor} ${node.color ? 'has-custom-color' : ''}`}
+                  style={
+                    {
+                      left: node.x - node.width / 2 + nodeDrag.visual.dx,
+                      top: node.y - node.height / 2 + nodeDrag.visual.dy,
+                      width: node.width,
+                      minHeight: node.height,
+                      ...customNodeColors(node.color),
+                    } as CSSProperties
+                  }
+                >
+                  <span className="mind-node-content">
+                    {node.emoji && <span className="mind-node-emoji">{node.emoji} </span>}
+                    {node.lines.join('\n')}
+                  </span>
+                </div>
+              );
+            })()}
         </div>
         <details className="mind-help mind-canvas-controls">
           <summary>快捷键</summary>
@@ -531,6 +680,8 @@ export function MindCanvas({ snapshot, onChange, onBack, onRetry, onCopy, onLoad
             <br />⌘ / Ctrl+Z 撤销 · Shift+Tab 离开画布
             <br />
             拖动画布 / 双指滑动平移 · 双指捏合缩放
+            <br />
+            拖动主题：上 / 下调整顺序，中间 / 后侧变为子主题
           </p>
         </details>
         <div className="mind-zoom mind-canvas-controls">

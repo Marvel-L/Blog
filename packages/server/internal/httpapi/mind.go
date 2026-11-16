@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/Marvel-L/Blog/packages/server/internal/store"
@@ -16,6 +17,8 @@ type mindPersistence interface {
 	MindMap(context.Context, string, string) (store.MindMap, error)
 	SaveMindMap(context.Context, string, string, int64, string, json.RawMessage) (store.MindMap, bool, error)
 }
+
+var mindColorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 
 func validMindState(raw json.RawMessage) bool {
 	top, err := fields(raw, "version", "title", "layout", "nodes", "viewport")
@@ -47,7 +50,18 @@ func validMindState(raw json.RawMessage) bool {
 		err := json.Unmarshal(rawNode, &node)
 		var id, parent, emoji string
 		var side int
-		if err != nil || len(node) != 5 || json.Unmarshal(node["id"], &id) != nil || !uuidPattern.MatchString(id) || id != strings.ToLower(id) ||
+		color, hasColor := node["color"]
+		if hasColor {
+			var hex string
+			if json.Unmarshal(color, &hex) != nil || !mindColorPattern.MatchString(hex) {
+				return false
+			}
+		}
+		expectedFields := 5
+		if hasColor {
+			expectedFields++
+		}
+		if err != nil || len(node) != expectedFields || json.Unmarshal(node["id"], &id) != nil || !uuidPattern.MatchString(id) || id != strings.ToLower(id) ||
 			!journalText(node["text"], 200, true) || !journalText(node["emoji"], 8, true) || json.Unmarshal(node["emoji"], &emoji) != nil ||
 			!markers[emoji] ||
 			json.Unmarshal(node["side"], &side) != nil || (side != 1 && side != -1) {

@@ -151,8 +151,9 @@ describe('private resume autosave', () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
   it('reports storage failures and caps automatic retries', async () => {
-    // jsdom 的 Storage 实例会把方法覆盖当作存储项；在原型上模拟写入失败。
-    const writeDraft = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+    // Native jsdom Storage uses its prototype; Node's fallback is a plain object.
+    const storageMethods = localStorage instanceof Storage ? Storage.prototype : localStorage;
+    const writeDraft = vi.spyOn(storageMethods, 'setItem').mockImplementation(() => {
       throw new Error('quota');
     });
     vi.mocked(fetch).mockRejectedValue(new Error('offline'));

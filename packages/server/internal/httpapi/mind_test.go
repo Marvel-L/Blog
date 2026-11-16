@@ -118,6 +118,9 @@ func TestMindValidationAndOAuth(t *testing.T) {
 		strings.Replace(valid, `"parentId":"20000000-0000-4000-8000-000000000001"`, `"parentId":null`, 1),
 		strings.Replace(valid, `"text":"子主题"`, fmt.Sprintf(`"text":%q`, strings.Repeat("文", 201)), 1),
 		strings.Replace(valid, `"version":1`, `"version":1,"user_id":"bob"`, 1),
+		strings.Replace(valid, `"side":1`, `"side":1,"color":"url(example)"`, 1),
+		strings.Replace(valid, `"side":1`, `"side":1,"color":null`, 1),
+		strings.Replace(valid, `"side":1`, `"side":1,"color":"#ffffff","extra":1`, 1),
 	} {
 		if validMindState(json.RawMessage(invalid)) {
 			t.Fatalf("invalid state accepted: %s", invalid)
@@ -130,5 +133,34 @@ func TestMindValidationAndOAuth(t *testing.T) {
 	requireStatus(t, f.request("PUT", mindPath, cookie, dailyBody(0, "30000000-0000-4000-8000-000000000001", strings.Replace(valid, `"zoom":1.4`, `"zoom":4`, 1)), cfg.Origin), 400)
 	for _, path := range []string{"/Blog/mind", "/mind"} {
 		requireStatus(t, f.request("GET", "/api/v1/auth/github/start?return_to="+path, "", "", ""), 302)
+	}
+}
+
+func TestMindColorsAndMovedBranchPersistence(t *testing.T) {
+	f := setup(t)
+	cookie := f.login(t, "")
+	// Old documents without optional color remain readable and saveable.
+	requireStatus(t, f.request("PUT", mindPath, cookie, dailyBody(0, "30000000-0000-4000-8000-000000000001", mindState("原导图")), cfg.Origin), 200)
+	state := `{"version":1,"title":"拖动后","layout":"logic","viewport":{"x":0,"y":0,"zoom":1},"nodes":[
+ {"id":"20000000-0000-4000-8000-000000000001","parentId":null,"text":"中心主题","emoji":"","side":1},
+ {"id":"20000000-0000-4000-8000-000000000003","parentId":"20000000-0000-4000-8000-000000000001","text":"上方同级","emoji":"","side":1,"color":"#AbC123"},
+ {"id":"20000000-0000-4000-8000-000000000002","parentId":"20000000-0000-4000-8000-000000000003","text":"✅前缀之外的原文\n仅手动换行","emoji":"✅","side":1,"color":"#edf5fb"}]}`
+	requireStatus(t, f.request("PUT", mindPath, cookie, dailyBody(1, "30000000-0000-4000-8000-000000000002", state), cfg.Origin), 200)
+	w := f.request("GET", mindPath, cookie, "", "")
+	requireStatus(t, w, 200)
+	var response struct {
+		Map struct {
+			Revision int64
+			State    struct {
+				Nodes []struct{ ID, ParentID, Text, Emoji, Color string }
+			}
+		}
+	}
+	decode(t, w.Body.String(), &response)
+	nodes := response.Map.State.Nodes
+	if response.Map.Revision != 2 || len(nodes) != 3 || nodes[1].ID != "20000000-0000-4000-8000-000000000003" ||
+		nodes[1].Color != "#AbC123" || nodes[2].ParentID != nodes[1].ID || nodes[2].Color != "#edf5fb" ||
+		nodes[2].Text != "✅前缀之外的原文\n仅手动换行" || nodes[2].Emoji != "✅" {
+		t.Fatal("color, order, parent or manual line break did not persist")
 	}
 }

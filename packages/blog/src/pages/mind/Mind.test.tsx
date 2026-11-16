@@ -141,6 +141,34 @@ describe('Mind UI', () => {
     expect(screen.getByLabelText('编辑节点')).toHaveValue('/');
     window.removeEventListener('keydown', globalKey);
   });
+  it('renders markers before text on the same line and saves manual node colors', () => {
+    render(<Canvas />);
+    fireEvent.click(screen.getByRole('button', { name: '标记 ✅' }));
+    const node = screen.getByRole('button', { name: '节点：中心主题 ✅' });
+    expect(node.querySelector('.mind-node-content')?.textContent).toBe('✅ 中心主题');
+    fireEvent.click(screen.getByRole('button', { name: '节点颜色：粉色' }));
+    expect(changed.nodes[0].color).toBe('#f9edf2');
+    expect(node.style.getPropertyValue('--branch-fill')).toBe('#f9edf2');
+    fireEvent.change(screen.getByLabelText('自定义节点颜色'), { target: { value: '#123456' } });
+    expect(changed.nodes[0].color).toBe('#123456');
+    fireEvent.click(screen.getByRole('button', { name: '恢复节点自动配色' }));
+    expect(changed.nodes[0].color).toBeUndefined();
+    fireEvent.doubleClick(node);
+    const input = screen.getByLabelText('编辑节点');
+    expect(input).toHaveAttribute('wrap', 'off');
+    fireEvent.change(input, { target: { value: '一段很长很长的文字应该在同一行显示\n这里手动换行' } });
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(screen.getByRole('button', { name: /^节点：一段/ }).querySelector('.mind-node-content')?.textContent).toBe(
+      '✅ 一段很长很长的文字应该在同一行显示\n这里手动换行',
+    );
+  });
+  it('focuses the canvas without scrolling it when selecting a node', () => {
+    render(<Canvas />);
+    const canvas = screen.getByLabelText('导图画布');
+    const focus = vi.spyOn(canvas, 'focus');
+    fireEvent.click(screen.getByRole('button', { name: '节点：中心主题' }));
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+  });
   it('wheel pinch changes map zoom, normal two-finger scrolling pans, and layout preserves content', async () => {
     render(<Canvas />);
     const canvas = screen.getByLabelText('导图画布');

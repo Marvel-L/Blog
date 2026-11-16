@@ -50,7 +50,7 @@ describe('Mind autosave', () => {
       ...s.snapshot.state,
       title: '最终版',
       viewport: { x: 150, y: -88, zoom: 1.8 },
-      nodes: s.snapshot.state.nodes.map((n) => ({ ...n, emoji: '✅' })),
+      nodes: s.snapshot.state.nodes.map((n) => ({ ...n, emoji: '✅', color: '#edf5fb', text: '第一行\n第二行' })),
     });
     expect(fetch).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(600);
@@ -58,6 +58,8 @@ describe('Mind autosave', () => {
     expect(remote.state.title).toBe('最终版');
     expect(remote.state.viewport.zoom).toBe(1.8);
     expect(remote.state.nodes[0].emoji).toBe('✅');
+    expect(remote.state.nodes[0].color).toBe('#edf5fb');
+    expect(remote.state.nodes[0].text).toBe('第一行\n第二行');
     expect(s.snapshot.status).toBe('saved');
     expect(localStorage.getItem(draftKey(user.id, id))).toBeNull();
   });
@@ -121,8 +123,9 @@ describe('Mind autosave', () => {
   it('clears private drafts on expired sessions and reports storage failures', async () => {
     const unauthorized = vi.fn(),
       s = session(remote, 'alice', unauthorized);
-    // jsdom 的 Storage 实例会把方法覆盖当作存储项；在原型上模拟写入失败。
-    const writeDraft = vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => {
+    // Native jsdom Storage uses its prototype; Node's fallback is a plain object.
+    const storageMethods = localStorage instanceof Storage ? Storage.prototype : localStorage;
+    const writeDraft = vi.spyOn(storageMethods, 'setItem').mockImplementationOnce(() => {
       throw new Error('full');
     });
     s.update({ ...s.snapshot.state, title: '不能落盘' });

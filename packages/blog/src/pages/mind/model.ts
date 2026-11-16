@@ -1,5 +1,14 @@
 export const MARKERS = ['✅', '❌', '⭐', '💡', '🔥', '❓', '🎯', '🚀'] as const;
 export const MAX_NODES = 1000;
+export const NODE_COLORS = [
+  { name: '薄荷', value: '#e0eee3' },
+  { name: '紫色', value: '#edf0fb' },
+  { name: '蓝色', value: '#edf5fb' },
+  { name: '橙色', value: '#fbefe8' },
+  { name: '绿色', value: '#eff4e4' },
+  { name: '粉色', value: '#f9edf2' },
+] as const;
+export const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 export type MindLayout = 'mind' | 'logic';
 export interface MindNode {
@@ -8,6 +17,7 @@ export interface MindNode {
   text: string;
   emoji: string;
   side: -1 | 1;
+  color?: string;
 }
 /** x/y are the world coordinate at the viewport center, independent of screen size. */
 export interface Viewport {
@@ -79,6 +89,7 @@ export function parseMindState(value: unknown): MindState | null {
       !text(v.text, 200) ||
       typeof v.emoji !== 'string' ||
       (v.emoji !== '' && !(MARKERS as readonly string[]).includes(v.emoji)) ||
+      (v.color !== undefined && (typeof v.color !== 'string' || !HEX_COLOR.test(v.color))) ||
       (v.side !== 1 && v.side !== -1)
     )
       return null;
@@ -151,6 +162,49 @@ export function removeNode(state: MindState, id: string): MindState {
   return { ...state, nodes: state.nodes.filter((n) => !removed.has(n.id)) };
 }
 
+export type DropPlacement = 'before' | 'after' | 'child';
+export function branchIds(nodes: MindNode[], id: string): Set<string> {
+  const children = new Map<string, string[]>();
+  for (const node of nodes)
+    if (node.parentId) children.set(node.parentId, [...(children.get(node.parentId) ?? []), node.id]);
+  const result = new Set<string>(),
+    pending = [id];
+  while (pending.length) {
+    const current = pending.pop()!;
+    if (result.has(current)) continue;
+    result.add(current);
+    pending.push(...(children.get(current) ?? []));
+  }
+  return result;
+}
+
+/** Move a complete branch; before/after mean siblings and child means reparenting. */
+export function moveNode(
+  state: MindState,
+  sourceId: string,
+  targetId: string,
+  placement: DropPlacement,
+  rootSide?: -1 | 1,
+): MindState {
+  const source = state.nodes.find((n) => n.id === sourceId),
+    target = state.nodes.find((n) => n.id === targetId);
+  if (!source?.parentId || !target || sourceId === targetId) return state;
+  const branch = branchIds(state.nodes, sourceId);
+  if (branch.has(targetId) || (placement !== 'child' && target.parentId === null)) return state;
+  const parentId = placement === 'child' ? target.id : target.parentId!;
+  const side = placement === 'child' && target.parentId === null ? (rootSide ?? source.side) : target.side;
+  const remaining = state.nodes.filter((n) => n.id !== sourceId);
+  const targetIndex = remaining.findIndex((n) => n.id === targetId);
+  const position = placement === 'child' ? remaining.length : targetIndex + (placement === 'after' ? 1 : 0);
+  remaining.splice(position, 0, { ...source, parentId, side });
+  const nodes = remaining.map((n) => (branch.has(n.id) && n.side !== side ? { ...n, side } : n));
+  const next = { ...state, nodes };
+  if (!parseMindState(next)) return state;
+  if (state.nodes.every((n, i) => n.id === nodes[i].id && n.parentId === nodes[i].parentId && n.side === nodes[i].side))
+    return state;
+  return next;
+}
+
 export function clampView(view: Viewport): Viewport {
   return {
     x: Math.max(-1000000, Math.min(1000000, view.x)),
@@ -169,23 +223,41 @@ export function zoomAt(view: Viewport, zoom: number, dx: number, dy: number): Vi
   });
 }
 
-export function wrapNodeText(value: string): string[] {
-  const lines: string[] = [];
-  let line = '',
-    width = 0;
-  for (const c of Array.from(value || '未命名主题')) {
-    const unit = /[^\x20-\x7e]/.test(c) ? 2 : 1;
-    if (c === '\n' || width + unit > 20) {
-      lines.push(line);
-      line = '';
-      width = 0;
-      if (c === '\n') continue;
-    }
-    line += c;
-    width += unit;
-  }
-  lines.push(line);
-  return lines;
+export function nodeTextLines(value: string): string[] {
+  return (value || '未命名主题').replace(/\r\n?/g, '\n').split('\n');
+}
+
+export interface NodeSize {
+  width: number;
+  height: number;
+}
+export type TextWidth = (line: string, root: boolean) => number;
+const estimatedWidth: TextWidth = (line) =>
+  Array.from(line).reduce((width, c) => width + (c === '\t' ? 32 : /[^\x20-\x7e]/.test(c) ? 14 : 8), 0);
+
+export function nodeSize(node: MindNode, measure: TextWidth = estimatedWidth): NodeSize {
+  const lines = nodeTextLines(node.text);
+  const root = node.parentId === null;
+  const widths = lines.map((line) => measure(line, root));
+  // Reserve the inline marker width for editing too, so a longer second line
+  // remains fully visible in the adjacent textarea with wrapping disabled.
+  return {
+    width: Math.max(80, Math.ceil(Math.max(...widths)) + 40 + (node.emoji ? 24 : 0)),
+    height: Math.max(52, lines.length * 22 + 28),
+  };
+}
+
+export function customNodeColors(color?: string): Record<string, string> {
+  if (!color || !HEX_COLOR.test(color)) return {};
+  const channels = [1, 3, 5]
+    .map((offset) => parseInt(color.slice(offset, offset + 2), 16) / 255)
+    .map((value) => (value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4));
+  const luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+  return {
+    '--branch-fill': color,
+    '--branch-line': `color-mix(in srgb, ${color} 68%, ${luminance > 0.18 ? '#26352e' : '#ffffff'})`,
+    '--branch-text': luminance > 0.18 ? '#15241d' : '#ffffff',
+  };
 }
 
 export interface PlacedNode extends MindNode {
@@ -193,22 +265,21 @@ export interface PlacedNode extends MindNode {
   y: number;
   width: number;
   height: number;
-  color: number;
+  branchColor: number;
   lines: string[];
 }
-export function layoutMind(state: Pick<MindState, 'nodes' | 'layout'>) {
+export function layoutMind(state: Pick<MindState, 'nodes' | 'layout'>, sizes?: ReadonlyMap<string, NodeSize>) {
   const root = state.nodes.find((n) => n.parentId === null)!;
   const children = new Map<string, MindNode[]>();
   for (const n of state.nodes) if (n.parentId) children.set(n.parentId, [...(children.get(n.parentId) ?? []), n]);
   const dimensions = new Map(
     state.nodes.map((n) => {
-      const lines = wrapNodeText(n.text);
+      const lines = nodeTextLines(n.text);
       return [
         n.id,
         {
           lines,
-          width: n.parentId === null ? 220 : 200,
-          height: Math.max(52, lines.length * 22 + 28 + (n.emoji ? 24 : 0)),
+          ...(sizes?.get(n.id) ?? nodeSize(n)),
         },
       ];
     }),
@@ -224,25 +295,46 @@ export function layoutMind(state: Pick<MindState, 'nodes' | 'layout'>) {
     heights.set(node.id, value);
     return value;
   };
-  const placed: PlacedNode[] = [{ ...root, ...dimensions.get(root.id)!, x: 0, y: 0, color: -1 }];
+  // Share each depth's inward edge so short cousins cannot overlap wider nodes
+  // in another branch. The nodes themselves retain their individual dimensions.
+  const columns = new Map<-1 | 1, number[]>([
+    [1, []],
+    [-1, []],
+  ]);
+  const depths = new Map<string, number>([[root.id, 0]]);
+  const first = children.get(root.id) ?? [];
+  const collect = (node: MindNode, depth: number, side: -1 | 1) => {
+    depths.set(node.id, depth);
+    const widths = columns.get(side)!;
+    widths[depth] = Math.max(widths[depth] ?? 0, dimensions.get(node.id)!.width);
+    for (const child of children.get(node.id) ?? []) collect(child, depth + 1, side);
+  };
+  for (const node of first) collect(node, 1, state.layout === 'logic' ? 1 : node.side);
+  const offsets = new Map<-1 | 1, number[]>();
+  for (const side of [1, -1] as const) {
+    const values = [0, dimensions.get(root.id)!.width / 2 + 64],
+      widths = columns.get(side)!;
+    for (let depth = 2; depth < widths.length; depth++) values[depth] = values[depth - 1] + widths[depth - 1] + 64;
+    offsets.set(side, values);
+  }
+  const placed: PlacedNode[] = [{ ...root, ...dimensions.get(root.id)!, x: 0, y: 0, branchColor: -1 }];
   const placeGroup = (kids: MindNode[], parent: PlacedNode, side: -1 | 1, branchColor?: number) => {
     let top = parent.y - (kids.reduce((sum, n) => sum + height(n), 0) + Math.max(0, kids.length - 1) * 24) / 2;
     for (const n of kids) {
       const dim = dimensions.get(n.id)!;
-      const color = branchColor ?? (children.get(root.id) ?? []).findIndex((child) => child.id === n.id) % 5;
+      const color = branchColor ?? first.findIndex((child) => child.id === n.id) % 5;
       const item = {
         ...n,
         ...dim,
-        x: parent.x + side * (parent.width / 2 + 64 + dim.width / 2),
+        x: side * (offsets.get(side)![depths.get(n.id)!] + dim.width / 2),
         y: top + height(n) / 2,
-        color,
+        branchColor: color,
       };
       placed.push(item);
       placeGroup(children.get(n.id) ?? [], item, side, color);
       top += height(n) + 24;
     }
   };
-  const first = children.get(root.id) ?? [];
   placeGroup(state.layout === 'logic' ? first : first.filter((n) => n.side === 1), placed[0], 1);
   if (state.layout === 'mind')
     placeGroup(
@@ -261,6 +353,7 @@ export function layoutMind(state: Pick<MindState, 'nodes' | 'layout'>) {
       const middle = (from + to) / 2;
       return {
         id: n.id,
+        branchColor: n.branchColor,
         color: n.color,
         d: `M ${from} ${parent.y} C ${middle} ${parent.y}, ${middle} ${n.y}, ${to} ${n.y}`,
       };
