@@ -113,6 +113,8 @@ describe('confession experience', () => {
     render(view());
     await waitFor(() => expect(screen.getByRole('button', { name: '我的账号' })).toBeInTheDocument());
     await waitFor(() => expect(requests.fetch).toHaveBeenCalledWith('/confessions', expect.anything()));
+    // 账号切换会重挂场景；请求发出不代表图片预载和归档应用都已完成。
+    await waitFor(() => expect(screen.getByRole('button', { name: '查看墓碑：失败' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: '查看墓碑：失败' }));
     fireEvent.click(screen.getByRole('button', { name: '写一则记事' }));
     expect(screen.getByLabelText('归入哪座墓碑')).toHaveValue(saved.categories[1].id);

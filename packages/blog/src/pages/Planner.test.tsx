@@ -88,6 +88,10 @@ afterEach(() => {
 const mount = async () => {
   const view = render(<Planner />);
   await screen.findByText('保留原待办');
+  // 等待 ready 后触发的 lazy import 和异步 mock，再由 act 提交 Suspense 更新。
+  await act(async () => {
+    await vi.dynamicImportSettled();
+  });
   await screen.findByRole('button', { name: '测试连接' });
   return view;
 };

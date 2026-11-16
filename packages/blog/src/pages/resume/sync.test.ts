@@ -151,12 +151,14 @@ describe('private resume autosave', () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
   it('reports storage failures and caps automatic retries', async () => {
-    vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+    // jsdom 的 Storage 实例会把方法覆盖当作存储项；在原型上模拟写入失败。
+    const writeDraft = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('quota');
     });
     vi.mocked(fetch).mockRejectedValue(new Error('offline'));
     const s = session();
     s.update('内容');
+    expect(writeDraft).toHaveBeenCalledWith(resumeDraftKey(user.id), expect.any(String));
     expect(s.view.recoveryError).toContain('无法保留');
     await s.flush();
     await vi.advanceTimersByTimeAsync(30000);

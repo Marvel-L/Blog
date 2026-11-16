@@ -121,10 +121,12 @@ describe('Mind autosave', () => {
   it('clears private drafts on expired sessions and reports storage failures', async () => {
     const unauthorized = vi.fn(),
       s = session(remote, 'alice', unauthorized);
-    vi.spyOn(localStorage, 'setItem').mockImplementationOnce(() => {
+    // jsdom 的 Storage 实例会把方法覆盖当作存储项；在原型上模拟写入失败。
+    const writeDraft = vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => {
       throw new Error('full');
     });
     s.update({ ...s.snapshot.state, title: '不能落盘' });
+    expect(writeDraft).toHaveBeenCalledWith(draftKey('alice', id), expect.any(String));
     expect(s.snapshot.recoveryError).toContain('无法保存');
     vi.mocked(fetch).mockResolvedValueOnce(reply(remote, 401));
     await s.flush();
