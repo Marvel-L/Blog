@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HelmetProvider } from 'react-helmet-async';
 import { MemoryRouter } from 'react-router-dom';
@@ -48,6 +48,10 @@ describe('Love account integration', () => {
         </MemoryRouter>
       </HelmetProvider>,
     );
+    // 先等水合后触发的账号懒加载，再提交 Suspense 和账号状态更新，避免 CI 冷启动超时。
+    await act(async () => {
+      await vi.dynamicImportSettled();
+    });
     await screen.findByRole('button', { name: '打开云端账号：账号登录' });
     await userEvent.click(screen.getByRole('button', { name: '进入 Love 面' }));
     await screen.findByRole('region', { name: 'Love 首页' });
