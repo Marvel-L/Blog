@@ -1,16 +1,14 @@
 import { useCallback, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { hasOpenOverlay, lockBodyScroll, unlockBodyScroll } from '@/hooks/useModalOverlay';
 
-type FullscreenMode = 'none' | 'window' | 'native';
+type FullscreenMode = 'none' | 'window';
 
 export interface MindFullscreen {
   mountRef: RefObject<HTMLDivElement | null>;
   editorRef: RefObject<HTMLDivElement | null>;
   host: HTMLDivElement | null;
   mode: FullscreenMode;
-  busy: boolean;
-  error: string;
-  toggle: () => Promise<void>;
+  toggle: () => void;
 }
 
 const focusableSelector =
@@ -22,12 +20,10 @@ export function useMindFullscreen(): MindFullscreen {
   const editorRef = useRef<HTMLDivElement>(null);
   const [host, setHost] = useState<HTMLDivElement | null>(null);
   const [mode, setMode] = useState<FullscreenMode>('none');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
   const mounted = useRef(false);
-  const pending = useRef(false);
   const modeRef = useRef<FullscreenMode>('none');
   const focusFrame = useRef(0);
+  const inlineHeight = useRef(0);
 
   const changeMode = useCallback((next: FullscreenMode) => {
     modeRef.current = next;
@@ -46,91 +42,45 @@ export function useMindFullscreen(): MindFullscreen {
     return () => {
       mounted.current = false;
       window.cancelAnimationFrame(focusFrame.current);
-      const editor = editorRef.current;
-      if (editor && document.fullscreenElement === editor) {
-        void document.exitFullscreen().catch(() => {});
-      }
       element.remove();
     };
   }, []);
 
-  const toggle = useCallback(async () => {
-    const editor = editorRef.current;
-    if (!editor || pending.current) return;
-    pending.current = true;
-    setBusy(true);
-    setError('');
-    try {
-      if (modeRef.current === 'window') {
-        changeMode('none');
-      } else if (modeRef.current === 'native') {
-        if (document.fullscreenElement === editor) await document.exitFullscreen();
-        if (mounted.current) changeMode('none');
-      } else {
-        if (typeof editor.requestFullscreen === 'function') {
-          try {
-            await editor.requestFullscreen();
-            if (!mounted.current) {
-              if (document.fullscreenElement === editor) await document.exitFullscreen();
-              return;
-            }
-            if (document.fullscreenElement === editor) {
-              changeMode('native');
-              return;
-            }
-          } catch {
-            // Rejected or unsupported system fullscreen falls back to the window.
-          }
-        }
-        if (mounted.current) changeMode('window');
-      }
-    } catch {
-      if (mounted.current) setError('退出全屏失败，请按 Esc 重试');
-    } finally {
-      pending.current = false;
-      if (mounted.current) setBusy(false);
+  const toggle = useCallback(() => {
+    if (!editorRef.current || !host || !mounted.current) return;
+    if (modeRef.current === 'window') changeMode('none');
+    else {
+      inlineHeight.current = host.getBoundingClientRect().height;
+      changeMode('window');
     }
-  }, [changeMode]);
+  }, [changeMode, host]);
 
   useLayoutEffect(() => {
-    const onFullscreenChange = () => {
-      if (document.fullscreenElement === editorRef.current) {
-        changeMode('native');
-      } else if (modeRef.current === 'native') {
-        changeMode('none');
-      }
-    };
-    document.addEventListener('fullscreenchange', onFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
-  }, [changeMode]);
-
-  useLayoutEffect(() => {
-    if (!host || mode === 'none') return;
+    if (!host || mode !== 'window') return;
     const mount = mountRef.current;
     if (!mount) return;
     window.cancelAnimationFrame(focusFrame.current);
     const inertElements = new Map<HTMLElement, string | null>();
-    let observer: MutationObserver | undefined;
-    if (mode === 'window') {
-      host.classList.add('is-window-fullscreen');
-      document.body.appendChild(host);
-      lockBodyScroll();
-      const isolateBackground = () => {
-        for (const element of Array.from(document.body.children)) {
-          if (!(element instanceof HTMLElement) || element === host || inertElements.has(element)) continue;
-          inertElements.set(element, element.getAttribute('inert'));
-          element.setAttribute('inert', '');
-        }
-      };
-      isolateBackground();
-      observer = new MutationObserver(isolateBackground);
-      observer.observe(document.body, { childList: true });
-    }
+    const originalHeight = mount.style.height;
+    mount.style.height = `${inlineHeight.current}px`;
+    host.classList.add('is-window-fullscreen');
+    document.body.appendChild(host);
+    lockBodyScroll();
+    const isolateBackground = () => {
+      for (const element of Array.from(document.body.children)) {
+        if (!(element instanceof HTMLElement) || element === host || inertElements.has(element)) continue;
+        inertElements.set(element, element.getAttribute('inert'));
+        element.setAttribute('inert', '');
+      }
+    };
+    isolateBackground();
+    const observer = new MutationObserver(isolateBackground);
+    observer.observe(document.body, { childList: true });
     const onEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.isComposing || event.keyCode === 229 || hasOpenOverlay()) return;
       event.preventDefault();
       event.stopPropagation();
-      void toggle();
+      toggle();
     };
     const onTab = (event: KeyboardEvent) => {
       if (event.key !== 'Tab' || event.defaultPrevented || hasOpenOverlay()) return;
@@ -155,16 +105,15 @@ export function useMindFullscreen(): MindFullscreen {
     return () => {
       window.removeEventListener('keydown', onEscape, true);
       window.removeEventListener('keydown', onTab);
-      observer?.disconnect();
-      if (mode === 'window') {
-        for (const [element, previous] of inertElements) {
-          if (previous === null) element.removeAttribute('inert');
-          else element.setAttribute('inert', previous);
-        }
-        host.classList.remove('is-window-fullscreen');
-        if (mounted.current) mount.appendChild(host);
-        unlockBodyScroll();
+      observer.disconnect();
+      for (const [element, previous] of inertElements) {
+        if (previous === null) element.removeAttribute('inert');
+        else element.setAttribute('inert', previous);
       }
+      host.classList.remove('is-window-fullscreen');
+      if (mounted.current) mount.appendChild(host);
+      mount.style.height = originalHeight;
+      unlockBodyScroll();
       focusFrame.current = window.requestAnimationFrame(() => {
         if (mounted.current && modeRef.current === 'none') {
           host.querySelector<HTMLElement>('[data-mind-fullscreen-toggle]')?.focus({ preventScroll: true });
@@ -173,5 +122,5 @@ export function useMindFullscreen(): MindFullscreen {
     };
   }, [host, mode, toggle]);
 
-  return { mountRef, editorRef, host, mode, busy, error, toggle };
+  return { mountRef, editorRef, host, mode, toggle };
 }

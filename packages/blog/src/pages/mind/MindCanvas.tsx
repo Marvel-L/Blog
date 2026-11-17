@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+} from 'react';
 import { createPortal } from 'react-dom';
 import {
   ArrowLeft,
@@ -20,17 +29,22 @@ import {
   clampView,
   customNodeColors,
   insertNode,
+  layoutEditingMind,
   layoutMind,
   moveNode,
   removeNode,
+  visibleMindGeometry,
   zoomAt,
+  type MindGeometry,
   type MindState,
+  type MindEditLayout,
   type Viewport,
 } from './model';
 import type { SaveSnapshot } from './sync';
 import { useNodeSizes } from './useNodeSizes';
 import { useNodeDrag } from './useNodeDrag';
 import { useMindFullscreen, type MindFullscreen } from './useMindFullscreen';
+import { MindEdgeView, MindNodeView, type MindNodeActions } from './MindNodeView';
 
 interface Props {
   snapshot: SaveSnapshot;
@@ -76,7 +90,8 @@ function MindCanvasEditor({
   const pendingView = useRef<Viewport | null>(null);
   const [size, setSize] = useState({ width: 800, height: 500 });
   const [selected, setSelected] = useState(state.nodes.find((n) => n.parentId === null)!.id);
-  const [editing, setEditing] = useState<string | null>(null);
+  const [editing, setEditing] = useState<MindEditLayout | null>(null);
+  const editingId = editing?.id;
   const [notice, setNotice] = useState('');
   const undo = useRef<MindState[]>([]);
   const redo = useRef<MindState[]>([]);
@@ -86,11 +101,19 @@ function MindCanvasEditor({
   const safariGesture = useRef<Viewport | null>(null);
   const [dragging, setDragging] = useState(false);
   const sizes = useNodeSizes(state.nodes, canvas);
+  const previousGeometry = useRef<MindGeometry | undefined>(undefined);
+  const nodeActions = useRef<MindNodeActions | null>(null);
   const geometry = useMemo(
-    () => layoutMind({ nodes: state.nodes, layout: state.layout }, sizes),
-    [state.nodes, state.layout, sizes],
+    () =>
+      editing
+        ? layoutEditingMind({ nodes: state.nodes, layout: state.layout }, editing, sizes, previousGeometry.current)
+        : layoutMind({ nodes: state.nodes, layout: state.layout }, sizes, previousGeometry.current),
+    [state.nodes, state.layout, sizes, editing],
   );
   const selectedNode = state.nodes.find((n) => n.id === selected);
+  useLayoutEffect(() => {
+    previousGeometry.current = geometry;
+  }, [geometry]);
 
   useEffect(() => {
     latest.current = state;
@@ -105,14 +128,22 @@ function MindCanvasEditor({
     return () => observer.disconnect();
   }, []);
   useEffect(() => {
-    if (editing) {
+    if (editingId) {
       editor.current?.focus({ preventScroll: true });
       editor.current?.select();
     }
-  }, [editing]);
+  }, [editingId]);
+  useLayoutEffect(() => {
+    if (editingId && editor.current) {
+      // The field expands to fit all lines. Do not retain the browser's interim
+      // caret scrolling from the previous width while controlled text updates.
+      editor.current.scrollLeft = 0;
+      editor.current.scrollTop = 0;
+    }
+  }, [editingId, sizes]);
   useEffect(() => {
-    if (fullscreen.mode !== 'none' && !editing) canvas.current?.focus({ preventScroll: true });
-  }, [fullscreen.mode, editing]);
+    if (fullscreen.mode !== 'none' && !editingId) canvas.current?.focus({ preventScroll: true });
+  }, [fullscreen.mode, editingId]);
 
   const change = useCallback(
     (next: MindState) => {
@@ -203,6 +234,11 @@ function MindCanvasEditor({
     redo.current = [];
     setHistoryVersion((v) => v + 1);
   };
+  const geometryFor = (next: MindState) =>
+    next.nodes === state.nodes && next.layout === state.layout ? geometry : layoutMind(next, sizes, geometry);
+  const beginEditing = (id: string, next = latest.current, placed = geometryFor(next)) => {
+    setEditing({ id, layout: next.layout, nodes: placed.nodes, edges: placed.edges });
+  };
   const commit = (next: MindState) => {
     if (next === latest.current) return;
     remember();
@@ -220,6 +256,14 @@ function MindCanvasEditor({
       setNotice(drop.placement === 'child' ? '已移动为子主题，可撤销' : '已调整主题顺序，可撤销');
       canvas.current?.focus({ preventScroll: true });
     },
+  );
+  const visible = useMemo(
+    () =>
+      visibleMindGeometry(geometry, state.viewport, size, [
+        ...(editingId ? [editingId] : []),
+        ...(nodeDrag.visual ? [nodeDrag.visual.source] : []),
+      ]),
+    [geometry, state.viewport, size, editingId, nodeDrag.visual],
   );
   const setNodeColor = (color?: string) => {
     const nodes = latest.current.nodes.map((node) => {
@@ -243,8 +287,8 @@ function MindCanvasEditor({
     setHistoryVersion((v) => v + 1);
     canvas.current?.focus({ preventScroll: true });
   };
-  const reveal = (id: string, next: MindState) => {
-    const node = layoutMind(next, sizes).nodes.find((n) => n.id === id);
+  const reveal = (id: string, next: MindState, placed = geometryFor(next)) => {
+    const node = placed.nodes.find((n) => n.id === id);
     if (!node) return;
     const view = latest.current.viewport;
     if (
@@ -263,8 +307,9 @@ function MindCanvasEditor({
     }
     commit(next);
     setSelected(id);
-    setEditing(id);
-    reveal(id, next);
+    const placed = geometryFor(next);
+    beginEditing(id, next, placed);
+    reveal(id, next, placed);
     setNotice('');
   };
   const remove = () => {
@@ -282,7 +327,7 @@ function MindCanvasEditor({
   const startEditing = () => {
     if (selectedNode) {
       remember();
-      setEditing(selected);
+      beginEditing(selected);
     }
   };
   const keyDown = (event: KeyboardEvent) => {
@@ -333,7 +378,7 @@ function MindCanvasEditor({
       event.preventDefault();
       event.stopPropagation();
       remember();
-      setEditing(selected);
+      beginEditing(selected);
       change({
         ...latest.current,
         nodes: latest.current.nodes.map((n) => (n.id === selected ? { ...n, text: event.key } : n)),
@@ -368,6 +413,58 @@ function MindCanvasEditor({
       ),
     });
   };
+  useLayoutEffect(() => {
+    nodeActions.current = {
+      change: (id, text) =>
+        change({
+          ...latest.current,
+          nodes: latest.current.nodes.map((n) => (n.id === id ? { ...n, text } : n)),
+        }),
+      blur: (event) => {
+        if (event.relatedTarget instanceof Element && event.relatedTarget.closest('[data-mind-fullscreen-toggle]'))
+          return;
+        setEditing(null);
+      },
+      keyDown: (event) => {
+        event.stopPropagation();
+        if (event.nativeEvent.isComposing || event.keyCode === 229) return;
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          setEditing(null);
+          canvas.current?.focus({ preventScroll: true });
+        } else if ((event.key === 'Tab' && !event.shiftKey) || (event.key === 'Enter' && !event.shiftKey)) {
+          event.preventDefault();
+          add(event.key === 'Tab' ? 'child' : 'sibling');
+        }
+      },
+      pointerDown: (node, event) => {
+        if (event.button !== 0 || hasOpenOverlay()) return;
+        if (
+          pointers.current.size ||
+          (nodeDrag.current.current && nodeDrag.current.current.pointerId !== event.pointerId)
+        )
+          return;
+        event.stopPropagation();
+        setSelected(node.id);
+        setEditing(null);
+        canvas.current?.focus({ preventScroll: true });
+        if (!node.parentId) return;
+        event.currentTarget.setPointerCapture(event.pointerId);
+        nodeDrag.start(node.id, event.pointerId, { x: event.clientX, y: event.clientY });
+      },
+      click: (id) => {
+        if (nodeDrag.consumeClick()) return;
+        setSelected(id);
+        setEditing(null);
+        canvas.current?.focus({ preventScroll: true });
+      },
+      doubleClick: (id) => {
+        setSelected(id);
+        remember();
+        beginEditing(id);
+      },
+    };
+  });
 
   return (
     <div
@@ -406,10 +503,9 @@ function MindCanvasEditor({
           data-mind-fullscreen-toggle
           aria-label={fullscreen.mode === 'none' ? '进入全屏' : '退出全屏'}
           aria-pressed={fullscreen.mode !== 'none'}
-          disabled={fullscreen.busy}
           title={fullscreen.mode === 'none' ? '全屏展示和编辑' : '退出全屏 · Esc'}
           onClick={() => {
-            void fullscreen.toggle();
+            fullscreen.toggle();
           }}
         >
           {fullscreen.mode === 'none' ? (
@@ -419,11 +515,6 @@ function MindCanvasEditor({
           )}
         </button>
       </header>
-      {fullscreen.error && (
-        <p className="mind-save-error" role="alert">
-          {fullscreen.error}
-        </p>
-      )}
       <div className="mind-toolbar" aria-label="节点工具">
         <button onClick={() => add('child')} title="子主题 · Tab">
           <CornerDownRight size={16} />
@@ -605,117 +696,22 @@ function MindCanvasEditor({
           }}
         >
           <svg className="mind-edges" width="1" height="1" aria-hidden="true">
-            {geometry.edges.map((edge) => (
-              <path
-                key={edge.id}
-                d={edge.d}
-                className={`mind-branch-${edge.branchColor}`}
-                style={customNodeColors(edge.color)}
-              />
+            {visible.edges.map((edge) => (
+              <MindEdgeView key={edge.id} edge={edge} />
             ))}
           </svg>
-          {geometry.nodes.map((node) => {
-            const style = {
-              left: node.x - node.width / 2,
-              top: node.y - node.height / 2,
-              width: node.width,
-              minHeight: node.height,
-              ...customNodeColors(node.color),
-            } as CSSProperties;
-            const drop = nodeDrag.visual?.drop?.id === node.id ? nodeDrag.visual.drop.placement : null;
-            const className = `mind-node mind-branch-${node.branchColor} ${node.color ? 'has-custom-color' : ''} ${node.parentId ? '' : 'mind-root'} ${selected === node.id ? 'is-selected' : ''} ${nodeDrag.visual?.source === node.id ? 'is-moving' : ''} ${drop ? `mind-drop-${drop}` : ''}`;
-            return editing === node.id ? (
-              <div key={node.id} data-mind-node={node.id} className={`${className} is-editing`} style={style}>
-                {node.emoji && (
-                  <span className="mind-edit-emoji" aria-hidden="true">
-                    {node.emoji}
-                  </span>
-                )}
-                <textarea
-                  ref={editor}
-                  aria-label="编辑节点"
-                  value={node.text}
-                  maxLength={200}
-                  rows={Math.max(1, node.lines.length)}
-                  wrap="off"
-                  onChange={(event) =>
-                    change({
-                      ...latest.current,
-                      nodes: latest.current.nodes.map((n) =>
-                        n.id === node.id ? { ...n, text: event.target.value } : n,
-                      ),
-                    })
-                  }
-                  onBlur={(event) => {
-                    if (
-                      event.relatedTarget instanceof Element &&
-                      event.relatedTarget.closest('[data-mind-fullscreen-toggle]')
-                    )
-                      return;
-                    setEditing(null);
-                  }}
-                  onKeyDown={(event) => {
-                    event.stopPropagation();
-                    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
-                    if (event.key === 'Escape') {
-                      event.preventDefault();
-                      setEditing(null);
-                      canvas.current?.focus({ preventScroll: true });
-                    } else if ((event.key === 'Tab' && !event.shiftKey) || (event.key === 'Enter' && !event.shiftKey)) {
-                      event.preventDefault();
-                      add(event.key === 'Tab' ? 'child' : 'sibling');
-                    }
-                  }}
-                />
-              </div>
-            ) : (
-              <button
-                key={node.id}
-                data-mind-node={node.id}
-                className={className}
-                style={style}
-                tabIndex={-1}
-                aria-pressed={selected === node.id}
-                aria-label={`节点：${node.text || '未命名主题'}${node.emoji ? ` ${node.emoji}` : ''}`}
-                onPointerDown={(event) => {
-                  if (event.button !== 0 || hasOpenOverlay()) return;
-                  if (
-                    pointers.current.size ||
-                    (nodeDrag.current.current && nodeDrag.current.current.pointerId !== event.pointerId)
-                  )
-                    return;
-                  event.stopPropagation();
-                  setSelected(node.id);
-                  setEditing(null);
-                  canvas.current?.focus({ preventScroll: true });
-                  if (!node.parentId) return;
-                  event.currentTarget.setPointerCapture(event.pointerId);
-                  nodeDrag.start(node.id, event.pointerId, { x: event.clientX, y: event.clientY });
-                }}
-                onClick={() => {
-                  if (nodeDrag.consumeClick()) return;
-                  setSelected(node.id);
-                  setEditing(null);
-                  canvas.current?.focus({ preventScroll: true });
-                }}
-                onDoubleClick={() => {
-                  setSelected(node.id);
-                  remember();
-                  setEditing(node.id);
-                }}
-              >
-                <span className="mind-node-content">
-                  {node.emoji && <span className="mind-node-emoji">{node.emoji} </span>}
-                  {node.lines.join('\n')}
-                </span>
-                {drop && (
-                  <span className="mind-drop-label">
-                    {drop === 'before' ? '放到上方' : drop === 'after' ? '放到下方' : '作为子主题'}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+          {visible.nodes.map((node) => (
+            <MindNodeView
+              key={node.id}
+              node={node}
+              selected={selected === node.id}
+              editing={editingId === node.id}
+              moving={nodeDrag.visual?.source === node.id}
+              drop={nodeDrag.visual?.drop?.id === node.id ? nodeDrag.visual.drop.placement : null}
+              editor={editor}
+              actions={nodeActions}
+            />
+          ))}
           {nodeDrag.visual &&
             (() => {
               const node = geometry.nodes.find((n) => n.id === nodeDrag.visual?.source);
@@ -789,12 +785,7 @@ function MindCanvasEditor({
       <div className="mind-editor-footer">
         <span>{state.nodes.length} 个主题</span>
         <span role="status">
-          {notice ||
-            (fullscreen.mode === 'window'
-              ? '窗口全屏 · Esc 退出'
-              : fullscreen.mode === 'native'
-                ? '全屏编辑 · Esc 退出'
-                : '双击主题开始编辑')}
+          {notice || (fullscreen.mode === 'window' ? '页面全屏 · Esc 退出' : '双击主题开始编辑')}
         </span>
       </div>
     </div>

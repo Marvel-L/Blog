@@ -276,9 +276,6 @@
   padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px)
     env(safe-area-inset-left, 0px);
 }
-.mind-editor:fullscreen {
-  width: 100vw;
-}
 .mind-fullscreen-toggle {
   margin-left: 4px;
 }
@@ -534,7 +531,7 @@
   border: none;
   background: transparent;
   color: inherit;
-  text-align: center;
+  text-align: left;
   line-height: 22px;
   white-space: pre;
   overflow-wrap: normal;

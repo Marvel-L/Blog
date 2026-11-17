@@ -24,9 +24,9 @@ function mount() {
   );
 }
 let changed: MindState;
-function Canvas() {
+function Canvas({ initialState }: { initialState?: MindState } = {}) {
   const [snapshot, setSnapshot] = useState<SaveSnapshot>(() => ({
-    state: newMindState('mind'),
+    state: initialState ?? newMindState('mind'),
     status: 'saved',
     error: '',
     recoveryError: '',
@@ -169,6 +169,62 @@ describe('Mind UI', () => {
     const focus = vi.spyOn(canvas, 'focus');
     fireEvent.click(screen.getByRole('button', { name: '节点：中心主题' }));
     expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+  });
+  it('keeps the editor origin and neighboring nodes fixed while typing and preserves manual line breaks', () => {
+    render(<Canvas />);
+    const canvas = screen.getByLabelText('导图画布');
+    fireEvent.keyDown(canvas, { key: 'Tab' });
+    fireEvent.change(screen.getByLabelText('编辑节点'), { target: { value: '主题 A' } });
+    fireEvent.keyDown(screen.getByLabelText('编辑节点'), { key: 'Enter' });
+    fireEvent.change(screen.getByLabelText('编辑节点'), { target: { value: '主题 B' } });
+    fireEvent.keyDown(screen.getByLabelText('编辑节点'), { key: 'Escape' });
+    fireEvent.doubleClick(screen.getByRole('button', { name: '节点：主题 A' }));
+    const input = screen.getByLabelText('编辑节点');
+    const edited = input.closest<HTMLElement>('[data-mind-node]')!;
+    const sibling = screen.getByRole('button', { name: '节点：主题 B' });
+    const origin = [edited.style.left, edited.style.top];
+    const neighbor = [sibling.style.left, sibling.style.top];
+    for (const value of ['一', '逐字输入时起点保持不动', '第一行的内容比原主题长得多\n手动第二行']) {
+      fireEvent.change(input, { target: { value } });
+      expect(screen.getByLabelText('编辑节点')).toBe(input);
+      expect([edited.style.left, edited.style.top]).toEqual(origin);
+      expect([sibling.style.left, sibling.style.top]).toEqual(neighbor);
+      expect(input).toHaveValue(value);
+    }
+    fireEvent.blur(input);
+    expect(screen.getByRole('button', { name: /^节点：第一行的内容/ })).toBeInTheDocument();
+    expect(changed.nodes.some((n) => n.text.endsWith('\n手动第二行'))).toBe(true);
+  });
+  it('appends in a large logic map without moving previous boxes, and shows distant topics when panning', async () => {
+    const state = newMindState('logic');
+    for (let index = 1; index < 500; index++)
+      state.nodes.push({
+        ...state.nodes[0],
+        id: crypto.randomUUID(),
+        parentId: state.nodes[0].id,
+        text: `事项 ${index}`,
+      });
+    render(<Canvas initialState={state} />);
+    const canvas = screen.getByLabelText('导图画布');
+    expect(document.querySelectorAll('[data-mind-node]').length).toBeLessThan(20);
+    expect(screen.queryByRole('button', { name: '节点：事项 499' })).not.toBeInTheDocument();
+    fireEvent.wheel(canvas, { deltaY: 498 * 76 });
+    await screen.findByRole('button', { name: '节点：事项 499' });
+    fireEvent.click(screen.getByRole('button', { name: '节点：事项 499' }));
+    const neighbors = Array.from(document.querySelectorAll<HTMLElement>('[data-mind-node]'));
+    const before = neighbors.map((node) => [node.style.left, node.style.top]);
+    fireEvent.keyDown(canvas, { key: 'Enter' });
+    const input = screen.getByLabelText('编辑节点');
+    fireEvent.change(input, { target: { value: '新增框可以变长而不推开其他分支'.repeat(5) + '\n第二行' } });
+    fireEvent.blur(input);
+    for (let index = 0; index < neighbors.length; index++) {
+      const node = document.querySelector<HTMLElement>(`[data-mind-node="${neighbors[index].dataset.mindNode}"]`)!;
+      expect([node.style.left, node.style.top]).toEqual(before[index]);
+    }
+    expect(changed.nodes).toHaveLength(501);
+    fireEvent.wheel(canvas, { deltaY: -changed.viewport.y });
+    await screen.findByRole('button', { name: '节点：中心主题' });
+    expect(screen.queryByRole('button', { name: '节点：事项 499' })).not.toBeInTheDocument();
   });
   it('wheel pinch changes map zoom, normal two-finger scrolling pans, and layout preserves content', async () => {
     render(<Canvas />);

@@ -165,8 +165,12 @@ export function removeNode(state: MindState, id: string): MindState {
 export type DropPlacement = 'before' | 'after' | 'child';
 export function branchIds(nodes: MindNode[], id: string): Set<string> {
   const children = new Map<string, string[]>();
-  for (const node of nodes)
-    if (node.parentId) children.set(node.parentId, [...(children.get(node.parentId) ?? []), node.id]);
+  for (const node of nodes) {
+    if (!node.parentId) continue;
+    let siblings = children.get(node.parentId);
+    if (!siblings) children.set(node.parentId, (siblings = []));
+    siblings.push(node.id);
+  }
   const result = new Set<string>(),
     pending = [id];
   while (pending.length) {
@@ -268,13 +272,134 @@ export interface PlacedNode extends MindNode {
   branchColor: number;
   lines: string[];
 }
-export function layoutMind(state: Pick<MindState, 'nodes' | 'layout'>, sizes?: ReadonlyMap<string, NodeSize>) {
+export interface MindEditLayout {
+  id: string;
+  layout: MindLayout;
+  nodes: PlacedNode[];
+  edges?: MindEdge[];
+}
+export interface MindEdge {
+  id: string;
+  branchColor: number;
+  color?: string;
+  d: string;
+  bounds: { left: number; right: number; top: number; bottom: number };
+}
+export interface MindGeometry {
+  nodes: PlacedNode[];
+  edges: MindEdge[];
+  bounds: { left: number; right: number; top: number; bottom: number };
+}
+
+/** Include crossing connections and keep an active editor mounted outside view. */
+export function visibleMindGeometry(
+  geometry: MindGeometry,
+  view: Viewport,
+  size: { width: number; height: number },
+  keep: readonly string[] = [],
+) {
+  const halfWidth = (size.width / 2 + 160) / view.zoom;
+  const halfHeight = (size.height / 2 + 160) / view.zoom;
+  const left = view.x - halfWidth,
+    right = view.x + halfWidth;
+  const top = view.y - halfHeight,
+    bottom = view.y + halfHeight;
+  return {
+    nodes: geometry.nodes.filter(
+      (node) =>
+        keep.includes(node.id) ||
+        (node.x + node.width / 2 >= left &&
+          node.x - node.width / 2 <= right &&
+          node.y + node.height / 2 >= top &&
+          node.y - node.height / 2 <= bottom),
+    ),
+    edges: geometry.edges.filter(
+      ({ bounds }) => bounds.right >= left && bounds.left <= right && bounds.bottom >= top && bounds.top <= bottom,
+    ),
+  };
+}
+
+function sameNode(a: MindNode, b: MindNode) {
+  return (
+    a.id === b.id &&
+    a.parentId === b.parentId &&
+    a.text === b.text &&
+    a.emoji === b.emoji &&
+    a.side === b.side &&
+    a.color === b.color
+  );
+}
+
+function reusePlaced(node: PlacedNode, previous?: PlacedNode) {
+  return previous &&
+    sameNode(node, previous) &&
+    node.x === previous.x &&
+    node.y === previous.y &&
+    node.width === previous.width &&
+    node.height === previous.height &&
+    node.branchColor === previous.branchColor
+    ? previous
+    : node;
+}
+
+/** Keep the edit origin and surrounding nodes still while the field grows right/down. */
+export function layoutEditingMind(
+  state: Pick<MindState, 'nodes' | 'layout'>,
+  editing: MindEditLayout,
+  sizes?: ReadonlyMap<string, NodeSize>,
+  previous?: MindGeometry,
+) {
+  const current = new Map(state.nodes.map((node) => [node.id, node]));
+  if (
+    editing.layout !== state.layout ||
+    editing.nodes.length !== state.nodes.length ||
+    !current.has(editing.id) ||
+    editing.nodes.some((node) => {
+      const next = current.get(node.id);
+      return !next || next.parentId !== node.parentId || next.side !== node.side;
+    })
+  )
+    return layoutMind(state, sizes, previous);
+  const old = new Map(previous?.nodes.map((node) => [node.id, node]));
+  const nodes = editing.nodes.map((anchor) => {
+    const node = current.get(anchor.id)!;
+    const data = sameNode(anchor, node) ? anchor : { ...anchor, ...node, lines: nodeTextLines(node.text) };
+    if (node.id !== editing.id) return reusePlaced(data, old.get(node.id));
+    const measured = sizes?.get(node.id) ?? nodeSize(node);
+    const width = Math.max(anchor.width, measured.width),
+      height = Math.max(anchor.height, measured.height);
+    return reusePlaced(
+      {
+        ...data,
+        width,
+        height,
+        x: anchor.x - anchor.width / 2 + width / 2,
+        y: anchor.y - anchor.height / 2 + height / 2,
+      },
+      old.get(node.id) ?? anchor,
+    );
+  });
+  return mindGeometry(nodes, previous?.edges ?? editing.edges);
+}
+
+export function layoutMind(
+  state: Pick<MindState, 'nodes' | 'layout'>,
+  sizes?: ReadonlyMap<string, NodeSize>,
+  previous?: MindGeometry,
+): MindGeometry {
   const root = state.nodes.find((n) => n.parentId === null)!;
   const children = new Map<string, MindNode[]>();
-  for (const n of state.nodes) if (n.parentId) children.set(n.parentId, [...(children.get(n.parentId) ?? []), n]);
+  for (const n of state.nodes) {
+    if (!n.parentId) continue;
+    let siblings = children.get(n.parentId);
+    if (!siblings) children.set(n.parentId, (siblings = []));
+    siblings.push(n);
+  }
+  const old = new Map(previous?.nodes.map((node) => [node.id, node]));
   const dimensions = new Map(
     state.nodes.map((n) => {
-      const lines = nodeTextLines(n.text);
+      const before = old.get(n.id);
+      const lines = before?.text === n.text ? before.lines : nodeTextLines(n.text);
       return [
         n.id,
         {
@@ -295,41 +420,31 @@ export function layoutMind(state: Pick<MindState, 'nodes' | 'layout'>, sizes?: R
     heights.set(node.id, value);
     return value;
   };
-  // Share each depth's inward edge so short cousins cannot overlap wider nodes
-  // in another branch. The nodes themselves retain their individual dimensions.
-  const columns = new Map<-1 | 1, number[]>([
-    [1, []],
-    [-1, []],
-  ]);
-  const depths = new Map<string, number>([[root.id, 0]]);
   const first = children.get(root.id) ?? [];
-  const collect = (node: MindNode, depth: number, side: -1 | 1) => {
-    depths.set(node.id, depth);
-    const widths = columns.get(side)!;
-    widths[depth] = Math.max(widths[depth] ?? 0, dimensions.get(node.id)!.width);
-    for (const child of children.get(node.id) ?? []) collect(child, depth + 1, side);
-  };
-  for (const node of first) collect(node, 1, state.layout === 'logic' ? 1 : node.side);
-  const offsets = new Map<-1 | 1, number[]>();
-  for (const side of [1, -1] as const) {
-    const values = [0, dimensions.get(root.id)!.width / 2 + 64],
-      widths = columns.get(side)!;
-    for (let depth = 2; depth < widths.length; depth++) values[depth] = values[depth - 1] + widths[depth - 1] + 64;
-    offsets.set(side, values);
-  }
-  const placed: PlacedNode[] = [{ ...root, ...dimensions.get(root.id)!, x: 0, y: 0, branchColor: -1 }];
+  const colors = new Map(first.map((node, index) => [node.id, index % 5]));
+  const rootSize = dimensions.get(root.id)!;
+  const horizontalGap = state.layout === 'logic' ? 40 : 64;
+  const placed: PlacedNode[] = [
+    reusePlaced({ ...root, ...rootSize, x: 0, y: -26 + rootSize.height / 2, branchColor: -1 }, old.get(root.id)),
+  ];
+  // Anchor each subtree at its top. Appending a topic leaves earlier topics
+  // stationary; widths only affect that node's descendants, never its cousins.
+  // Separate subtree spans keep all variable-sized nodes from overlapping.
   const placeGroup = (kids: MindNode[], parent: PlacedNode, side: -1 | 1, branchColor?: number) => {
-    let top = parent.y - (kids.reduce((sum, n) => sum + height(n), 0) + Math.max(0, kids.length - 1) * 24) / 2;
+    let top = parent.y - parent.height / 2;
     for (const n of kids) {
       const dim = dimensions.get(n.id)!;
-      const color = branchColor ?? first.findIndex((child) => child.id === n.id) % 5;
-      const item = {
-        ...n,
-        ...dim,
-        x: side * (offsets.get(side)![depths.get(n.id)!] + dim.width / 2),
-        y: top + height(n) / 2,
-        branchColor: color,
-      };
+      const color = branchColor ?? colors.get(n.id)!;
+      const item = reusePlaced(
+        {
+          ...n,
+          ...dim,
+          x: parent.x + side * (parent.width / 2 + horizontalGap + dim.width / 2),
+          y: top + dim.height / 2,
+          branchColor: color,
+        },
+        old.get(n.id),
+      );
       placed.push(item);
       placeGroup(children.get(n.id) ?? [], item, side, color);
       top += height(n) + 24;
@@ -342,7 +457,12 @@ export function layoutMind(state: Pick<MindState, 'nodes' | 'layout'>, sizes?: R
       placed[0],
       -1,
     );
+  return mindGeometry(placed, previous?.edges);
+}
+
+function mindGeometry(placed: PlacedNode[], previous: MindEdge[] = []): MindGeometry {
   const byId = new Map(placed.map((n) => [n.id, n]));
+  const old = new Map(previous.map((edge) => [edge.id, edge]));
   const edges = placed
     .filter((n) => n.parentId)
     .map((n) => {
@@ -351,12 +471,22 @@ export function layoutMind(state: Pick<MindState, 'nodes' | 'layout'>, sizes?: R
       const from = parent.x + (side * parent.width) / 2,
         to = n.x - (side * n.width) / 2;
       const middle = (from + to) / 2;
-      return {
+      const edge = {
         id: n.id,
         branchColor: n.branchColor,
         color: n.color,
         d: `M ${from} ${parent.y} C ${middle} ${parent.y}, ${middle} ${n.y}, ${to} ${n.y}`,
+        bounds: {
+          left: Math.min(from, to),
+          right: Math.max(from, to),
+          top: Math.min(parent.y, n.y),
+          bottom: Math.max(parent.y, n.y),
+        },
       };
+      const before = old.get(n.id);
+      return before && before.d === edge.d && before.branchColor === edge.branchColor && before.color === edge.color
+        ? before
+        : edge;
     });
   const bounds = {
     left: Math.min(...placed.map((n) => n.x - n.width / 2)),
