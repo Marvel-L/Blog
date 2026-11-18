@@ -24,7 +24,7 @@ export function parseMindJson(source: string): MindState {
   keys(state, ['version', 'title', 'layout', 'nodes', 'viewport'], '导图');
   keys(state.viewport, ['x', 'y', 'zoom'], 'viewport');
   state.nodes.forEach((node, index) =>
-    keys(node, ['id', 'parentId', 'text', 'emoji', 'side', 'color'], `nodes[${index}]`),
+    keys(node, ['id', 'parentId', 'text', 'emoji', 'side', 'color', 'collapsed'], `nodes[${index}]`),
   );
   return state;
 }

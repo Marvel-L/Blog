@@ -33,7 +33,9 @@ import {
   layoutMind,
   moveNode,
   removeNode,
+  toggleBranch,
   visibleMindGeometry,
+  visibleSelection,
   zoomAt,
   type MindGeometry,
   type MindState,
@@ -115,6 +117,9 @@ function MindCanvasEditor({
   useLayoutEffect(() => {
     previousGeometry.current = geometry;
   }, [geometry]);
+  useEffect(() => {
+    setSelected((id) => visibleSelection(state.nodes, id));
+  }, [state.nodes]);
 
   useEffect(() => {
     latest.current = state;
@@ -300,7 +305,8 @@ function MindCanvasEditor({
     const next = entry.state;
     target.current.push({ state: latest.current, restoreView: entry.restoreView });
     change(entry.restoreView ? next : { ...next, viewport: latest.current.viewport });
-    if (!next.nodes.some((n) => n.id === selected)) setSelected(next.nodes.find((n) => !n.parentId)!.id);
+    setSelected(visibleSelection(next.nodes, selected));
+    nodeDrag.cancel();
     setEditing(null);
     setHistoryVersion((v) => v + 1);
     canvas.current?.focus({ preventScroll: true });
@@ -348,6 +354,16 @@ function MindCanvasEditor({
       beginEditing(selected);
     }
   };
+  const toggle = (id: string) => {
+    const next = toggleBranch(latest.current, id);
+    if (next === latest.current) return;
+    nodeDrag.cancel();
+    setEditing(null);
+    commit(next);
+    setSelected(visibleSelection(next.nodes, selected));
+    setNotice('');
+    canvas.current?.focus({ preventScroll: true });
+  };
   const keyDown = (event: KeyboardEvent) => {
     if (hasOpenOverlay() || event.nativeEvent.isComposing || event.keyCode === 229) return;
     const target = event.target as HTMLElement;
@@ -356,7 +372,7 @@ function MindCanvasEditor({
       nodeDrag.cancel();
       return;
     }
-    if (target.closest('.mind-canvas-controls')) return;
+    if (target.closest('.mind-canvas-controls, .mind-branch-toggle')) return;
     if (target.matches('input, textarea, select') || target.isContentEditable) return;
     if (event.key === 'Tab' && event.shiftKey) return; // Shift+Tab remains an escape route to the toolbar.
     const modifier = event.metaKey || event.ctrlKey;
@@ -371,6 +387,13 @@ function MindCanvasEditor({
       return;
     }
     if (modifier || event.altKey) return;
+    if (['+', '=', '-'].includes(event.key) && geometry.nodes.some((n) => n.id === selected && n.childCount)) {
+      event.preventDefault();
+      event.stopPropagation();
+      const node = latest.current.nodes.find((n) => n.id === selected)!;
+      if (!!node.collapsed !== (event.key === '-')) toggle(selected);
+      return;
+    }
     if (['Enter', 'Tab', 'Delete', 'Backspace', 'F2', ' '].includes(event.key)) {
       event.preventDefault();
       event.stopPropagation();
@@ -481,6 +504,7 @@ function MindCanvasEditor({
         remember();
         beginEditing(id);
       },
+      toggle,
     };
   });
 
@@ -509,7 +533,11 @@ function MindCanvasEditor({
         <select
           aria-label="导图结构"
           value={state.layout}
-          onChange={(event) => commit({ ...latest.current, layout: event.target.value as MindState['layout'] })}
+          onChange={(event) => {
+            setEditing(null);
+            nodeDrag.cancel();
+            commit({ ...latest.current, layout: event.target.value as MindState['layout'] });
+          }}
         >
           <option value="mind">思维导图</option>
           <option value="logic">逻辑图</option>
@@ -657,7 +685,7 @@ function MindCanvasEditor({
           const secondTouch = event.pointerType === 'touch' && nodePointer && nodePointer.pointerId !== event.pointerId;
           if (
             (event.button !== 0 && event.button !== 1) ||
-            (event.target as HTMLElement).closest('.mind-canvas-controls') ||
+            (event.target as HTMLElement).closest('.mind-canvas-controls, .mind-branch-toggle') ||
             (!secondTouch && (event.target as HTMLElement).closest('[data-mind-node]'))
           )
             return;
@@ -716,9 +744,12 @@ function MindCanvasEditor({
       >
         <div
           className="mind-world"
-          style={{
-            transform: `translate(${size.width / 2 - state.viewport.x * state.viewport.zoom}px, ${size.height / 2 - state.viewport.y * state.viewport.zoom}px) scale(${state.viewport.zoom})`,
-          }}
+          style={
+            {
+              '--mind-zoom': state.viewport.zoom,
+              transform: `translate(${size.width / 2 - state.viewport.x * state.viewport.zoom}px, ${size.height / 2 - state.viewport.y * state.viewport.zoom}px) scale(${state.viewport.zoom})`,
+            } as CSSProperties
+          }
         >
           <svg className="mind-edges" width="1" height="1" aria-hidden="true">
             {visible.edges.map((edge) => (
@@ -744,7 +775,7 @@ function MindCanvasEditor({
               return (
                 <div
                   aria-hidden="true"
-                  className={`mind-node mind-drag-ghost mind-branch-${node.branchColor} ${node.color ? 'has-custom-color' : ''}`}
+                  className={`mind-node mind-drag-ghost mind-branch-${node.branchColor} ${node.depth === 1 ? 'mind-primary' : 'mind-topic'} ${node.color ? 'has-custom-color' : ''}`}
                   style={
                     {
                       left: node.x - node.width / 2 + nodeDrag.visual.dx,
@@ -769,6 +800,8 @@ function MindCanvasEditor({
             Enter 同级 · Tab 子主题 · Delete 删除分支
             <br />
             双击 / F2 编辑 · Shift+Enter 换行
+            <br />
+            − 收起分支 · ＋ 展开分支
             <br />⌘ / Ctrl+Z 撤销 · Shift+Tab 离开画布
             <br />
             拖动画布 / 双指滑动平移 · 双指捏合缩放
@@ -808,7 +841,12 @@ function MindCanvasEditor({
         </button>
       </div>
       <div className="mind-editor-footer">
-        <span>{state.nodes.length} 个主题</span>
+        <span>
+          {state.nodes.length} 个主题
+          {geometry.nodes.length < state.nodes.length
+            ? ` · ${state.nodes.length - geometry.nodes.length} 个已折叠`
+            : ''}
+        </span>
         <span role="status">
           {notice || (fullscreen.mode === 'window' ? '页面全屏 · Esc 退出' : '双击主题开始编辑')}
         </span>

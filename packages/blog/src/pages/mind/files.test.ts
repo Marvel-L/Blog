@@ -14,6 +14,7 @@ describe('portable mind files', () => {
       emoji: '✅',
       side: -1,
       color: '#AbCeF0',
+      collapsed: true,
     });
     expect(parseMindFile(`\uFEFF${serializeMindFile(state, 'json')}`, 'json')).toEqual(state);
     expect(serializeMindFile(state, 'json')).not.toMatch(/userId|revision|mutationId/);
@@ -27,6 +28,7 @@ describe('portable mind files', () => {
       { ...state, nodes: [{ ...state.nodes[0], id: 'arbitrary' }] },
       { ...state, nodes: [{ ...state.nodes[0], parentId: state.nodes[0].id }] },
       { ...state, nodes: [{ ...state.nodes[0], extra: true }] },
+      { ...state, nodes: [{ ...state.nodes[0], collapsed: 'true' }] },
     ])
       expect(() => parseMindFile(JSON.stringify(invalid), 'json')).toThrow();
     expect(() => parseMindFile('{"version": 1,}', 'json')).toThrow('JSON 语法');
@@ -43,6 +45,7 @@ describe('portable mind files', () => {
       text: '  - **粗体** `Go` [link](url) <script>alert(1)</script> &lt; &#32;\t\r\n\n<br />  ',
     };
     state.nodes.unshift(child);
+    state.nodes.find((node) => node.parentId === null)!.collapsed = true;
     state.nodes.push({ ...child, id: crypto.randomUUID(), text: '另一分支' });
     state.nodes.push({ ...child, id: crypto.randomUUID(), parentId: child.id, text: '第三层\n✅ 字面文本' });
     const source = serializeMindFile(state, 'markdown');
@@ -53,6 +56,7 @@ describe('portable mind files', () => {
     expect(restored.nodes[3].parentId).toBe(restored.nodes[0].id);
     expect(restored.nodes[0].id).not.toBe(state.nodes[0].id);
     expect(restored.layout).toBe('mind');
+    expect(restored.nodes.every((node) => node.collapsed === undefined)).toBe(true);
   });
   it('accepts regular outlines and reports unsupported content, indentation and limits with errors', () => {
     const state = parseMindFile('# 工作计划\n\n- 设计\n  + 页面\n- 实现\n  * 后端\n', 'markdown');

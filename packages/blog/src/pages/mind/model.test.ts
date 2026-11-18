@@ -10,10 +10,32 @@ import {
   nodeTextLines,
   parseMindState,
   removeNode,
+  toggleBranch,
   visibleMindGeometry,
+  visibleMindNodes,
+  visibleSelection,
   zoomAt,
+  type MindGeometry,
 } from './model';
 import { nodeDropAt } from './useNodeDrag';
+
+function expectCentered(geometry: MindGeometry) {
+  const byId = new Map(geometry.nodes.map((node) => [node.id, node]));
+  for (const parent of geometry.nodes) {
+    for (const direction of [-1, 1]) {
+      const descendants = geometry.nodes.filter((node) => {
+        if (node.id === parent.id || node.direction !== direction) return false;
+        let current = node;
+        while (current.parentId && current.parentId !== parent.id) current = byId.get(current.parentId)!;
+        return current.parentId === parent.id;
+      });
+      if (!descendants.length) continue;
+      const top = Math.min(...descendants.map((node) => node.y - node.height / 2));
+      const bottom = Math.max(...descendants.map((node) => node.y + node.height / 2));
+      expect((top + bottom) / 2).toBeCloseTo(parent.y);
+    }
+  }
+}
 
 describe('Mind tree and viewport', () => {
   it('creates siblings in order, root Enter creates a child, subtree deletion leaves the root', () => {
@@ -48,6 +70,9 @@ describe('Mind tree and viewport', () => {
     expect(nodes.some((n) => n.x < 0)).toBe(true);
     expect(nodes.some((n) => n.x > 0)).toBe(true);
     expect(edges).toHaveLength(nodes.length - 1);
+    expect(nodes[0].y).toBe(0);
+    expectCentered(layoutMind(state));
+    expectCentered(layoutMind({ ...state, layout: 'logic' }));
     for (const a of nodes)
       for (const b of nodes)
         if (a.id !== b.id) {
@@ -113,7 +138,7 @@ describe('Mind tree and viewport', () => {
     },
   );
   it.each(['mind', 'logic'] as const)(
-    'keeps earlier nodes and edges stable when appending in a large %s map',
+    'centers large %s maps after appending and completing multiline edits',
     (layout) => {
       const state = newMindState(layout);
       for (let index = 1; index < 990; index++) {
@@ -136,17 +161,25 @@ describe('Mind tree and viewport', () => {
         ),
       };
       const finished = layoutMind(grown, undefined, after);
-      for (const node of before.nodes) {
-        expect(after.nodes.find((n) => n.id === node.id)).toBe(node);
-        expect(finished.nodes.find((n) => n.id === node.id)).toBe(node);
+      expect(finished.nodes).toHaveLength(991);
+      expect(finished.edges).toHaveLength(990);
+      expectCentered(after);
+      expectCentered(finished);
+      expect(finished.nodes[0].y).toBe(0);
+      for (const direction of [-1, 1]) {
+        const siblings = finished.nodes.filter((node) => node.parentId && node.direction === direction);
+        for (let index = 1; index < siblings.length; index++) {
+          const a = siblings[index - 1],
+            b = siblings[index];
+          expect(b.y - b.height / 2 - (a.y + a.height / 2)).toBeGreaterThanOrEqual(24);
+        }
       }
-      for (const edge of before.edges) {
-        expect(after.edges.find((e) => e.id === edge.id)).toBe(edge);
-        expect(finished.edges.find((e) => e.id === edge.id)).toBe(edge);
-      }
+      const unchanged = layoutMind(grown, undefined, finished);
+      expect(unchanged.nodes.every((node, i) => node === finished.nodes[i])).toBe(true);
+      expect(unchanged.edges.every((edge, i) => edge === finished.edges[i])).toBe(true);
     },
   );
-  it('only adjusts descendants horizontally and following subtrees vertically when a topic grows', () => {
+  it('isolates horizontal widths and recenters child groups when subtree heights grow', () => {
     let state = newMindState('logic');
     const root = state.nodes[0].id,
       a = crypto.randomUUID(),
@@ -171,6 +204,7 @@ describe('Mind tree and viewport', () => {
     const finished = layoutMind(tall, undefined, after);
     expect(finished.nodes.find((n) => n.id === a)).toBe(after.nodes.find((n) => n.id === a));
     expect(finished.nodes.find((n) => n.id === b)!.y).toBeGreaterThan(after.nodes.find((n) => n.id === b)!.y);
+    expectCentered(finished);
     for (const a of finished.nodes)
       for (const b of finished.nodes)
         if (a.id !== b.id) {
@@ -254,6 +288,76 @@ describe('Mind tree and viewport', () => {
     expect(parseMindState({ ...state, nodes: state.nodes.map((n) => ({ ...n, color: 'url(example)' })) })).toBeNull();
     expect(customNodeColors('#000000')['--branch-text']).toBe('#ffffff');
     expect(customNodeColors('#ffffff')['--branch-text']).toBe('#15241d');
+  });
+  it.each(['mind', 'logic'] as const)(
+    'folds nested %s branches without losing children or changing colors',
+    (layout) => {
+      let state = newMindState(layout);
+      const root = state.nodes[0].id,
+        a = crypto.randomUUID(),
+        b = crypto.randomUUID(),
+        c = crypto.randomUUID(),
+        d = crypto.randomUUID();
+      state = insertNode(state, root, 'child', a);
+      state = insertNode(state, root, 'child', b);
+      state = insertNode(state, a, 'child', c);
+      state = insertNode(state, c, 'child', d);
+      const before = layoutMind(state);
+      const folded = toggleBranch(toggleBranch(state, c), a);
+      expect(folded.nodes).toHaveLength(5);
+      expect(visibleMindNodes(folded.nodes).map((node) => node.id)).toEqual([root, a, b]);
+      expect(visibleSelection(folded.nodes, d)).toBe(a);
+      const geometry = layoutMind(folded);
+      expect(geometry.edges).toHaveLength(2);
+      expect(geometry.nodes.find((node) => node.id === a)).toMatchObject({
+        childCount: 1,
+        descendantCount: 2,
+        collapsed: true,
+      });
+      expect(geometry.nodes.find((node) => node.id === b)?.branchColor).toBe(
+        before.nodes.find((node) => node.id === b)?.branchColor,
+      );
+      const reopened = toggleBranch(folded, a);
+      expect(visibleMindNodes(reopened.nodes).map((node) => node.id)).toEqual([root, a, c, b]);
+      expect(visibleSelection(reopened.nodes, d)).toBe(c);
+      const all = toggleBranch(reopened, c);
+      expect(visibleMindNodes(all.nodes)).toHaveLength(5);
+      expect(layoutMind(toggleBranch(all, root)).nodes).toHaveLength(1);
+      expect(toggleBranch(state, d)).toBe(state);
+      expectCentered(geometry);
+    },
+  );
+  it('opens a folded destination when adding or moving a topic and freezes editing with hidden descendants', () => {
+    let state = newMindState('logic');
+    const root = state.nodes[0].id,
+      a = crypto.randomUUID(),
+      b = crypto.randomUUID(),
+      child = crypto.randomUUID();
+    state = insertNode(state, root, 'child', a);
+    state = insertNode(state, root, 'child', b);
+    state = insertNode(state, a, 'child', child);
+    state = toggleBranch(state, a);
+    const before = layoutMind(state);
+    const editing = { id: b, nodes: before.nodes, edges: before.edges, layout: state.layout };
+    const next = {
+      ...state,
+      nodes: state.nodes.map((n) => (n.id === b ? { ...n, text: '编辑可见节点\n不影响折叠的分支' } : n)),
+    };
+    const frozen = layoutEditingMind(next, editing);
+    expect(frozen.nodes).toHaveLength(3);
+    expect(frozen.nodes.find((n) => n.id === a)).toBe(before.nodes.find((n) => n.id === a));
+    const anchor = before.nodes.find((n) => n.id === b)!;
+    const edited = frozen.nodes.find((n) => n.id === b)!;
+    expect(edited.y - edited.height / 2).toBe(anchor.y - anchor.height / 2);
+    const added = insertNode(state, a, 'child', crypto.randomUUID());
+    expect(added.nodes.find((n) => n.id === a)?.collapsed).toBe(false);
+    expect(visibleMindNodes(added.nodes)).toHaveLength(5);
+    const moved = moveNode(state, b, a, 'child');
+    expect(moved.nodes.find((n) => n.id === a)?.collapsed).toBe(false);
+    expect(visibleMindNodes(moved.nodes)).toHaveLength(4);
+    expect(parseMindState(state)).not.toBeNull();
+    for (const collapsed of [null, 'true', 1])
+      expect(parseMindState({ ...state, nodes: state.nodes.map((n) => ({ ...n, collapsed })) })).toBeNull();
   });
   it('moves before/after a sibling and reparents a complete branch without losing content', () => {
     let state = newMindState('logic');

@@ -5,7 +5,7 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Mind from './Mind';
 import { MindCanvas } from './MindCanvas';
-import { newMindState, type MindState } from './model';
+import { insertNode, layoutMind, newMindState, type MindState } from './model';
 import type { SaveSnapshot } from './sync';
 import { hasOpenOverlay } from '@/hooks/useModalOverlay';
 
@@ -249,7 +249,7 @@ describe('Mind UI', () => {
     expect(screen.getByRole('button', { name: /^节点：第一行的内容/ })).toBeInTheDocument();
     expect(changed.nodes.some((n) => n.text.endsWith('\n手动第二行'))).toBe(true);
   });
-  it('appends in a large logic map without moving previous boxes, and shows distant topics when panning', async () => {
+  it('virtualizes a centered large logic map and freezes nearby topics during typing', async () => {
     const state = newMindState('logic');
     for (let index = 1; index < 500; index++)
       state.nodes.push({
@@ -262,23 +262,104 @@ describe('Mind UI', () => {
     const canvas = screen.getByLabelText('导图画布');
     expect(document.querySelectorAll('[data-mind-node]').length).toBeLessThan(20);
     expect(screen.queryByRole('button', { name: '节点：事项 499' })).not.toBeInTheDocument();
-    fireEvent.wheel(canvas, { deltaY: 498 * 76 });
+    const last = layoutMind(state).nodes.at(-1)!;
+    fireEvent.wheel(canvas, { deltaY: last.y });
     await screen.findByRole('button', { name: '节点：事项 499' });
     fireEvent.click(screen.getByRole('button', { name: '节点：事项 499' }));
-    const neighbors = Array.from(document.querySelectorAll<HTMLElement>('[data-mind-node]'));
-    const before = neighbors.map((node) => [node.style.left, node.style.top]);
     fireEvent.keyDown(canvas, { key: 'Enter' });
+    const neighbors = Array.from(document.querySelectorAll<HTMLElement>('[data-mind-node]')).filter(
+      (node) => !node.classList.contains('is-editing'),
+    );
+    const before = neighbors.map((node) => [node.style.left, node.style.top]);
     const input = screen.getByLabelText('编辑节点');
     fireEvent.change(input, { target: { value: '新增框可以变长而不推开其他分支'.repeat(5) + '\n第二行' } });
-    fireEvent.blur(input);
     for (let index = 0; index < neighbors.length; index++) {
       const node = document.querySelector<HTMLElement>(`[data-mind-node="${neighbors[index].dataset.mindNode}"]`)!;
       expect([node.style.left, node.style.top]).toEqual(before[index]);
     }
+    fireEvent.blur(input);
     expect(changed.nodes).toHaveLength(501);
     fireEvent.wheel(canvas, { deltaY: -changed.viewport.y });
     await screen.findByRole('button', { name: '节点：中心主题' });
     expect(screen.queryByRole('button', { name: '节点：事项 499' })).not.toBeInTheDocument();
+  });
+  it('folds nested branches with separate accessible buttons, restores them through undo, and selects a visible ancestor', () => {
+    let state = newMindState('mind');
+    const root = state.nodes[0].id,
+      branch = crypto.randomUUID(),
+      child = crypto.randomUUID(),
+      leaf = crypto.randomUUID(),
+      left = crypto.randomUUID();
+    state = insertNode(state, root, 'child', branch);
+    state = insertNode(state, branch, 'child', child);
+    state = insertNode(state, child, 'child', leaf);
+    state = insertNode(state, root, 'child', left);
+    state = insertNode(state, left, 'child', crypto.randomUUID());
+    const labels = new Map<string, string>([
+      [branch, '右分支'],
+      [child, '嵌套分支'],
+      [leaf, '末端'],
+      [left, '左分支'],
+    ]);
+    state = { ...state, nodes: state.nodes.map((node) => ({ ...node, text: labels.get(node.id) ?? node.text })) };
+    render(<Canvas initialState={state} />);
+    expect(screen.getByRole('button', { name: '节点：右分支' }).querySelector('button')).toBeNull();
+    const leftNode = screen.getByRole('button', { name: '节点：左分支' });
+    const leftToggle = screen.getByRole('button', { name: '收起子分支：左分支' });
+    expect(parseFloat(leftToggle.style.left)).toBeLessThan(parseFloat(leftNode.style.left));
+    fireEvent.click(screen.getByRole('button', { name: '收起子分支：嵌套分支' }));
+    expect(screen.queryByRole('button', { name: '节点：末端' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '节点：嵌套分支' }));
+    fireEvent.click(screen.getByRole('button', { name: '收起子分支：右分支' }));
+    expect(screen.queryByRole('button', { name: '节点：嵌套分支' })).not.toBeInTheDocument();
+    const folded = screen.getByRole('button', { name: '展开子分支：右分支' });
+    expect(folded).toHaveAttribute('aria-expanded', 'false');
+    expect(folded.textContent).toBe('+');
+    expect(changed.nodes).toHaveLength(6);
+    fireEvent.click(screen.getByRole('button', { name: '标记 ✅' }));
+    expect(changed.nodes.find((node) => node.id === branch)?.emoji).toBe('✅');
+    fireEvent.click(screen.getByRole('button', { name: '撤销' }));
+    fireEvent.click(screen.getByRole('button', { name: '撤销' }));
+    expect(screen.getByRole('button', { name: '节点：嵌套分支' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '节点：末端' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '重做' }));
+    expect(screen.queryByRole('button', { name: '节点：嵌套分支' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '展开子分支：右分支' }));
+    fireEvent.click(screen.getByRole('button', { name: '展开子分支：嵌套分支' }));
+    expect(screen.getByRole('button', { name: '节点：末端' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '收起子分支：末端' })).not.toBeInTheDocument();
+  });
+  it('uses plus/minus to fold selected branches, skips hidden keyboard targets and exposes newly added children', () => {
+    let state = newMindState('logic');
+    const root = state.nodes[0].id,
+      branch = crypto.randomUUID(),
+      child = crypto.randomUUID();
+    state = insertNode(state, root, 'child', branch);
+    state = insertNode(state, branch, 'child', child);
+    state = {
+      ...state,
+      nodes: state.nodes.map((node) => ({
+        ...node,
+        text: node.id === branch ? '分支' : node.id === child ? '隐藏子主题' : node.text,
+      })),
+    };
+    render(<Canvas initialState={state} />);
+    const canvas = screen.getByLabelText('导图画布');
+    fireEvent.click(screen.getByRole('button', { name: '节点：分支' }));
+    fireEvent.keyDown(canvas, { key: '-' });
+    fireEvent.keyDown(canvas, { key: 'ArrowRight' });
+    expect(screen.getByRole('button', { name: '节点：分支' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByLabelText('编辑节点')).not.toBeInTheDocument();
+    const control = screen.getByRole('button', { name: '展开子分支：分支' });
+    fireEvent.keyDown(control, { key: 'Enter' });
+    expect(screen.queryByLabelText('编辑节点')).not.toBeInTheDocument();
+    fireEvent.keyDown(canvas, { key: '+' });
+    expect(screen.getByRole('button', { name: '节点：隐藏子主题' })).toBeInTheDocument();
+    fireEvent.keyDown(canvas, { key: '-' });
+    fireEvent.keyDown(canvas, { key: 'Tab' });
+    expect(changed.nodes.find((node) => node.id === branch)?.collapsed).toBe(false);
+    expect(screen.getByRole('button', { name: '节点：隐藏子主题' })).toBeInTheDocument();
+    expect(screen.getByLabelText('编辑节点')).toBeInTheDocument();
   });
   it('wheel pinch changes map zoom, normal two-finger scrolling pans, and layout preserves content', async () => {
     render(<Canvas />);

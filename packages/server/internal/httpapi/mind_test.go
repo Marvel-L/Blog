@@ -121,6 +121,10 @@ func TestMindValidationAndOAuth(t *testing.T) {
 		strings.Replace(valid, `"side":1`, `"side":1,"color":"url(example)"`, 1),
 		strings.Replace(valid, `"side":1`, `"side":1,"color":null`, 1),
 		strings.Replace(valid, `"side":1`, `"side":1,"color":"#ffffff","extra":1`, 1),
+		strings.Replace(valid, `"side":1`, `"side":1,"collapsed":null`, 1),
+		strings.Replace(valid, `"side":1`, `"side":1,"collapsed":"true"`, 1),
+		strings.Replace(valid, `"side":1`, `"side":1,"collapsed":1`, 1),
+		strings.Replace(valid, `"side":1`, `"side":1,"collapsed":true,"extra":1`, 1),
 	} {
 		if validMindState(json.RawMessage(invalid)) {
 			t.Fatalf("invalid state accepted: %s", invalid)
@@ -134,6 +138,38 @@ func TestMindValidationAndOAuth(t *testing.T) {
 	for _, path := range []string{"/Blog/mind", "/mind"} {
 		requireStatus(t, f.request("GET", "/api/v1/auth/github/start?return_to="+path, "", "", ""), 302)
 	}
+}
+
+func TestMindCollapsedBranchesPersistCompleteTree(t *testing.T) {
+	f := setup(t)
+	cookie := f.login(t, "")
+	original := mindState("折叠的导图")
+	folded := strings.Replace(original, `"side":1`, `"side":1,"collapsed":true,"color":"#edf5fb"`, 1)
+	requireStatus(t, f.request("PUT", mindPath, cookie, dailyBody(0, "30000000-0000-4000-8000-000000000001", folded), cfg.Origin), 200)
+	w := f.request("GET", mindPath, cookie, "", "")
+	requireStatus(t, w, 200)
+	var response struct {
+		Map struct {
+			State struct {
+				Nodes []struct {
+					Text      string
+					Collapsed bool
+				}
+			}
+		}
+	}
+	decode(t, w.Body.String(), &response)
+	nodes := response.Map.State.Nodes
+	if len(nodes) != 2 || !nodes[0].Collapsed || nodes[1].Text != "子主题" {
+		t.Fatal("folding lost descendants or persisted state")
+	}
+	w = f.request("GET", "/api/v1/mind/maps", cookie, "", "")
+	if !strings.Contains(w.Body.String(), `"nodeCount":2`) {
+		t.Fatal("summary must count hidden topics")
+	}
+	unfolded := strings.Replace(folded, `"collapsed":true`, `"collapsed":false`, 1)
+	requireStatus(t, f.request("PUT", mindPath, cookie, dailyBody(1, "30000000-0000-4000-8000-000000000002", unfolded), cfg.Origin), 200)
+	requireStatus(t, f.request("PUT", mindPath, cookie, dailyBody(2, "30000000-0000-4000-8000-000000000003", original), cfg.Origin), 200)
 }
 
 func TestMindColorsAndMovedBranchPersistence(t *testing.T) {

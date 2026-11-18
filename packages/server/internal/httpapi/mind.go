@@ -61,6 +61,13 @@ func validMindState(raw json.RawMessage) bool {
 		if hasColor {
 			expectedFields++
 		}
+		if rawCollapsed, exists := node["collapsed"]; exists {
+			var collapsed bool
+			if string(rawCollapsed) == "null" || json.Unmarshal(rawCollapsed, &collapsed) != nil {
+				return false
+			}
+			expectedFields++
+		}
 		if err != nil || len(node) != expectedFields || json.Unmarshal(node["id"], &id) != nil || !uuidPattern.MatchString(id) || id != strings.ToLower(id) ||
 			!journalText(node["text"], 200, true) || !journalText(node["emoji"], 8, true) || json.Unmarshal(node["emoji"], &emoji) != nil ||
 			!markers[emoji] ||
