@@ -106,6 +106,60 @@ describe('Mind UI', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('id=');
     expect(screen.getByRole('button', { name: '节点：中心主题' })).toBeInTheDocument();
   });
+  it('imports into a new private map with the original title and retries the same creation receipt', async () => {
+    const imported = newMindState('logic');
+    imported.title = 'Coding 导入';
+    imported.nodes[0].text = '代码修改的主题';
+    let saved: { id: string; state: MindState; revision: number; updatedAt: string };
+    const writes: { url: string; body: string }[] = [];
+    vi.mocked(fetch).mockImplementation(async (url, init) => {
+      if (init?.method === 'PUT') {
+        writes.push({ url: String(url), body: String(init.body) });
+        if (writes.length === 1) return json({}, 500);
+        saved = {
+          id: String(url).split('/').pop()!,
+          state: JSON.parse(String(init.body)).state,
+          revision: 1,
+          updatedAt: '2026-11-18T12:00:00Z',
+        };
+        return json({ user: owner, map: saved });
+      }
+      return String(url).endsWith('/maps') ? json({ user: owner, maps: [] }) : json({ user: owner, map: saved });
+    });
+    mount();
+    fireEvent.click(await screen.findByRole('button', { name: '导入文件' }));
+    fireEvent.change(screen.getByLabelText('导图源码'), { target: { value: JSON.stringify(imported) } });
+    fireEvent.click(screen.getByRole('button', { name: '导入为新导图' }));
+    await screen.findByText('未能应用，请查看保存提示并重试；源码已保留');
+    fireEvent.click(screen.getByRole('button', { name: '导入为新导图' }));
+    await screen.findByLabelText('导图画布');
+    expect(writes).toHaveLength(2);
+    expect(writes[0]).toEqual(writes[1]);
+    expect(screen.getByLabelText('导图名称')).toHaveValue(imported.title);
+    expect(screen.getByRole('button', { name: '节点：代码修改的主题' })).toBeInTheDocument();
+  });
+  it('applies source in fullscreen as one undoable change including the imported viewport', async () => {
+    const initial = newMindState('mind');
+    render(<Canvas initialState={initial} />);
+    fireEvent.click(screen.getByRole('button', { name: '进入全屏' }));
+    await screen.findByRole('dialog', { name: '导图全屏编辑' });
+    fireEvent.click(screen.getByRole('button', { name: '导图文件与源码' }));
+    expect(screen.getByRole('dialog', { name: '导图文件与源码' }).closest('.mind-editor-host')).not.toBeNull();
+    const imported = newMindState('logic');
+    imported.nodes[0].text = '新源码主题';
+    imported.viewport = { x: 100, y: -50, zoom: 0.75 };
+    fireEvent.change(screen.getByLabelText('导图源码'), { target: { value: JSON.stringify(imported) } });
+    fireEvent.keyDown(screen.getByLabelText('导图画布'), { key: 'Tab' });
+    expect(screen.queryByLabelText('编辑节点')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '应用到当前导图' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: '导图文件与源码' })).not.toBeInTheDocument());
+    expect(changed).toEqual(imported);
+    expect(screen.getByRole('dialog', { name: '导图全屏编辑' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '撤销' }));
+    expect(changed).toEqual(initial);
+    fireEvent.click(screen.getByRole('button', { name: '重做' }));
+    expect(changed).toEqual(imported);
+  });
   it('handles Tab, Enter, emoji, Delete and undo while protecting text editing and IME', () => {
     render(<Canvas />);
     const canvas = screen.getByLabelText('导图画布');

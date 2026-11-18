@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useHref, useSearchParams } from 'react-router-dom';
-import { GitBranch, LockKeyhole, Plus, Search } from 'lucide-react';
+import { GitBranch, LockKeyhole, Plus, Search, Upload } from 'lucide-react';
 import { AccountCredentials } from '@/cloud/AccountCredentials';
 import { cloudRequest, CloudError, type CloudUser } from '@/cloud/api';
 import { Seo } from '@/components/Seo';
 import { MindCanvas } from './MindCanvas';
+import { MindFileDialog } from './MindFiles';
 import { UUID, newMindState, type MindLayout, type MindState, type MindSummary } from './model';
 import { clearMindDrafts, validateMap, type MapResponse } from './sync';
 import { useMindDocument } from './useMindDocument';
@@ -123,10 +124,11 @@ export default function Mind() {
   const [query, setQuery] = useState('');
   const [layout, setLayout] = useState<MindLayout>('mind');
   const [busy, setBusy] = useState(false);
+  const [importing, setImporting] = useState(false);
   const generation = useRef(0);
   const creating = useRef(false);
   const currentUser = useRef('');
-  const pendingCreate = useRef<{ id: string; body: string } | null>(null);
+  const pendingCreate = useRef<{ id: string; body: string; source: string } | null>(null);
   const write = useRef<AbortController | null>(null);
   const loginReturn = useHref('/mind');
   const retry = useCallback(() => setReload((n) => n + 1), []);
@@ -138,6 +140,7 @@ export default function Mind() {
     pendingCreate.current = null;
     creating.current = false;
     setBusy(false);
+    setImporting(false);
     setData(null);
     setPhase('unauthorized');
   }, []);
@@ -190,8 +193,12 @@ export default function Mind() {
     return () => controller.abort();
   }, [reload]);
 
-  const create = async (copy?: MindState) => {
-    if (!data || creating.current) return;
+  const create = async (imported?: MindState): Promise<boolean> => {
+    if (!data || creating.current) return false;
+    if (imported && pendingCreate.current && pendingCreate.current.source !== JSON.stringify(imported)) {
+      setError('上一次创建尚未确认成功，请先重试完成；当前源码已保留');
+      return false;
+    }
     creating.current = true;
     setBusy(true);
     setError('');
@@ -199,28 +206,35 @@ export default function Mind() {
       controller = new AbortController();
     write.current = controller;
     try {
-      pendingCreate.current ??= {
-        id: crypto.randomUUID(),
-        body: JSON.stringify({
-          baseRevision: 0,
-          mutationId: crypto.randomUUID(),
-          state: copy ? { ...copy, title: `${copy.title.slice(0, 110)} · 副本` } : newMindState(layout),
-        }),
-      };
+      if (!pendingCreate.current) {
+        const state = imported ?? newMindState(layout);
+        pendingCreate.current = {
+          id: crypto.randomUUID(),
+          source: JSON.stringify(state),
+          body: JSON.stringify({
+            baseRevision: 0,
+            mutationId: crypto.randomUUID(),
+            state,
+          }),
+        };
+      }
       const pending = pendingCreate.current;
       const response = await cloudRequest<MapResponse>(`/mind/maps/${pending.id}`, {
         method: 'PUT',
         body: pending.body,
         signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]),
       });
-      if (epoch !== generation.current || controller.signal.aborted) return;
+      if (epoch !== generation.current || controller.signal.aborted) return false;
       validateMap(response, data.user.id, pending.id);
       pendingCreate.current = null;
+      setImporting(false);
       setParams({ id: pending.id });
+      return true;
     } catch (cause) {
-      if (epoch !== generation.current || controller.signal.aborted) return;
+      if (epoch !== generation.current || controller.signal.aborted) return false;
       if (cause instanceof CloudError && cause.status === 401) unauthorized();
       else setError(cause instanceof Error ? cause.message : '创建失败，请重试');
+      return false;
     } finally {
       if (epoch === generation.current) {
         creating.current = false;
@@ -292,7 +306,9 @@ export default function Mind() {
               id={id}
               onBack={back}
               onUnauthorized={unauthorized}
-              onCopy={create}
+              onCopy={async (state) => {
+                await create({ ...state, title: `${Array.from(state.title).slice(0, 110).join('')} · 副本` });
+              }}
               busy={busy}
             />
           ) : (
@@ -316,7 +332,10 @@ export default function Mind() {
               </header>
               <div className="mind-library-label">
                 <span>最近编辑</span>
-                <span>想法，从一个主题开始。</span>
+                <button type="button" className="mind-import-button" disabled={busy} onClick={() => setImporting(true)}>
+                  <Upload size={14} />
+                  导入文件
+                </button>
               </div>
               <div className="mind-map-grid">
                 <div className="mind-create-card">
@@ -362,6 +381,7 @@ export default function Mind() {
                 ))}
               </div>
               {query && !maps.length && <p className="mind-empty">没有找到“{query}”</p>}
+              {importing && <MindFileDialog onClose={() => setImporting(false)} onApply={create} busy={busy} />}
             </div>
           )}
         </>

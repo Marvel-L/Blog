@@ -45,6 +45,7 @@ import { useNodeSizes } from './useNodeSizes';
 import { useNodeDrag } from './useNodeDrag';
 import { useMindFullscreen, type MindFullscreen } from './useMindFullscreen';
 import { MindEdgeView, MindNodeView, type MindNodeActions } from './MindNodeView';
+import { MindFiles } from './MindFiles';
 
 interface Props {
   snapshot: SaveSnapshot;
@@ -93,8 +94,8 @@ function MindCanvasEditor({
   const [editing, setEditing] = useState<MindEditLayout | null>(null);
   const editingId = editing?.id;
   const [notice, setNotice] = useState('');
-  const undo = useRef<MindState[]>([]);
-  const redo = useRef<MindState[]>([]);
+  const undo = useRef<{ state: MindState; restoreView: boolean }[]>([]);
+  const redo = useRef<{ state: MindState; restoreView: boolean }[]>([]);
   const [historyVersion, setHistoryVersion] = useState(0);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const gesture = useRef<{ view: Viewport; distance: number; x: number; y: number } | null>(null);
@@ -229,8 +230,8 @@ function MindCanvasEditor({
     };
   }, [changeView]);
 
-  const remember = () => {
-    undo.current = [...undo.current.slice(-79), latest.current];
+  const remember = (restoreView = false) => {
+    undo.current = [...undo.current.slice(-79), { state: latest.current, restoreView }];
     redo.current = [];
     setHistoryVersion((v) => v + 1);
   };
@@ -275,13 +276,30 @@ function MindCanvasEditor({
     });
     commit({ ...latest.current, nodes });
   };
+  const replace = (next: MindState) => {
+    cancelAnimationFrame(frame.current);
+    frame.current = 0;
+    pendingView.current = null;
+    nodeDrag.cancel();
+    pointers.current.clear();
+    gesture.current = null;
+    safariGesture.current = null;
+    setDragging(false);
+    setEditing(null);
+    previousGeometry.current = undefined;
+    remember(true);
+    change(next);
+    setSelected(next.nodes.find((node) => node.parentId === null)!.id);
+    setNotice('已应用导图文件，可撤销');
+  };
   const history = (direction: 'undo' | 'redo') => {
     const source = direction === 'undo' ? undo : redo;
     const target = direction === 'undo' ? redo : undo;
-    const next = source.current.pop();
-    if (!next) return;
-    target.current.push(latest.current);
-    change({ ...next, viewport: latest.current.viewport });
+    const entry = source.current.pop();
+    if (!entry) return;
+    const next = entry.state;
+    target.current.push({ state: latest.current, restoreView: entry.restoreView });
+    change(entry.restoreView ? next : { ...next, viewport: latest.current.viewport });
     if (!next.nodes.some((n) => n.id === selected)) setSelected(next.nodes.find((n) => !n.parentId)!.id);
     setEditing(null);
     setHistoryVersion((v) => v + 1);
@@ -483,7 +501,7 @@ function MindCanvasEditor({
           className="mind-title-input"
           value={state.title}
           maxLength={120}
-          onFocus={remember}
+          onFocus={() => remember()}
           onChange={(event) =>
             change({ ...latest.current, title: event.target.value.trim() ? event.target.value : '未命名导图' })
           }
@@ -497,6 +515,12 @@ function MindCanvasEditor({
           <option value="logic">逻辑图</option>
         </select>
         <span className="mind-private">仅自己可见</span>
+        <MindFiles
+          getState={() => latest.current}
+          onReplace={replace}
+          busy={busy}
+          portalTarget={fullscreen.mode === 'none' ? null : fullscreen.host}
+        />
         <button
           type="button"
           className="mind-icon mind-fullscreen-toggle"
@@ -628,6 +652,7 @@ function MindCanvasEditor({
         tabIndex={0}
         onKeyDown={keyDown}
         onPointerDown={(event) => {
+          if (hasOpenOverlay()) return;
           const nodePointer = nodeDrag.current.current;
           const secondTouch = event.pointerType === 'touch' && nodePointer && nodePointer.pointerId !== event.pointerId;
           if (
