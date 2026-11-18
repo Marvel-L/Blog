@@ -1,5 +1,44 @@
 import type { DraftDocument } from './model';
 import { markdownToHtml, cleanResumeHtml } from './markdown';
+import githubHighlight from 'highlight.js/styles/github.css?raw';
+import { codeTokens } from './code-highlight';
+
+/** Decorate existing text nodes so selected marks and code text survive printing. */
+function decoratePrintCode(body: HTMLElement) {
+  for (const pre of body.querySelectorAll('pre')) {
+    const code = pre.querySelector('code');
+    if (!code) continue;
+    const source = code.textContent ?? '';
+    const language = [...code.classList].find((name) => name.startsWith('language-'))?.slice(9) ?? '';
+    const tokens = codeTokens(source, language);
+    const walker = body.ownerDocument.createTreeWalker(code, NodeFilter.SHOW_TEXT);
+    const textNodes: Text[] = [];
+    while (walker.nextNode()) textNodes.push(walker.currentNode as Text);
+    let offset = 0;
+    let tokenIndex = 0;
+    for (const node of textNodes) {
+      const text = node.textContent ?? '';
+      const fragment = body.ownerDocument.createDocumentFragment();
+      const end = offset + text.length;
+      let cursor = offset;
+      while (tokenIndex < tokens.length && tokens[tokenIndex].to <= offset) tokenIndex++;
+      for (let i = tokenIndex; i < tokens.length && tokens[i].from < end; i++) {
+        const token = tokens[i];
+        const start = Math.max(cursor, token.from);
+        if (start > cursor) fragment.append(source.slice(cursor, start));
+        const span = body.ownerDocument.createElement('span');
+        span.className = token.className;
+        span.textContent = source.slice(start, Math.min(end, token.to));
+        fragment.append(span);
+        cursor = Math.min(end, token.to);
+      }
+      if (cursor < end) fragment.append(source.slice(cursor, end));
+      node.replaceWith(fragment);
+      offset = end;
+    }
+    code.classList.add('hljs');
+  }
+}
 
 /** Print an isolated current snapshot, without app navigation, comments or other drafts. */
 export function printDocument(doc: DraftDocument, onError: (message: string) => void): () => void {
@@ -27,7 +66,7 @@ export function printDocument(doc: DraftDocument, onError: (message: string) => 
       target.head.append(sheet.cloneNode(true));
     const styled = Boolean(document.querySelector('.site-shell[data-typography="resume"]'));
     const css = target.createElement('style');
-    css.textContent = `
+    css.textContent = `${githubHighlight}
       @page { size: A4; margin: 16mm; }
       html, body { margin: 0 !important; background: white !important; color: #293936 !important; }
       .resume-document { min-height: 0; font-family: ${styled ? "'Resume Sans'," : ''} 'PingFang SC', sans-serif;
@@ -49,11 +88,16 @@ export function printDocument(doc: DraftDocument, onError: (message: string) => 
       .resume-document :is(th,td) { border:1px solid #dde3dc; padding:6px; }
       .resume-document blockquote { padding-left:1em; border-left:2px solid #dde3dc; }
       .resume-document mark { background:#fef08a; color:#293936; print-color-adjust:exact; }
+      .resume-document pre { padding:12px; background:white; break-inside:auto; }
+      .resume-document pre code.hljs { display:block; padding:0; background:transparent; overflow:visible;
+        font-size:.9em; line-height:1.8; }
+      .resume-document pre, .resume-document pre * { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
     `;
     target.head.append(css);
     const body = target.createElement('article');
     body.className = 'resume-document';
     body.innerHTML = cleanResumeHtml(markdownToHtml(doc.content.markdown), false);
+    decoratePrintCode(body);
     target.body.append(body);
     win.addEventListener('afterprint', dispose, { once: true });
     timer = setTimeout(() => {

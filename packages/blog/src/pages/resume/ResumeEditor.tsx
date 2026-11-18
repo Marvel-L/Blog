@@ -23,6 +23,7 @@ import {
   MessageSquarePlus,
   Link,
   ImagePlus,
+  Code2,
 } from 'lucide-react';
 import {
   cleanResumeHtml,
@@ -47,9 +48,11 @@ import {
 } from './model';
 import { addCommentAnchor, commentRanges, documentMarkdown, removeCommentAnchor, ResumeCommentMark } from './comments';
 import ResumeComments, { type CommentDraft } from './ResumeComments';
+import { ResumeCodeBlock } from './ResumeCodeBlock';
 
 const extensions = [
   StarterKit.configure({
+    codeBlock: false,
     link: {
       openOnClick: 'whenNotEditable',
       defaultProtocol: 'https',
@@ -112,7 +115,7 @@ export default function ResumeEditor({
   const draftRange = useRef<{ from: number; to: number; doc: DocumentNode; markdown: string } | null>(null);
   const pendingLocate = useRef<string | null>(null);
   const editor = useEditor({
-    extensions,
+    extensions: [...extensions, ResumeCodeBlock],
     immediatelyRender: false,
     content: '',
     editable: !readonly,
@@ -344,6 +347,15 @@ export default function ResumeEditor({
               <ImagePlus size={16} />
             </button>
             <span className="resume-separator" aria-hidden="true" />
+            <button
+              type="button"
+              title="Go 代码块"
+              aria-label="Go 代码块"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => editor.chain().focus().toggleCodeBlock({ language: 'go' }).run()}
+            >
+              <Code2 size={17} />
+            </button>
             <button
               type="button"
               title="正文"

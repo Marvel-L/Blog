@@ -7,16 +7,17 @@ import type { ResumeState } from './model';
 
 afterEach(() => vi.restoreAllMocks());
 
-async function mount() {
+async function mount(initial = '负责系统开发，系统开发') {
   const changes = vi.fn();
   const errors = vi.fn();
   function Harness() {
-    const [state, setState] = useState<ResumeState>({ version: 1, markdown: '负责系统开发，系统开发' });
+    const [state, setState] = useState<ResumeState>({ version: 1, markdown: initial });
     const [mode, setMode] = useState<'edit' | 'markdown' | 'preview'>('edit');
     return (
       <>
         <button onClick={() => setMode('markdown')}>源码</button>
         <button onClick={() => setMode('edit')}>编辑</button>
+        <button onClick={() => setMode('preview')}>预览</button>
         <ResumeEditor
           state={state}
           mode={mode}
@@ -32,7 +33,7 @@ async function mount() {
   }
   const rendered = render(<Harness />);
   const doc = await screen.findByRole('textbox', { name: '定稿正文' });
-  await waitFor(() => expect(doc).toHaveTextContent('负责系统开发'));
+  await waitFor(() => expect(doc.textContent).not.toBe(''));
   const editor = (doc as HTMLElement & { editor: Editor }).editor;
   return { ...rendered, editor, doc, changes, errors };
 }
@@ -75,6 +76,36 @@ it('submits anchors and metadata once, edits comments without rewriting source, 
   expect(changes.mock.lastCall![0].comments).toEqual([]);
   expect(doc).toHaveTextContent('负责，系统开发');
   expect(errors.mock.calls.every(([message]) => message === '')).toBe(true);
+});
+
+it('highlights a real code selection through the existing context menu, saves it and reloads the same selection in preview', async () => {
+  const source = 'package main\n\nfunc main() {\n\tprintln("hello")\n}\n';
+  const original = '# 方案\n\n```go\n' + source + '\n```';
+  const { editor, doc, changes, unmount } = await mount(original);
+  fireEvent.click(screen.getByRole('button', { name: '预览' }));
+  expect(doc).toHaveAttribute('contenteditable', 'false');
+  expect(changes).not.toHaveBeenCalled();
+  expect(doc.querySelector('.hljs-keyword')).toHaveTextContent('package');
+  expect(screen.queryByRole('button', { name: '高亮行' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: '编辑' }));
+  const from = 1 + editor.state.doc.child(0).nodeSize + source.indexOf('println');
+  act(() => editor.commands.setTextSelection({ from, to: from + 7 }));
+  fireEvent.contextMenu(doc, { clientX: 50, clientY: 100 });
+  fireEvent.click(screen.getByRole('menuitem', { name: '高亮' }));
+  expect(changes).toHaveBeenCalledOnce();
+  const saved: ResumeState = changes.mock.lastCall![0];
+  expect(saved.markdown).toContain('<mark');
+  expect(doc.querySelector('code mark')).toHaveTextContent('println');
+  const code = editor.state.doc.child(1);
+  expect(code.textContent).toBe(source);
+  unmount();
+  const reloaded = await mount(saved.markdown);
+  fireEvent.click(screen.getByRole('button', { name: '预览' }));
+  expect(reloaded.doc).toHaveAttribute('contenteditable', 'false');
+  expect(reloaded.doc.querySelector('code mark')).toHaveTextContent('println');
+  expect(reloaded.doc.querySelector('code .hljs-keyword')).toHaveTextContent('package');
+  expect(reloaded.editor.state.doc.child(1).textContent).toBe(source);
+  expect(reloaded.changes).not.toHaveBeenCalled();
 });
 
 it('retains draft text and rejects a stale selected range after concurrent body editing', async () => {

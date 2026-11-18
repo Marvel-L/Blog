@@ -44,3 +44,23 @@ it('reports missing images instead of silently producing an incomplete PDF', asy
   expect(document.querySelector('iframe')).toBeNull();
   dispose();
 });
+
+it('prints Go syntax and selected text highlights, retaining empty lines and literal HTML as code', async () => {
+  const doc = newDocument('代码方案');
+  const source = 'package main\n\nfunc main() {\n\tprintln("<script>")\n}';
+  doc.content.markdown =
+    '<pre><code class="language-go">package main\n\nfunc main() {\n\t<mark>println</mark>("&lt;script&gt;")\n}</code></pre>';
+  const dispose = printDocument(doc, vi.fn());
+  const target = document.querySelector('iframe')!.contentDocument!;
+  try {
+    const code = target.querySelector('code')!;
+    expect(code.textContent).toBe(source);
+    expect(code.querySelector('.hljs-keyword')).toHaveTextContent('package');
+    expect(code.querySelectorAll('mark')).toHaveLength(1);
+    expect(code.querySelector('mark')).toHaveTextContent('println');
+    expect(target.querySelector('script, button')).toBeNull();
+    expect(target.head.textContent).toContain('print-color-adjust:exact');
+  } finally {
+    dispose();
+  }
+});

@@ -1,7 +1,8 @@
 import DOMPurify from 'dompurify';
-import { marked } from 'marked';
+import { marked, Renderer } from 'marked';
 import TurndownService from 'turndown';
 import { COMMENT_ATTR, commentIds } from './model';
+import { CODE_META_ATTR, codeLanguage, codeMeta, parseCodeInfo } from './code';
 
 export const RED = '#c2413b';
 export const GREEN = '#18794e';
@@ -57,10 +58,37 @@ export function cleanResumeHtml(html: string, keepComments = true): string {
       'td',
       'img',
     ],
-    ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'style', 'start', 'colspan', 'rowspan', COMMENT_ATTR],
+    ALLOWED_ATTR: [
+      'href',
+      'src',
+      'alt',
+      'title',
+      'style',
+      'start',
+      'colspan',
+      'rowspan',
+      COMMENT_ATTR,
+      'class',
+      CODE_META_ATTR,
+    ],
     ALLOW_DATA_ATTR: false,
   });
   const doc = new DOMParser().parseFromString(clean, 'text/html');
+  for (const node of doc.body.querySelectorAll('[class]')) {
+    const language =
+      node.tagName === 'CODE' && node.parentElement?.tagName === 'PRE'
+        ? [...node.classList].find((name) => name.startsWith('language-'))
+        : '';
+    node.removeAttribute('class');
+    if (language && codeLanguage(language.slice(9))) node.className = language;
+  }
+  for (const attr of [CODE_META_ATTR]) {
+    for (const node of doc.body.querySelectorAll(`[${attr}]`)) {
+      const value = node.tagName === 'PRE' ? codeMeta(node.getAttribute(attr)) : '';
+      if (value) node.setAttribute(attr, value);
+      else node.removeAttribute(attr);
+    }
+  }
   for (const node of doc.body.querySelectorAll(`[${COMMENT_ATTR}]`)) {
     const ids = keepComments && node.tagName === 'SPAN' ? commentIds(node.getAttribute(COMMENT_ATTR)) : [];
     if (ids.length) node.setAttribute(COMMENT_ATTR, ids.join(' '));
@@ -86,16 +114,54 @@ export function cleanResumeHtml(html: string, keepComments = true): string {
   // Old resume templates use private-use font glyphs without a portable font.
   const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
   while (walker.nextNode())
-    walker.currentNode.textContent = walker.currentNode.textContent?.replace(/[\uE000-\uF8FF]/gu, '') ?? '';
+    if (!walker.currentNode.parentElement?.closest('pre, code'))
+      walker.currentNode.textContent = walker.currentNode.textContent?.replace(/[\uE000-\uF8FF]/gu, '') ?? '';
   return doc.body.innerHTML;
 }
 
 export function markdownToHtml(markdown: string): string {
-  return cleanResumeHtml(marked.parse(markdown, { async: false, gfm: true, breaks: false }));
+  const escape = (text: string) =>
+    text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const renderer = new Renderer();
+  renderer.code = ({ text, lang }) => {
+    const { language, meta } = parseCodeInfo(lang ?? '');
+    return `<pre${meta ? ` ${CODE_META_ATTR}="${escape(meta)}"` : ''}><code${language ? ` class="language-${language}"` : ''}>${escape(text)}</code></pre>\n`;
+  };
+  return cleanResumeHtml(marked.parse(markdown, { async: false, gfm: true, breaks: false, renderer }));
+}
+
+function codeToMarkdown(pre: HTMLElement): string {
+  const code = pre.querySelector('code');
+  // A fence has no inline-mark syntax. Safe HTML preserves selected code marks
+  // while its escaped text retains literal <, &, whitespace and newlines.
+  if (code?.querySelector('mark, span[style]')) return `\n\n${pre.outerHTML}\n\n`;
+  const text = code?.textContent ?? pre.textContent ?? '';
+  const language = codeLanguage([...(code?.classList ?? [])].find((name) => name.startsWith('language-'))?.slice(9));
+  const meta = codeMeta(pre.getAttribute(CODE_META_ATTR));
+  let fenceLength = 3;
+  for (const match of text.matchAll(/`+/g)) fenceLength = Math.max(fenceLength, match[0].length + 1);
+  const fence = '`'.repeat(fenceLength);
+  return `\n\n${fence}${language}${meta ? ` ${meta}` : ''}\n${text}\n${fence}\n\n`;
 }
 
 export function htmlToMarkdown(html: string): string {
-  const converter = new TurndownService({ headingStyle: 'atx', bulletListMarker: '-', codeBlockStyle: 'fenced' });
+  const converter = new TurndownService({
+    headingStyle: 'atx',
+    bulletListMarker: '-',
+    codeBlockStyle: 'fenced',
+    blankReplacement: (_content, node) =>
+      node.nodeName === 'PRE'
+        ? codeToMarkdown(node)
+        : (node as HTMLElement & { isBlock: boolean }).isBlock
+          ? '\n\n'
+          : '',
+  });
+  converter.addRule('resumeCode', {
+    filter: 'pre',
+    replacement: (_content, node) => {
+      return codeToMarkdown(node as HTMLElement);
+    },
+  });
   // Editor table cells contain paragraphs and may span rows/columns. HTML keeps
   // that structure intact; pipe-table serializers discard it on a round trip.
   converter.addRule('resumeTable', {
