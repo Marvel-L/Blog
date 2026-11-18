@@ -2,6 +2,7 @@ import type { DraftDocument } from './model';
 import { markdownToHtml, cleanResumeHtml } from './markdown';
 import githubHighlight from 'highlight.js/styles/github.css?raw';
 import { codeTokens } from './code-highlight';
+import printCjkFont from '@/assets/resume-fonts/SourceHanSansCN-Regular.woff2';
 
 /** Decorate existing text nodes so selected marks and code text survive printing. */
 function decoratePrintCode(body: HTMLElement) {
@@ -67,9 +68,12 @@ export function printDocument(doc: DraftDocument, onError: (message: string) => 
     const styled = Boolean(document.querySelector('.site-shell[data-typography="resume"]'));
     const css = target.createElement('style');
     css.textContent = `${githubHighlight}
+      @font-face { font-family: "Resume Print CJK"; src: url("${printCjkFont}") format("woff2");
+        font-weight: 400; font-display: swap; }
       @page { size: A4; margin: 16mm; }
       html, body { margin: 0 !important; background: white !important; color: #293936 !important; }
-      .resume-document { min-height: 0; font-family: ${styled ? "'Resume Sans'," : ''} 'PingFang SC', sans-serif;
+      .resume-document { min-height: 0; font-family: ${styled ? "'Resume Sans'," : ''}
+        "Resume Print CJK", "PingFang SC", "Microsoft YaHei", sans-serif;
         font-size: 11pt; line-height: 1.8; overflow-wrap: anywhere; }
       .resume-document :is(h1,h2,h3,h4,h5,h6) { ${styled ? "font-family:'Resume Serif',serif;" : ''}
         break-after: avoid; font-weight:700; line-height:1.5; margin:1.3em 0 .5em; }
@@ -82,7 +86,8 @@ export function printDocument(doc: DraftDocument, onError: (message: string) => 
       .resume-document :is(ul,ol) { padding-left:1.5em; margin:.6em 0 1em; }
       .resume-document ul { list-style:disc; } .resume-document ol { list-style:decimal; }
       .resume-document li { margin:.2em 0; }
-      .resume-document :is(code,pre) { font-family:${styled ? "'Resume Mono'," : ''} monospace; white-space:pre-wrap; }
+      .resume-document :is(code,pre) { font-family:${styled ? "'Resume Mono'," : 'ui-monospace, "SFMono-Regular", Menlo, Consolas,'}
+        "Resume Print CJK", "PingFang SC", "Microsoft YaHei", monospace; white-space:pre-wrap; }
       .resume-document img { display:block; max-width:100%; height:auto; margin:1em auto; break-inside:avoid; }
       .resume-document table { border-collapse:collapse; width:100%; }
       .resume-document :is(th,td) { border:1px solid #dde3dc; padding:6px; }
@@ -113,14 +118,21 @@ export function printDocument(doc: DraftDocument, onError: (message: string) => 
             image.addEventListener('error', () => resolve(false), { once: true });
           }),
     );
-    const fonts =
-      styled && target.fonts
-        ? Promise.all([
-            target.fonts.load('11pt "Resume Sans"'),
-            target.fonts.load('700 16pt "Resume Serif"'),
-            target.fonts.load('11pt "Resume Mono"'),
-          ])
-        : (target.fonts?.ready ?? Promise.resolve());
+    // System font fallbacks can leave glyphs blank in browser PDFs.
+    // Embed a fallback for both prose and code, using the actual characters.
+    const text = body.textContent || ' ';
+    const fonts = target.fonts
+      ? Promise.all([
+          target.fonts.load('11pt "Resume Print CJK"', text),
+          ...(styled
+            ? [
+                target.fonts.load('11pt "Resume Sans"', text),
+                target.fonts.load('700 16pt "Resume Serif"', text),
+                target.fonts.load('11pt "Resume Mono"', text),
+              ]
+            : []),
+        ]).then(() => target.fonts.ready)
+      : Promise.resolve();
     void Promise.all([fonts, ...images])
       .then((results) => {
         if (!live) return;
