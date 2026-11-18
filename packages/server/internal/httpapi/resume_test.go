@@ -178,3 +178,68 @@ func TestResumeCommentsValidationAndPersistence(t *testing.T) {
 	state["comments"] = []any{}
 	requireStatus(t, f.request("PUT", "/api/v1/resume", alice, send(2, "33333333-3333-4333-8333-333333333333"), cfg.Origin), 200)
 }
+
+func TestDraftLibraryUpgradeIsolationAndLegacyGuard(t *testing.T) {
+	f := setup(t)
+	alice := f.login(t, "")
+	id := resumeOwner(t, f, alice)
+	old := resumeBody(id, 0, "11111111-1111-4111-8111-111111111111", "# 原有简历")
+	requireStatus(t, f.request("PUT", "/api/v1/resume", alice, old, cfg.Origin), 200)
+	first := map[string]any{"id": "00000000-0000-4000-8000-000000000019", "title": "我的简历",
+		"content": map[string]any{"version": 1, "markdown": "# 原有简历"}}
+	second := map[string]any{"id": "22222222-2222-4222-8222-222222222222", "title": "项目主稿", "kind": "interview",
+		"content": map[string]any{"version": 1, "markdown": "# 异常恢复\n\n![方案图](https://example.com/flow.png)"}}
+	state := map[string]any{"version": 2, "documents": []any{first, second}}
+	send := func(base int, mutation string) string {
+		raw, _ := json.Marshal(map[string]any{"expectedUserId": id, "baseRevision": base, "mutationId": mutation, "state": state})
+		return string(raw)
+	}
+	body := send(1, "33333333-3333-4333-8333-333333333333")
+	requireStatus(t, f.request("PUT", "/api/v1/resume", alice, body, "https://evil.example"), 403)
+	requireStatus(t, f.request("PUT", "/api/v1/resume", alice, body, cfg.Origin), 200)
+	requireStatus(t, f.request("PUT", "/api/v1/resume", alice, body, cfg.Origin), 200)
+	got, err := f.db.Resume(ctx, id)
+	if err != nil || got.Revision != 2 || !strings.Contains(string(got.State), "原有简历") || !strings.Contains(string(got.State), "异常恢复") {
+		t.Fatal("library upgrade lost a document")
+	}
+	var persisted struct {
+		Documents []struct{ Kind string }
+	}
+	if json.Unmarshal(got.State, &persisted) != nil || len(persisted.Documents) != 2 || persisted.Documents[1].Kind != "interview" {
+		t.Fatal("historical library metadata was rejected or rewritten")
+	}
+	// Old clients, even with the latest revision, cannot wipe the library.
+	requireStatus(t, f.request("PUT", "/api/v1/resume", alice,
+		resumeBody(id, 2, "44444444-4444-4444-8444-444444444444", "旧客户端覆盖"), cfg.Origin), 409)
+	// Replaying a pre-upgrade receipt remains safe and returns the current library.
+	w := f.request("PUT", "/api/v1/resume", alice, old, cfg.Origin)
+	requireStatus(t, w, 200)
+	if !strings.Contains(w.Body.String(), "项目主稿") {
+		t.Fatal("legacy receipt replaced upgraded library")
+	}
+	for _, invalid := range []any{
+		nil, []any{first, first},
+		[]any{map[string]any{"id": first["id"], "title": "嵌套", "kind": "resume", "content": map[string]any{"version": 2, "documents": []any{}}}},
+		[]any{map[string]any{"id": first["id"], "title": "错误字段", "kind": "invalid", "content": first["content"]}},
+	} {
+		state["documents"] = invalid
+		requireStatus(t, f.request("PUT", "/api/v1/resume", alice, send(2, "55555555-5555-4555-8555-555555555555"), cfg.Origin), 400)
+	}
+	state["documents"] = []any{first, second}
+	second["title"] = "主稿定稿"
+	requireStatus(t, f.request("PUT", "/api/v1/resume", alice, send(2, "55555555-5555-4555-8555-555555555555"), cfg.Origin), 200)
+	f.identity.ID, f.identity.Login = "203", "library-bob"
+	bob := f.login(t, "")
+	requireStatus(t, f.request("PUT", "/api/v1/resume", bob, body, cfg.Origin), 401)
+	w = f.request("GET", "/api/v1/resume", bob, "", "")
+	requireStatus(t, w, 200)
+	if strings.Contains(w.Body.String(), "原有简历") || strings.Contains(w.Body.String(), "定稿") {
+		t.Fatal("library leaked across accounts")
+	}
+	state["documents"] = []any{first}
+	requireStatus(t, f.request("PUT", "/api/v1/resume", alice, send(3, "66666666-6666-4666-8666-666666666666"), cfg.Origin), 200)
+	got, _ = f.db.Resume(ctx, id)
+	if got.Revision != 4 || strings.Contains(string(got.State), "异常恢复") || !strings.Contains(string(got.State), "原有简历") {
+		t.Fatal("deleting one document changed another")
+	}
+}

@@ -1,15 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CloudError, cloudRequest, type CloudUser } from '@/cloud/api';
-import { validateResume, type ResumeResponse, type ResumeState } from './model';
+import {
+  sameLibrary,
+  toLibrary,
+  validLibrary,
+  validateResume,
+  type DraftLibrary,
+  type ResumeResponse,
+  type StoredResume,
+} from './model';
 import { ResumeSession, type ResumeView } from './sync';
 
 export function useResume() {
   const [phase, setPhase] = useState<'loading' | 'ready' | 'unauthorized' | 'error'>('loading');
   const [user, setUser] = useState<CloudUser | null>(null);
-  const [view, setView] = useState<ResumeView | null>(null);
+  const [view, setView] = useState<ResumeView<DraftLibrary> | null>(null);
   const [error, setError] = useState('');
   const [sessionId, setSessionId] = useState(0);
-  const session = useRef<ResumeSession | null>(null);
+  const session = useRef<ResumeSession<DraftLibrary> | null>(null);
   const epoch = useRef(0);
   const read = useRef<AbortController | null>(null);
   const mounted = useRef(false);
@@ -23,7 +31,7 @@ export function useResume() {
     setError('');
     try {
       const response = validateResume(
-        await cloudRequest<ResumeResponse>('/resume', {
+        await cloudRequest<ResumeResponse<StoredResume>>('/resume', {
           signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]),
         }),
       );
@@ -33,7 +41,7 @@ export function useResume() {
         return;
       }
       session.current?.dispose(discardDraft);
-      const next = new ResumeSession(
+      const next = new ResumeSession<DraftLibrary>(
         response.user.id,
         response.resume,
         setView,
@@ -45,6 +53,7 @@ export function useResume() {
           setPhase('unauthorized');
         },
         !discardDraft,
+        { normalize: toLibrary, valid: validLibrary, same: sameLibrary },
       );
       session.current = next;
       setUser(response.user);
@@ -108,7 +117,7 @@ export function useResume() {
     view,
     error,
     sessionId,
-    update: (value: string | ResumeState) => session.current?.update(value),
+    update: (value: DraftLibrary) => session.current?.update(value),
     sync: () => session.current?.flush(),
     reload: (discardDraft = false) => load(discardDraft),
   };

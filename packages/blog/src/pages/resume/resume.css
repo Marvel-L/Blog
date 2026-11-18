@@ -19,7 +19,7 @@
   --cv-tint: #2c372e;
   --cv-accent: #b1c4a7;
 }
-.dark main:has(.resume-page[aria-label='我的简历']) {
+.dark main:has(.resume-page[aria-label='我的定稿']) {
   background: #171e19;
 }
 .resume-heading,
@@ -180,8 +180,87 @@
   outline: none;
   min-height: 660px;
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  line-height: 1.85;
+  font-size: var(--reading-font-size, 1rem);
+  line-height: var(--reading-line-height, 1.8);
   overflow-wrap: anywhere;
+}
+.resume-document img {
+  max-width: 100%;
+  height: auto;
+  margin: 20px auto;
+}
+.draft-library-bar,
+.draft-document-meta,
+.draft-create,
+.draft-results {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.draft-library-bar :is(input, select),
+.draft-document-meta :is(input, select),
+.draft-create :is(input:not([type='checkbox']), select) {
+  min-height: 36px;
+  border: 1px solid var(--cv-line);
+  background: var(--cv-paper);
+  color: var(--cv-ink);
+  border-radius: 6px;
+  padding: 6px 10px;
+  min-width: 0;
+}
+.draft-library-bar select {
+  flex: 1;
+  max-width: 420px;
+}
+.draft-library-bar input {
+  width: 190px;
+}
+.draft-count {
+  color: var(--cv-muted);
+  font-size: 12px;
+}
+.draft-document-meta > input {
+  flex: 1;
+  font-weight: 600;
+}
+.draft-create {
+  padding: 12px;
+  background: var(--cv-tint);
+  border-radius: 6px;
+}
+.draft-create > input {
+  flex: 1;
+}
+.draft-create label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.resume-page :is(input, select):focus-visible {
+  outline: 2px solid var(--cv-accent);
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .draft-library-bar select {
+    flex: 1 1 calc(100% - 50px);
+    max-width: none;
+  }
+  .draft-library-bar input {
+    flex: 1 1 50%;
+    width: auto;
+  }
+  .draft-count {
+    order: -1;
+  }
+  .draft-document-meta > input {
+    flex-basis: 60%;
+  }
+  .draft-create > input {
+    flex-basis: 100%;
+  }
 }
 .resume-document > :first-child {
   margin-top: 0;

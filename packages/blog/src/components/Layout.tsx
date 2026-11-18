@@ -119,7 +119,7 @@ const navItems: NavPathItem[] = [
   { path: '/trend', label: 'Trend', hint: '数据趋势与比较', icon: TrendingUp },
   { path: '/planner', label: 'Planner', hint: '月度计划与待办', icon: CalendarDays },
   { path: '/mind', label: 'Mind', hint: '思维导图与逻辑图', icon: GitBranch },
-  { path: '/resume', label: '简历', hint: '编辑我的简历', icon: FileText },
+  { path: '/resume', label: '定稿', hint: '简历与面试主稿', icon: FileText },
   { path: '/ocean', label: '沉沦之海', hint: '坠入一片静谧深海', icon: Waves },
   { path: '/confession', label: '忏悔', hint: '让过错安眠，向微光倾诉', icon: Church },
   { path: '/about', label: TEXT.navAbout, hint: '站点介绍', icon: Info },

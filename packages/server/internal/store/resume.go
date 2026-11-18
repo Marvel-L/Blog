@@ -62,6 +62,22 @@ func (s *Store) SaveResume(ctx context.Context, userID string, base int64, mutat
 	if !errors.Is(err, pgx.ErrNoRows) {
 		return v, false, err
 	}
+	// An older single-resume client must never replace an upgraded library.
+	// Existing receipt replays above remain idempotent and do not perform writes.
+	var currentVersion, incomingVersion struct {
+		Version int `json:"version"`
+	}
+	if len(v.State) > 0 {
+		if err = json.Unmarshal(v.State, &currentVersion); err != nil {
+			return v, false, err
+		}
+	}
+	if err = json.Unmarshal(state, &incomingVersion); err != nil {
+		return v, false, err
+	}
+	if currentVersion.Version == 2 && incomingVersion.Version != 2 {
+		return v, true, nil
+	}
 	if v.Revision != base {
 		return v, true, nil
 	}

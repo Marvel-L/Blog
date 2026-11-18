@@ -31,7 +31,7 @@ async function mount() {
     );
   }
   const rendered = render(<Harness />);
-  const doc = await screen.findByRole('textbox', { name: '简历正文' });
+  const doc = await screen.findByRole('textbox', { name: '定稿正文' });
   await waitFor(() => expect(doc).toHaveTextContent('负责系统开发'));
   const editor = (doc as HTMLElement & { editor: Editor }).editor;
   return { ...rendered, editor, doc, changes, errors };
@@ -58,7 +58,7 @@ it('submits anchors and metadata once, edits comments without rewriting source, 
   expect(changes.mock.lastCall![0].markdown).toBe(first.markdown);
   fireEvent.click(screen.getByRole('button', { name: '源码' }));
   expect(screen.getByLabelText(/Markdown 源码/)).toHaveValue(first.markdown);
-  expect(within(screen.getByRole('complementary', { name: '简历评论' })).getByText('补充延迟指标')).toBeInTheDocument();
+  expect(within(screen.getByRole('complementary', { name: '定稿评论' })).getByText('补充延迟指标')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: '定位原文：系统开发' }));
   expect(doc).toHaveAttribute('contenteditable', 'false');
   expect(editor.state.selection.from).toBe(3);

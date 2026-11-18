@@ -3,14 +3,16 @@ import {
   emptyResume,
   sameResume,
   validResumeState,
+  validStoredResume,
   validateResume,
   type ResumeResponse,
   type ResumeState,
+  type StoredResume,
 } from './model';
 
 type Status = 'saved' | 'pending' | 'saving' | 'error' | 'conflict';
-export interface ResumeView {
-  state: ResumeState;
+export interface ResumeView<T = ResumeState> {
+  state: T;
   status: Status;
   error: string;
   recoveryError: string;
@@ -20,12 +22,12 @@ interface Mutation {
   expectedUserId: string;
   baseRevision: number;
   mutationId: string;
-  state: ResumeState;
+  state: StoredResume;
 }
 export const resumeDraftKey = (user: string) => `dblog-resume-v1:${user}`;
 
-export class ResumeSession {
-  view: ResumeView;
+export class ResumeSession<T extends StoredResume = ResumeState> {
+  view: ResumeView<T>;
   private revision: number;
   private pending: Mutation | null = null;
   private dirty = false;
@@ -38,14 +40,23 @@ export class ResumeSession {
 
   constructor(
     private user: string,
-    remote: ResumeResponse['resume'],
-    private notify: (view: ResumeView) => void,
+    remote: ResumeResponse<StoredResume>['resume'],
+    private notify: (view: ResumeView<T>) => void,
     private unauthorized: () => void,
     restore = true,
+    private format: {
+      normalize: (state: StoredResume | null) => T;
+      valid: (state: unknown) => boolean;
+      same: (a: T, b: T) => boolean;
+    } = {
+      normalize: (state) => (state ?? emptyResume()) as T,
+      valid: validResumeState,
+      same: (a, b) => sameResume(a as ResumeState, b as ResumeState),
+    },
   ) {
     this.revision = remote.revision;
     this.view = {
-      state: remote.state ?? emptyResume(),
+      state: format.normalize(remote.state),
       status: 'saved',
       error: '',
       recoveryError: '',
@@ -57,11 +68,11 @@ export class ResumeSession {
       if (!raw) return;
       const draft = JSON.parse(raw);
       if (
-        !validResumeState(draft.state) ||
+        !validStoredResume(draft.state) ||
         !Number.isSafeInteger(draft.revision) ||
         draft.revision < 0 ||
         (draft.pending &&
-          (!validResumeState(draft.pending.state) ||
+          (!validStoredResume(draft.pending.state) ||
             draft.pending.expectedUserId !== user ||
             !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
               draft.pending.mutationId,
@@ -69,7 +80,7 @@ export class ResumeSession {
             draft.pending.baseRevision !== draft.revision))
       )
         throw new Error('invalid draft');
-      this.view.state = draft.state;
+      this.view.state = format.normalize(draft.state);
       this.revision = draft.revision;
       this.pending = draft.pending ?? null;
       this.dirty = true;
@@ -103,11 +114,12 @@ export class ResumeSession {
       this.view.recoveryError = '浏览器无法保留恢复草稿，请等待云端保存完成或下载备份后再离开。';
     }
   }
-  update(value: string | ResumeState) {
+  update(value: string | T) {
+    if (typeof value === 'string' && this.view.state.version !== 1) return;
     const state = typeof value === 'string' ? { ...this.view.state, markdown: value } : value;
-    if (!this.live || sameResume(state, this.view.state)) return;
-    if (!validResumeState(state)) {
-      this.view.error = '简历或评论格式不正确：正文最多 10 万字、评论最多 100 条，每条 2000 字。';
+    if (!this.live || this.format.same(state, this.view.state)) return;
+    if (!this.format.valid(state)) {
+      this.view.error = '定稿格式不正确：最多 50 份、每份 10 万字，总正文 100 万字；每份最多 100 条评论。';
       this.emit();
       return;
     }
@@ -156,7 +168,7 @@ export class ResumeSession {
     const operation = async () => {
       try {
         const response = validateResume(
-          await cloudRequest<ResumeResponse>('/resume', {
+          await cloudRequest<ResumeResponse<StoredResume>>('/resume', {
             method: 'PUT',
             body: JSON.stringify(mutation),
             signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]),
@@ -167,7 +179,7 @@ export class ResumeSession {
         if (response.resume.revision !== mutation.baseRevision + 1) throw new CloudError(409, '', '云端已有新版本');
         this.revision = response.resume.revision;
         this.pending = null;
-        this.dirty = !sameResume(this.view.state, mutation.state);
+        this.dirty = !this.format.same(this.view.state, this.format.normalize(mutation.state));
         this.firstDirty = this.dirty ? Date.now() : 0;
         this.attempts = 0;
         this.view.updatedAt = response.resume.updatedAt;

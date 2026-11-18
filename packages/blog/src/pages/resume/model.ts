@@ -20,16 +20,41 @@ export interface ResumeState {
   markdown: string;
   comments?: ResumeComment[];
 }
-export interface ResumeSnapshot {
-  state: ResumeState | null;
+export const MAX_DOCUMENTS = 50;
+export const MAX_LIBRARY_MARKDOWN = 1000000;
+export interface DraftDocument {
+  id: string;
+  title: string;
+  /** Read old snapshots without changing their saved mutation receipts. New documents omit this field. */
+  kind?: 'resume' | 'interview' | 'notes';
+  content: ResumeState;
+}
+export interface DraftLibrary {
+  version: 2;
+  documents: DraftDocument[];
+}
+export type StoredResume = ResumeState | DraftLibrary;
+export interface ResumeSnapshot<T = ResumeState> {
+  state: T | null;
   revision: number;
   updatedAt: string | null;
 }
-export interface ResumeResponse {
+export interface ResumeResponse<T = ResumeState> {
   user: CloudUser;
-  resume: ResumeSnapshot;
+  resume: ResumeSnapshot<T>;
 }
 export const emptyResume = (): ResumeState => ({ version: 1, markdown: '' });
+export const LEGACY_DOCUMENT_ID = '00000000-0000-4000-8000-000000000019';
+
+/** Keep the original resume and its comment anchors intact; never seed private content. */
+export function toLibrary(state: StoredResume | null): DraftLibrary {
+  if (!state) return { version: 2, documents: [] };
+  if (state.version === 2) return state;
+  return {
+    version: 2,
+    documents: [{ id: LEGACY_DOCUMENT_ID, title: '我的简历', content: state }],
+  };
+}
 
 function validText(value: unknown, max: number, empty = false): value is string {
   return (
@@ -79,7 +104,43 @@ export function sameResume(a: ResumeState, b: ResumeState): boolean {
   return a.markdown === b.markdown && JSON.stringify(a.comments ?? []) === JSON.stringify(b.comments ?? []);
 }
 
-export function validateResume(data: ResumeResponse): ResumeResponse {
+export function validLibrary(value: unknown): value is DraftLibrary {
+  if (!value || typeof value !== 'object') return false;
+  const library = value as DraftLibrary;
+  const ids = new Set<string>();
+  let total = 0;
+  return (
+    Object.keys(library).sort().join(',') === 'documents,version' &&
+    library.version === 2 &&
+    Array.isArray(library.documents) &&
+    library.documents.length <= MAX_DOCUMENTS &&
+    library.documents.every((doc) => {
+      if (
+        !doc ||
+        !['content,id,title', 'content,id,kind,title'].includes(Object.keys(doc).sort().join(',')) ||
+        typeof doc.id !== 'string' ||
+        !commentIdPattern.test(doc.id) ||
+        ids.has(doc.id) ||
+        !validText(doc.title, 120) ||
+        (Object.hasOwn(doc, 'kind') && !['resume', 'interview', 'notes'].includes(doc.kind!)) ||
+        !validResumeState(doc.content)
+      )
+        return false;
+      ids.add(doc.id);
+      total += [...doc.content.markdown].length;
+      return total <= MAX_LIBRARY_MARKDOWN;
+    }) &&
+    new TextEncoder().encode(JSON.stringify(library)).byteLength <= 8 * 1024 * 1024 - 8192
+  );
+}
+export function validStoredResume(value: unknown): value is StoredResume {
+  return validResumeState(value) || validLibrary(value);
+}
+export function sameLibrary(a: DraftLibrary, b: DraftLibrary): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+export function validateResume<T = ResumeState>(data: ResumeResponse<T>): ResumeResponse<T> {
   const value = data?.resume;
   if (
     !data?.user?.id ||
@@ -88,9 +149,9 @@ export function validateResume(data: ResumeResponse): ResumeResponse {
     value.revision < 0 ||
     (value.revision === 0
       ? value.state !== null || value.updatedAt !== null
-      : !validResumeState(value.state) || !value.updatedAt || !Number.isFinite(Date.parse(value.updatedAt)))
+      : !validStoredResume(value.state) || !value.updatedAt || !Number.isFinite(Date.parse(value.updatedAt)))
   ) {
-    throw new Error('简历数据格式异常，请重新加载');
+    throw new Error('定稿数据格式异常，请重新加载');
   }
   return data;
 }

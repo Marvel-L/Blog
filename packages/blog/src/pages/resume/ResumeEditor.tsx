@@ -21,8 +21,20 @@ import {
   Heading3,
   Pilcrow,
   MessageSquarePlus,
+  Link,
+  ImagePlus,
 } from 'lucide-react';
-import { cleanResumeHtml, GREEN, HIGHLIGHT, htmlToMarkdown, markdownToHtml, RED } from './markdown';
+import {
+  cleanResumeHtml,
+  GREEN,
+  HIGHLIGHT,
+  htmlToMarkdown,
+  markdownToHtml,
+  RED,
+  safeDocumentLink,
+  safeImageUrl,
+} from './markdown';
+import { ResumeImage } from './image';
 import {
   COMMENT_ATTR,
   commentIds,
@@ -37,12 +49,19 @@ import { addCommentAnchor, commentRanges, documentMarkdown, removeCommentAnchor,
 import ResumeComments, { type CommentDraft } from './ResumeComments';
 
 const extensions = [
-  StarterKit.configure({ link: { openOnClick: false, defaultProtocol: 'https' } }),
+  StarterKit.configure({
+    link: {
+      openOnClick: 'whenNotEditable',
+      defaultProtocol: 'https',
+      isAllowedUri: (url) => safeDocumentLink(url),
+    },
+  }),
   TextStyle,
   Color,
   Highlight.configure({ multicolor: true }),
   TableKit,
   ResumeCommentMark,
+  ResumeImage,
 ];
 type MarkAction = 'highlight' | 'red' | 'green' | 'clear';
 function applyMark(editor: Editor, action: MarkAction, range?: { from: number; to: number }) {
@@ -66,12 +85,14 @@ export default function ResumeEditor({
   mode,
   onModeChange,
   onError,
+  onCommentDraft,
 }: {
   state: ResumeState;
   onChange: (value: ResumeState) => void;
   mode: 'edit' | 'markdown' | 'preview';
   onModeChange: (mode: 'edit' | 'preview') => void;
   onError: (message: string) => void;
+  onCommentDraft?: (pending: boolean) => void;
 }) {
   const { markdown } = state;
   const readonly = mode !== 'edit';
@@ -84,6 +105,10 @@ export default function ResumeEditor({
   const menuRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState<string | null>(null);
   const [draft, setDraft] = useState<CommentDraft | null>(null);
+  useEffect(() => {
+    onCommentDraft?.(draft !== null);
+    return () => onCommentDraft?.(false);
+  }, [draft, onCommentDraft]);
   const draftRange = useRef<{ from: number; to: number; doc: DocumentNode; markdown: string } | null>(null);
   const pendingLocate = useRef<string | null>(null);
   const editor = useEditor({
@@ -92,7 +117,12 @@ export default function ResumeEditor({
     content: '',
     editable: !readonly,
     editorProps: {
-      attributes: { class: 'resume-document', 'aria-label': '简历正文', role: 'textbox', 'aria-multiline': 'true' },
+      attributes: {
+        class: 'resume-document prose max-w-none',
+        'aria-label': '定稿正文',
+        role: 'textbox',
+        'aria-multiline': 'true',
+      },
       transformPastedHTML: (html) => cleanResumeHtml(html, false),
     },
     onUpdate: ({ editor: current }) => {
@@ -251,20 +281,69 @@ export default function ResumeEditor({
         {mode === 'markdown' && (
           <div className="resume-source">
             <label htmlFor="resume-markdown">
-              Markdown 源码<span>支持粘贴整篇简历</span>
+              Markdown 源码<span>支持粘贴全文、图片和来源链接</span>
             </label>
             <textarea
               id="resume-markdown"
               value={markdown}
               maxLength={MAX_MARKDOWN}
               spellCheck={false}
-              placeholder={'# 你的姓名\n\n## 教育经历\n\n## 工作经历\n\n## 项目经历\n\n## 专业技能'}
+              placeholder={
+                '# 定稿标题\n\n## 正文\n\n[Book 来源](/Blog/book)\n\n[Mind 问题](/Blog/mind)\n\n![方案图](https://你的图片链接)'
+              }
               onChange={(event) => onChange({ ...currentState.current, markdown: event.target.value })}
             />
           </div>
         )}
         {!readonly && editor && (
-          <div className="resume-toolbar" role="toolbar" aria-label="简历格式">
+          <div className="resume-toolbar" role="toolbar" aria-label="定稿格式">
+            <button
+              type="button"
+              aria-label="插入或修改链接"
+              title="链接（可引用 Book、Mind 和定稿）"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                const href = window.prompt(
+                  '输入链接（支持网站地址、/Blog/book/...、/Blog/mind 和当前定稿链接）；留空移除链接',
+                  editor.getAttributes('link').href ?? '',
+                );
+                if (href === null) return;
+                if (!href.trim()) {
+                  editor.chain().focus().extendMarkRange('link').unsetLink().run();
+                  return;
+                }
+                if (!safeDocumentLink(href.trim())) {
+                  onError('请输入 HTTP / HTTPS 地址或以 / 开头的站内链接。');
+                  return;
+                }
+                editor.chain().focus().extendMarkRange('link').setLink({ href: href.trim() }).run();
+              }}
+            >
+              <Link size={16} />
+            </button>
+            <button
+              type="button"
+              aria-label="插入图片链接"
+              title="插入图片链接"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                const src = window.prompt('输入可访问的 HTTP / HTTPS 图片链接');
+                if (src === null) return;
+                if (!safeImageUrl(src.trim())) {
+                  onError('图片需要可访问的 HTTP / HTTPS 链接。');
+                  return;
+                }
+                const alt = window.prompt('图片说明', '') ?? '';
+                editor
+                  .chain()
+                  .focus()
+                  .insertContent({ type: 'image', attrs: { src: src.trim(), alt } })
+                  .run();
+              }}
+            >
+              <ImagePlus size={16} />
+            </button>
+            <span className="resume-separator" aria-hidden="true" />
             <button
               type="button"
               title="正文"

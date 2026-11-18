@@ -6,8 +6,35 @@ import Highlight from '@tiptap/extension-highlight';
 import { TableKit } from '@tiptap/extension-table';
 import { cleanResumeHtml, htmlToMarkdown, markdownToHtml, RED, GREEN } from './markdown';
 import { validResumeState, validateResume } from './model';
+import { ResumeImage } from './image';
 
 describe('resume Markdown document conversion', () => {
+  it('preserves diagram images and Book/Mind links through visual editing and filters unsafe images', () => {
+    const editor = new Editor({
+      extensions: [
+        StarterKit.configure({ link: { isAllowedUri: (url) => /^(https?:\/\/|\/(?!\/))/.test(url) } }),
+        ResumeImage,
+      ],
+      content: markdownToHtml(
+        '[Book](/Blog/book/project)\n\n[Mind](/Blog/mind)\n\n![主流程](https://example.com/flow.png)',
+      ),
+    });
+    try {
+      const exported = htmlToMarkdown(editor.getHTML());
+      expect(exported).toContain('[Book](/Blog/book/project)');
+      expect(exported).toContain('[Mind](/Blog/mind)');
+      expect(exported).toContain('![主流程](https://example.com/flow.png)');
+      editor.commands.setContent(markdownToHtml(exported));
+      expect(editor.getHTML()).toContain('src="https://example.com/flow.png"');
+      expect(
+        cleanResumeHtml(
+          '<img src="file:///secret.png"><img src="data:image/svg+xml,bad"><img src="https://user:pass@example.com/image.png">',
+        ),
+      ).not.toContain('<img');
+    } finally {
+      editor.destroy();
+    }
+  });
   it('preserves legacy template headings, contact text, dates and nested achievements', () => {
     const html = markdownToHtml(
       '# 示例姓名\n\n> <span class="icon">&#xe60f;</span> `123456`\n\n## &#xe80c; 教育经历\n\n<div class="entry-title"><h3>示例大学</h3><p>2020 - 2024</p></div>\n\n- **项目**\n    - 嵌套成果',

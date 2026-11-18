@@ -38,13 +38,17 @@ it('keeps edits made while a manual cloud refresh is in flight', async () => {
     loading = hook.result.current.reload();
   });
   act(() => {
-    hook.result.current.update('刷新期间的新输入');
+    const state = hook.result.current.view!.state;
+    hook.result.current.update({
+      ...state,
+      documents: state.documents.map((doc) => ({ ...doc, content: { ...doc.content, markdown: '刷新期间的新输入' } })),
+    });
   });
   await act(async () => {
     finish(response('alice', '较旧的云端内容'));
     await loading;
   });
-  expect(hook.result.current.view?.state.markdown).toBe('刷新期间的新输入');
+  expect(hook.result.current.view?.state.documents[0].content.markdown).toBe('刷新期间的新输入');
   expect(hook.result.current.error).toContain('已保留你的输入');
 });
 
@@ -65,6 +69,6 @@ it('does not revive old private data after an account change with a late respons
   await act(async () => {
     finish(response('alice', 'Alice 的私有内容'));
   });
-  expect(hook.result.current.view?.state.markdown).toBe('Bob 的内容');
+  expect(hook.result.current.view?.state.documents[0].content.markdown).toBe('Bob 的内容');
   expect(hook.result.current.user?.id).toBe('bob');
 });

@@ -51,7 +51,7 @@ export default function ResumeComments({
         ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [active]);
   return (
-    <aside ref={panel} className="resume-comments" aria-label="简历评论">
+    <aside ref={panel} className="resume-comments" aria-label="定稿评论">
       <header>
         <MessageSquare size={16} />
         <h2>评论</h2>

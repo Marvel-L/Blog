@@ -6,6 +6,18 @@ import { COMMENT_ATTR, commentIds } from './model';
 export const RED = '#c2413b';
 export const GREEN = '#18794e';
 export const HIGHLIGHT = '#fef08a';
+export function safeDocumentLink(href: string): boolean {
+  return /^(https?:\/\/|mailto:|tel:|#)/i.test(href) || /^\/(?![\\/])/.test(href);
+}
+export function safeImageUrl(src: string): boolean {
+  if (!/^https?:\/\//i.test(src)) return false;
+  try {
+    const url = new URL(src);
+    return !url.username && !url.password;
+  } catch {
+    return false;
+  }
+}
 
 /** Shared by import, paste, preview and editor. Only document markup survives. */
 export function cleanResumeHtml(html: string, keepComments = true): string {
@@ -43,8 +55,9 @@ export function cleanResumeHtml(html: string, keepComments = true): string {
       'tr',
       'th',
       'td',
+      'img',
     ],
-    ALLOWED_ATTR: ['href', 'title', 'style', 'start', 'colspan', 'rowspan', COMMENT_ATTR],
+    ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'style', 'start', 'colspan', 'rowspan', COMMENT_ATTR],
     ALLOW_DATA_ATTR: false,
   });
   const doc = new DOMParser().parseFromString(clean, 'text/html');
@@ -63,8 +76,12 @@ export function cleanResumeHtml(html: string, keepComments = true): string {
   }
   for (const link of doc.body.querySelectorAll('a')) {
     const href = link.getAttribute('href') ?? '';
-    if (!/^(https?:\/\/|mailto:|tel:|#)/i.test(href)) link.removeAttribute('href');
+    if (!safeDocumentLink(href)) link.removeAttribute('href');
     link.setAttribute('rel', 'noopener noreferrer');
+  }
+  for (const image of doc.body.querySelectorAll('img')) {
+    if (!safeImageUrl(image.getAttribute('src') ?? '')) image.remove();
+    else image.setAttribute('referrerpolicy', 'no-referrer');
   }
   // Old resume templates use private-use font glyphs without a portable font.
   const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
@@ -109,6 +126,6 @@ export function htmlToMarkdown(html: string): string {
 
 export function importNotice(markdown: string): string {
   return /<img\b|!\[.*?\]\(/i.test(markdown)
-    ? '正文已导入。图片暂不支持；旧模板图标以普通标题显示。'
+    ? '正文已导入，支持 HTTP / HTTPS 图片链接；本地路径图片请替换为可访问链接。'
     : 'Markdown 已导入，可直接在文档中继续编辑。';
 }
