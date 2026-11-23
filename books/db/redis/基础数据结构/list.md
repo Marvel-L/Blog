@@ -30,3 +30,27 @@ BRPOP key [key ...] timeout
 # 应用场景
 
 1. 消息队列
+
+# 底层实现
+
+底层实现分为 ZIPLIST + LINKEDLIST + QUICKLIST
+
+![img_4.png](img_4.png)
+
+## ZIPLIST
+
+ZIPLIST 的本质是一个字节数组如下
+
+![img_5.png](img_5.png)
+
+## LINKEDLIST
+
+LINKEDLIST 本质是一个双向链表
+
+![img_6.png](img_6.png)
+
+# QUICKLIST
+
+QUICKLIST 本质是一个 双向链表 同时双向链表的 节点中存储的是一个 字节数组 即 LINKEDLIST + ZIPLIST
+
+![img_7.png](img_7.png)
