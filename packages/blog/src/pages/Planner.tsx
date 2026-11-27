@@ -296,6 +296,7 @@ export const Planner = () => {
         description="按月份整理工作、学习与生活目标，记录每日遗留任务并安排处理日期。支持目标编辑、搜索、优先级排序、Markdown 导出和按账号云端自动同步。"
         url="/planner"
       />
+      <h1 className="sr-only">Planner · 每日遗留与月度目标</h1>
       <div className="planner-workspace">
         <div className="planner-main">
           <section className="planner-overview" aria-label="任务完成进度">

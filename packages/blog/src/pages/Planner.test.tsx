@@ -98,6 +98,7 @@ const mount = async () => {
 describe('Planner 工作台', () => {
   it('默认以每日遗留为主视图，月视图作为副栏同屏展示', async () => {
     await mount();
+    expect(screen.getByRole('heading', { level: 1, name: 'Planner · 每日遗留与月度目标' })).toHaveClass('sr-only');
     expect(screen.getByRole('region', { name: '每日遗留' })).toBeVisible();
     expect(screen.getByRole('region', { name: '月度目标' })).toBeVisible();
     expect(screen.getByRole('button', { name: '每日遗留' })).toHaveAttribute('aria-pressed', 'true');
@@ -248,6 +249,10 @@ describe('Planner 工作台', () => {
   });
   it('SSR 首帧确定且不发起账号、日期或文件读写', () => {
     const first = renderToString(<Planner />);
+    const headings = new DOMParser().parseFromString(first, 'text/html').querySelectorAll('h1');
+    expect(headings).toHaveLength(1);
+    expect(headings[0].textContent).toBe('Planner · 每日遗留与月度目标');
+    expect(headings[0].classList.contains('sr-only')).toBe(true);
     vi.setSystemTime(new Date('2030-12-31T23:59:59'));
     expect(renderToString(<Planner />)).toBe(first);
     expect(first).toContain('每日遗留');
