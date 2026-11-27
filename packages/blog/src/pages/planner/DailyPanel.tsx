@@ -56,56 +56,57 @@ export function DailyPanel({
   };
   const ready = !!daily.view.user;
   return (
-    <section className="planner-panel planner-daily" aria-labelledby="daily-heading">
+    <section id="planner-daily-view" className="planner-panel planner-daily" aria-labelledby="daily-heading">
       <header className="planner-panel-head">
         <div>
           <h2 id="daily-heading">
             <CalendarDays />
             每日遗留
           </h2>
-          <p>给没做完的事，一个安放的位置</p>
         </div>
         <span className="planner-private">
           <LockKeyhole />
           仅自己可见
         </span>
       </header>
-      <div className="planner-day-nav">
-        <button className="planner-icon" aria-label="前一天" onClick={() => setDay(shiftDate(day, -1))}>
-          <ChevronLeft />
-        </button>
-        <input
-          aria-label="查看遗留日期"
-          type="date"
-          min="1970-01-01"
-          max="9999-12-31"
-          value={day}
-          onChange={(e) => {
-            if (validDate(e.target.value)) setDay(e.target.value);
-          }}
-        />
-        <button className="planner-icon" aria-label="后一天" onClick={() => setDay(shiftDate(day, 1))}>
-          <ChevronRight />
-        </button>
-        <button className="planner-today" onClick={() => setDay(today)}>
-          今天
-        </button>
-      </div>
-      <nav className="planner-week" aria-label="一周日期">
-        {days.map((date, index) => (
-          <button
-            key={`${date}-${index}`}
-            aria-label={`查看 ${date}`}
-            aria-current={date === day ? 'date' : undefined}
-            className={date === day ? 'is-active' : ''}
-            onClick={() => setDay(date)}
-          >
-            <span>{['日', '一', '二', '三', '四', '五', '六'][new Date(`${date}T12:00:00`).getDay()]}</span>
-            <strong>{date.slice(8)}</strong>
-            <i className={daily.state.tasks.some((task) => task.date === date) ? 'has-record' : ''} />
+      <div className="planner-daily-calendar">
+        <div className="planner-day-nav">
+          <button className="planner-icon" aria-label="前一天" onClick={() => setDay(shiftDate(day, -1))}>
+            <ChevronLeft />
           </button>
-        ))}
-      </nav>
+          <input
+            aria-label="查看遗留日期"
+            type="date"
+            min="1970-01-01"
+            max="9999-12-31"
+            value={day}
+            onChange={(e) => {
+              if (validDate(e.target.value)) setDay(e.target.value);
+            }}
+          />
+          <button className="planner-icon" aria-label="后一天" onClick={() => setDay(shiftDate(day, 1))}>
+            <ChevronRight />
+          </button>
+          <button className="planner-today" onClick={() => setDay(today)}>
+            今天
+          </button>
+        </div>
+        <nav className="planner-week" aria-label="一周日期">
+          {days.map((date, index) => (
+            <button
+              key={`${date}-${index}`}
+              aria-label={`查看 ${date}`}
+              aria-current={date === day ? 'date' : undefined}
+              className={date === day ? 'is-active' : ''}
+              onClick={() => setDay(date)}
+            >
+              <span>{['日', '一', '二', '三', '四', '五', '六'][new Date(`${date}T12:00:00`).getDay()]}</span>
+              <strong>{date.slice(8)}</strong>
+              <i className={daily.state.tasks.some((task) => task.date === date) ? 'has-record' : ''} />
+            </button>
+          ))}
+        </nav>
+      </div>
       <div className="planner-tabs planner-daily-tabs" aria-label="遗留筛选">
         {(
           [
@@ -202,7 +203,6 @@ export function DailyPanel({
         <Plus />
         记录一条遗留
       </button>
-      <p className="planner-daily-note">未完成的记录会跨日保留，完成后可按日期回看。</p>
       {ready && editor && (
         <TaskEditor
           daily

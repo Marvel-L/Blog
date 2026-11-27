@@ -96,6 +96,48 @@ const mount = async () => {
   return view;
 };
 describe('Planner 工作台', () => {
+  it('默认以每日遗留为主视图，月视图作为副栏同屏展示', async () => {
+    await mount();
+    expect(screen.getByRole('region', { name: '每日遗留' })).toBeVisible();
+    expect(screen.getByRole('region', { name: '月度目标' })).toBeVisible();
+    expect(screen.getByRole('button', { name: '每日遗留' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: '月视图' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByLabelText('选择月份')).toBeVisible();
+    expect(screen.queryByText('我的计划')).not.toBeInTheDocument();
+    expect(screen.queryByText('把日子，慢慢理顺。')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '新增目标' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '月视图' }));
+    expect(screen.getByRole('button', { name: '月视图' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: '每日遗留' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('region', { name: '每日遗留' })).toBeVisible();
+    expect(screen.getByRole('region', { name: '月度目标' })).toBeVisible();
+    expect(screen.getByLabelText('查看遗留日期')).toBeVisible();
+  });
+  it('月视图与每日日期独立，主副切换保留日期、筛选和搜索', async () => {
+    await mount();
+    fireEvent.change(screen.getByLabelText('查看遗留日期'), { target: { value: '2026-01-08' } });
+    fireEvent.click(screen.getByRole('button', { name: /当日记录/ }));
+    fireEvent.click(screen.getByRole('button', { name: '月视图' }));
+    fireEvent.change(screen.getByLabelText('选择月份'), { target: { value: '2025-12' } });
+    fireEvent.click(screen.getByRole('button', { name: '每日遗留' }));
+    expect(screen.getByLabelText('查看遗留日期')).toHaveValue('2026-01-08');
+    expect(screen.getByRole('button', { name: /当日记录/ })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: '月视图' }));
+    expect(screen.getByLabelText('选择月份')).toHaveValue('2025-12');
+    fireEvent.click(screen.getByRole('button', { name: '下个月' }));
+    expect(screen.getByLabelText('选择月份')).toHaveValue('2026-01');
+    expect(screen.getByRole('button', { name: '保留原待办' })).toBeVisible();
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: '保留' } });
+    fireEvent.click(screen.getByRole('button', { name: '每日遗留' }));
+    fireEvent.click(screen.getByRole('button', { name: '月视图' }));
+    expect(screen.getByRole('searchbox')).toHaveValue('保留');
+    fireEvent.change(screen.getByLabelText('选择月份'), { target: { value: '1970-01' } });
+    expect(screen.getByRole('button', { name: '上个月' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('选择月份'), { target: { value: '9999-12' } });
+    expect(screen.getByRole('button', { name: '下个月' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: '本月' }));
+    expect(screen.getByLabelText('选择月份')).toHaveValue('2026-01');
+  });
   it('明确编辑本机目标后才写入项目 Markdown', async () => {
     await mount();
     vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
@@ -144,7 +186,9 @@ describe('Planner 工作台', () => {
     await mount();
     fireEvent.click(screen.getByRole('button', { name: '完成 保留原待办' }));
     expect(screen.getByRole('progressbar', { name: '本月完成率' })).toHaveAttribute('aria-valuenow', '100');
-    fireEvent.click(screen.getByRole('button', { name: '新增目标' }));
+    fireEvent.change(screen.getByRole('textbox', { name: '新增月度待办' }), { target: { value: '学习新知识' } });
+    fireEvent.click(screen.getByRole('button', { name: '添加' }));
+    fireEvent.click(screen.getByRole('button', { name: '编辑 学习新知识' }));
     const dialog = screen.getByRole('dialog');
     fireEvent.change(within(dialog).getByLabelText('任务名称'), { target: { value: '学习新知识' } });
     fireEvent.change(within(dialog).getByLabelText('分类'), { target: { value: 'learning' } });
@@ -206,7 +250,9 @@ describe('Planner 工作台', () => {
     const first = renderToString(<Planner />);
     vi.setSystemTime(new Date('2030-12-31T23:59:59'));
     expect(renderToString(<Planner />)).toBe(first);
-    expect(first).toContain('把日子，慢慢理顺。');
+    expect(first).toContain('每日遗留');
+    expect(first).toContain('月视图');
+    expect(first).not.toContain('把日子，慢慢理顺。');
     expect(fetch).not.toHaveBeenCalled();
   });
 });

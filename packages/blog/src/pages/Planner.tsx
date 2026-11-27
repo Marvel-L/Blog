@@ -34,7 +34,6 @@ import { dateKey } from './planner/daily-model';
 import './planner/planner.css';
 
 const PlannerSync = lazy(() => import('./planner/PlannerSync'));
-const MONTHS = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
 const PROJECT_FILE_URL = '/planner-data/monthly-planner.md';
 
 export const Planner = () => {
@@ -51,23 +50,13 @@ export const Planner = () => {
   const [filter, setFilter] = useState<'all' | 'open' | 'done'>('all');
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState('order');
-  const [mobileSection, setMobileSection] = useState('monthly');
-  const [editor, setEditor] = useState<MonthlyTask | 'new' | null>(null);
+  const [primary, setPrimary] = useState<'daily' | 'monthly'>('daily');
+  const [editor, setEditor] = useState<MonthlyTask | null>(null);
   const mounted = useRef(false);
   const projectFileLoaded = useRef(false);
   const anonymousBaseline = useRef<MonthlyPlannerState | null>(null);
   const anonymousEdited = useRef(false);
   const writeGeneration = useRef(0);
-  const monthNavigation = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const navigation = monthNavigation.current;
-    const active = navigation?.querySelector<HTMLElement>('[aria-current="date"]');
-    if (!ready || !navigation || !active || navigation.scrollWidth <= navigation.clientWidth) return;
-    navigation.scrollLeft +=
-      active.getBoundingClientRect().left -
-      navigation.getBoundingClientRect().left -
-      (navigation.clientWidth - active.clientWidth) / 2;
-  }, [ready, selectedYear, selectedMonth]);
   const notify = useCallback((text: string, restore?: () => void) => {
     setMessage(text);
     setUndo(restore ? () => restore : null);
@@ -279,8 +268,7 @@ export const Planner = () => {
     notify('已删除月度目标', () => restore([task]));
   };
   const save = (fields: TaskFields) => {
-    if (editor === 'new') add(fields);
-    else if (editor)
+    if (editor)
       updateTasks(
         tasks.map((task) =>
           task.id === editor.id
@@ -291,97 +279,25 @@ export const Planner = () => {
     setEditor(null);
     notify('目标已保存');
   };
+  const selectMonth = (year: number, month: number) => {
+    setSelectedYear(year);
+    setSelectedMonth(month);
+    setEditor(null);
+  };
+  const shiftMonth = (offset: number) => {
+    const next = selectedYear * 12 + selectedMonth - 1 + offset;
+    selectMonth(Math.floor(next / 12), (next % 12) + 1);
+  };
   const connect = () => window.dispatchEvent(new Event('dblog-planner-sync-open'));
   return (
     <div className="planner-page">
       <Seo
-        title="我的计划 · 月度目标与每日遗留"
+        title="Planner · 每日遗留与月度目标"
         description="按月份整理工作、学习与生活目标，记录每日遗留任务并安排处理日期。支持目标编辑、搜索、优先级排序、Markdown 导出和按账号云端自动同步。"
         url="/planner"
       />
       <div className="planner-workspace">
-        <aside className="planner-sidebar">
-          <div className="planner-brand">
-            <span>
-              <Flag />
-            </span>
-            <div>
-              <strong>我的计划</strong>
-              <small>ONE STEP AT A TIME</small>
-            </div>
-          </div>
-          <div className="planner-year-switch" aria-label="选择年份">
-            <button
-              className="planner-icon"
-              aria-label="上一年"
-              disabled={selectedYear <= 1970}
-              onClick={() => setSelectedYear((year) => year - 1)}
-            >
-              <ChevronLeft />
-            </button>
-            <input
-              aria-label="年份"
-              type="number"
-              min="1970"
-              max="9999"
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Math.max(1970, Math.min(9999, Number(e.target.value) || 1970)))}
-            />
-            <button
-              className="planner-icon"
-              aria-label="下一年"
-              disabled={selectedYear >= 9999}
-              onClick={() => setSelectedYear((year) => year + 1)}
-            >
-              <ChevronRight />
-            </button>
-          </div>
-          <nav ref={monthNavigation} className="planner-months" aria-label={`${selectedYear} 年月份`}>
-            {MONTHS.map((month, index) => {
-              const count = tasksFor(state, selectedYear, index + 1).filter((task) => !task.completed).length;
-              return (
-                <button
-                  key={month}
-                  className={selectedMonth === index + 1 ? 'is-active' : ''}
-                  aria-current={selectedMonth === index + 1 ? 'date' : undefined}
-                  onClick={() => {
-                    setSelectedMonth(index + 1);
-                    setEditor(null);
-                  }}
-                >
-                  <span>{String(index + 1).padStart(2, '0')}</span>
-                  <strong>{month}</strong>
-                  {count > 0 && <i>{count}</i>}
-                </button>
-              );
-            })}
-          </nav>
-          <p className="planner-sidebar-note">
-            <FileText />
-            一步一步，也是一种进度。
-          </p>
-        </aside>
         <div className="planner-main">
-          <header className="planner-heading">
-            <div>
-              <p>
-                {selectedYear} · {String(selectedMonth).padStart(2, '0')} / MY PLANNER
-              </p>
-              <h1>把日子，慢慢理顺。</h1>
-              <span>这个月想完成的事，和每天还惦记的事。</span>
-            </div>
-            <button
-              className="planner-button planner-primary"
-              disabled={!ready}
-              onClick={() => {
-                setMobileSection('monthly');
-                setEditor('new');
-              }}
-            >
-              <Plus />
-              新增目标
-            </button>
-          </header>
           <section className="planner-overview" aria-label="任务完成进度">
             <div className="planner-overview-month">
               <div
@@ -433,31 +349,80 @@ export const Planner = () => {
                 >
                   <i style={{ width: `${value}%` }} />
                 </div>
-                <p>每完成一件，都算数</p>
               </div>
             ))}
           </section>
-          <div className="planner-mobile-tabs" aria-label="计划视图">
-            <button aria-pressed={mobileSection === 'monthly'} onClick={() => setMobileSection('monthly')}>
-              <Flag />
-              月度目标
-            </button>
-            <button aria-pressed={mobileSection === 'daily'} onClick={() => setMobileSection('daily')}>
+          <div className="planner-view-switch" role="group" aria-label="主视图切换">
+            <button
+              aria-pressed={primary === 'daily'}
+              aria-controls="planner-daily-view"
+              onClick={() => setPrimary('daily')}
+            >
               <CalendarDays />
               每日遗留
             </button>
+            <button
+              aria-pressed={primary === 'monthly'}
+              aria-controls="planner-monthly-view"
+              onClick={() => setPrimary('monthly')}
+            >
+              <Flag />
+              月视图
+            </button>
+            <span className="planner-view-note">点选切换主视图，另一侧保留为副栏</span>
           </div>
-          <div className="planner-content" data-section={mobileSection}>
-            <section className="planner-panel planner-monthly" aria-labelledby="monthly-task-heading">
-              <header className="planner-panel-head">
-                <div>
-                  <h2 id="monthly-task-heading">
-                    <Flag />
-                    月度目标
-                  </h2>
-                  <p>把注意力留给真正想完成的事</p>
+          <div className="planner-layout" data-primary={primary}>
+            {ready ? (
+              <Suspense fallback={<DailyPanel daily={guestDaily} today={today} onConnect={connect} notify={notify} />}>
+                <PlannerSync state={state} onApply={applySynced} user={user} today={today} notify={notify} />
+              </Suspense>
+            ) : (
+              <DailyPanel daily={guestDaily} today={today} onConnect={connect} notify={notify} />
+            )}
+            <section
+              id="planner-monthly-view"
+              className="planner-panel planner-monthly"
+              aria-labelledby="monthly-task-heading"
+            >
+              <h2 id="monthly-task-heading" className="sr-only">
+                月度目标
+              </h2>
+              <header className="planner-month-toolbar">
+                <div className="planner-month-nav" role="group" aria-label="月视图日期">
+                  <button
+                    className="planner-icon"
+                    aria-label="上个月"
+                    disabled={selectedYear === 1970 && selectedMonth === 1}
+                    onClick={() => shiftMonth(-1)}
+                  >
+                    <ChevronLeft />
+                  </button>
+                  <input
+                    type="month"
+                    aria-label="选择月份"
+                    min="1970-01"
+                    max="9999-12"
+                    value={key}
+                    onChange={(event) => {
+                      const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(event.target.value);
+                      if (match && Number(match[1]) >= 1970) selectMonth(Number(match[1]), Number(match[2]));
+                    }}
+                  />
+                  <button
+                    className="planner-icon"
+                    aria-label="下个月"
+                    disabled={selectedYear === 9999 && selectedMonth === 12}
+                    onClick={() => shiftMonth(1)}
+                  >
+                    <ChevronRight />
+                  </button>
+                  <button
+                    className="planner-today"
+                    onClick={() => selectMonth(Number(today.slice(0, 4)), Number(today.slice(5, 7)))}
+                  >
+                    本月
+                  </button>
                 </div>
-                <span>{key}</span>
               </header>
               <div className="planner-list-toolbar">
                 <div className="planner-tabs" aria-label="月度目标筛选">
@@ -532,14 +497,8 @@ export const Planner = () => {
                 {visible.length === 0 && (
                   <div className="planner-empty">
                     <Flag />
-                    <h3>
-                      {!ready ? '正在读取计划' : tasks.length === 0 ? '给这个月，定一个小目标' : '没有匹配的目标'}
-                    </h3>
-                    <p>
-                      {tasks.length === 0
-                        ? '从一件真正想完成的事开始，不用一次安排好所有。'
-                        : '试试其他关键词，或切换筛选。'}
-                    </p>
+                    <h3>{!ready ? '正在读取计划' : tasks.length === 0 ? '这个月还没有目标' : '没有匹配的目标'}</h3>
+                    <p>{tasks.length === 0 ? '在下方输入目标，回车添加。' : '试试其他关键词，或切换筛选。'}</p>
                   </div>
                 )}
               </div>
@@ -550,7 +509,7 @@ export const Planner = () => {
                   value={newTask}
                   maxLength={500}
                   onChange={(e) => setNewTask(e.target.value)}
-                  placeholder="再添一个小目标，回车保存"
+                  placeholder="输入月度目标，回车添加"
                   aria-label="新增月度待办"
                 />
                 <button type="submit" disabled={!ready || !newTask.trim()}>
@@ -570,56 +529,45 @@ export const Planner = () => {
                   整理已完成
                 </button>
               </footer>
+              <footer className="planner-file-footer">
+                <span>
+                  <FileText />
+                  {user ? '自动保存到账号' : '本机 / Markdown'}
+                </span>
+                <button
+                  onClick={() => {
+                    try {
+                      downloadBlob(
+                        new Blob([plannerToMarkdown(state)], { type: 'text/markdown;charset=utf-8' }),
+                        'monthly-planner.md',
+                      );
+                    } catch {
+                      notify('导出失败，请重试');
+                    }
+                  }}
+                >
+                  <Download />
+                  导出 Markdown
+                </button>
+              </footer>
             </section>
-            {ready ? (
-              <Suspense fallback={<DailyPanel daily={guestDaily} today={today} onConnect={connect} notify={notify} />}>
-                <PlannerSync state={state} onApply={applySynced} user={user} today={today} notify={notify} />
-              </Suspense>
-            ) : (
-              <DailyPanel daily={guestDaily} today={today} onConnect={connect} notify={notify} />
-            )}
           </div>
-          <footer className="planner-file-footer">
-            <span>
-              <FileText />
-              {user ? '月度目标自动保存到账号' : '月度目标保存在本机 / 项目 Markdown'}
-            </span>
-            <button
-              onClick={() => {
-                try {
-                  downloadBlob(
-                    new Blob([plannerToMarkdown(state)], { type: 'text/markdown;charset=utf-8' }),
-                    'monthly-planner.md',
-                  );
-                } catch {
-                  notify('导出失败，请重试');
-                }
-              }}
-            >
-              <Download />
-              导出 Markdown
-            </button>
-          </footer>
         </div>
       </div>
       {editor && (
         <TaskEditor
           daily={false}
-          editing={editor !== 'new'}
-          initial={
-            editor === 'new'
-              ? { text: '', note: '', date: today, category: 'other', priority: 'normal' }
-              : {
-                  text: editor.text,
-                  note: '',
-                  date: today,
-                  category: editor.category ?? 'other',
-                  priority: editor.priority ?? 'normal',
-                }
-          }
+          editing
+          initial={{
+            text: editor.text,
+            note: '',
+            date: today,
+            category: editor.category ?? 'other',
+            priority: editor.priority ?? 'normal',
+          }}
           onClose={() => setEditor(null)}
           onSave={save}
-          onDelete={editor !== 'new' ? () => remove(editor) : undefined}
+          onDelete={() => remove(editor)}
         />
       )}
       {message && (
