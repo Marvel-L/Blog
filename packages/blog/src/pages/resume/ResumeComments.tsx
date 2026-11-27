@@ -21,6 +21,7 @@ export default function ResumeComments({
   onEdit,
   onDelete,
   onEditMode,
+  label = '定稿评论',
 }: {
   comments: ResumeComment[];
   anchors: string[];
@@ -34,6 +35,7 @@ export default function ResumeComments({
   onEdit: (comment: ResumeComment) => void;
   onDelete: (id: string) => void;
   onEditMode: () => void;
+  label?: string;
 }) {
   const input = useRef<HTMLTextAreaElement>(null);
   const panel = useRef<HTMLElement>(null);
@@ -51,7 +53,7 @@ export default function ResumeComments({
         ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [active]);
   return (
-    <aside ref={panel} className="resume-comments" aria-label="定稿评论">
+    <aside ref={panel} className="resume-comments" aria-label={label}>
       <header>
         <MessageSquare size={16} />
         <h2>评论</h2>

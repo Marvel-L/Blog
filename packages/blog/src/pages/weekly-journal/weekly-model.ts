@@ -1,3 +1,5 @@
+import { validResumeState, type ResumeComment, type ResumeState } from '../resume/model';
+
 export const WEEKDAYS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'] as const;
 export const JOURNAL_TEMPLATE =
   '### 今日完成\n\n- \n\n### 学习与链接\n\n- \n\n### 遗留问题\n\n- \n\n### 生活与感想\n\n';
@@ -10,6 +12,7 @@ export interface DailyThought {
 export interface JournalDay {
   date: string;
   content: string;
+  comments?: ResumeComment[];
   thoughts: DailyThought[];
 }
 export interface WeeklyState {
@@ -21,6 +24,12 @@ export interface WeeklyArchive {
   revision: number;
   updatedAt: string | null;
 }
+
+export const journalDocument = (day: JournalDay): ResumeState => ({
+  version: 1,
+  markdown: day.content,
+  comments: day.comments ?? [],
+});
 
 export function validJournalDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -60,14 +69,26 @@ export function thoughtTime(createdAt: string): string {
 export function parseWeeklyState(value: unknown, week: string): WeeklyState | null {
   if (!value || typeof value !== 'object') return null;
   const state = value as WeeklyState;
-  if (state.version !== 1 || !Array.isArray(state.days) || state.days.length !== 7) return null;
+  if (
+    Object.keys(state).sort().join(',') !== 'days,version' ||
+    state.version !== 1 ||
+    !Array.isArray(state.days) ||
+    state.days.length !== 7
+  )
+    return null;
   const ids = new Set<string>();
   for (const [index, day] of state.days.entries()) {
     if (
       !day ||
+      Object.keys(day).some((key) => !['date', 'content', 'comments', 'thoughts'].includes(key)) ||
       day.date !== shiftDate(week, index) ||
       typeof day.content !== 'string' ||
       [...day.content].length > 20000 ||
+      !validResumeState({
+        version: 1,
+        markdown: day.content,
+        ...(day.comments !== undefined && { comments: day.comments }),
+      }) ||
       !Array.isArray(day.thoughts) ||
       day.thoughts.length > 100
     )
@@ -88,5 +109,5 @@ export function parseWeeklyState(value: unknown, week: string): WeeklyState | nu
       ids.add(thought.id.toLowerCase());
     }
   }
-  return state;
+  return new TextEncoder().encode(JSON.stringify(state)).byteLength <= 8 * 1024 * 1024 - 8192 ? state : null;
 }

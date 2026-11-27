@@ -39,7 +39,7 @@
 .journal-heading h1 {
   margin: 13px 0 12px;
   font:
-    600 42px/1.25 'Noto Serif SC',
+    600 26px/1.25 'Noto Serif SC',
     'Songti SC',
     'STSong',
     serif;
@@ -210,17 +210,16 @@
   padding: 3px 7px;
   border-radius: 4px;
 }
-.journal-edit-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--journal-muted);
-  font-size: 11px;
-  white-space: nowrap;
-  padding: 8px 0 8px 8px;
+.journal-day:not(.journal-day-editing) {
+  cursor: text;
 }
-.journal-edit-button:hover {
-  color: var(--journal-accent);
+.journal-day:not(.journal-day-editing):hover,
+.journal-day:focus-visible {
+  border-color: var(--journal-accent);
+}
+.journal-day:focus-visible {
+  outline: 2px solid var(--journal-accent);
+  outline-offset: 3px;
 }
 .journal-empty {
   padding: 12px 0 20px;
@@ -261,16 +260,6 @@
   background: var(--journal-soft);
   border-color: var(--journal-muted);
 }
-.journal-button-primary {
-  background: var(--journal-accent);
-  color: var(--journal-paper);
-  border-color: var(--journal-accent);
-}
-.journal-button-primary:hover {
-  background: var(--journal-accent);
-  border-color: var(--journal-accent);
-  filter: brightness(0.93);
-}
 .journal-date-control .journal-icon-button {
   border: 0;
   border-radius: 0;
@@ -285,101 +274,6 @@
 .weekly-journal :is(button, a, input, textarea):focus-visible {
   outline: 2px solid var(--journal-accent);
   outline-offset: 3px;
-}
-.journal-input {
-  display: block;
-  width: 100%;
-  resize: vertical;
-  border: 1px solid var(--journal-line);
-  border-radius: 7px;
-  padding: 12px;
-  background: var(--journal-paper);
-  color: var(--journal-ink);
-  font-size: 13px;
-  line-height: 1.9;
-}
-.journal-input::placeholder {
-  color: var(--journal-muted);
-}
-.journal-thought-composer {
-  margin-top: 20px;
-  padding: 17px;
-  border-radius: 9px;
-  background: var(--journal-tint);
-}
-.journal-thought-composer h4 {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--journal-accent);
-}
-.journal-thought-composer > p {
-  margin: 6px 0 12px;
-  font-size: 11px;
-  color: var(--journal-muted);
-}
-.journal-thought-composer .journal-input {
-  border-color: transparent;
-  font-size: 12px;
-}
-.journal-thought-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-}
-.journal-thought-actions > span {
-  font-size: 10px;
-  color: var(--journal-muted);
-}
-.journal-notice {
-  margin-top: 8px;
-  font-size: 11px;
-  color: var(--journal-accent);
-}
-.journal-notice:empty {
-  margin: 0;
-}
-.journal-thoughts {
-  border-top: 1px solid var(--journal-line);
-  margin-top: 20px;
-  padding-top: 17px;
-}
-.journal-thoughts > h4 {
-  color: var(--journal-muted);
-  font-size: 11px;
-  margin-bottom: 15px;
-}
-.journal-thought {
-  border-left: 2px solid var(--journal-line);
-  padding-left: 13px;
-  margin-top: 15px;
-}
-.journal-markdown {
-  overflow-wrap: anywhere;
-}
-.journal-markdown .prose {
-  color: var(--journal-ink);
-  font-size: 13px;
-  line-height: 1.95;
-}
-.journal-markdown .prose :is(h1, h2, h3, h4) {
-  font-size: 14px;
-  margin-top: 1.4em;
-  color: var(--journal-ink);
-}
-.journal-markdown .prose > :first-child {
-  margin-top: 0;
-}
-.journal-markdown .prose a {
-  color: var(--journal-accent);
-}
-.journal-markdown .prose :is(pre, table) {
-  max-width: 100%;
-  overflow-x: auto;
 }
 .journal-error {
   color: #be4356;
@@ -415,6 +309,112 @@
   font-size: 13px;
   text-align: center;
 }
+.journal-day-editing {
+  grid-column: 1 / -1;
+}
+.journal-editor-modes,
+.journal-editor-modes > div {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.journal-editor-modes {
+  justify-content: space-between;
+  border-bottom: 1px solid var(--journal-line);
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.journal-editor-modes button {
+  padding: 10px 0;
+  color: var(--journal-muted);
+  font-size: 12px;
+  border-bottom: 2px solid transparent;
+}
+.journal-editor-modes button[aria-pressed='true'] {
+  color: var(--journal-accent);
+  border-color: var(--journal-accent);
+}
+.journal-editor-modes > span,
+.journal-editor-hint {
+  font-size: 11px;
+  color: var(--journal-muted);
+}
+.journal-editor-hint {
+  margin-top: 12px;
+  line-height: 1.8;
+}
+.journal-document-workspace.resume-page {
+  --cv-ink: var(--journal-ink);
+  --cv-muted: var(--journal-muted);
+  --cv-line: var(--journal-line);
+  --cv-paper: var(--journal-paper);
+  --cv-tint: var(--journal-tint);
+  --cv-accent: var(--journal-accent);
+  margin: 0;
+}
+.journal-document-workspace .resume-workspace {
+  grid-template-columns: minmax(0, 1fr) 250px;
+  gap: 20px;
+}
+.journal-document-workspace .resume-paper {
+  min-height: 220px;
+  padding: 20px 24px;
+  box-shadow: none;
+}
+.journal-document-workspace .resume-document {
+  min-height: 180px;
+  font:
+    14px/1.9 'Noto Serif SC',
+    'Songti SC',
+    serif;
+}
+.journal-document-workspace .resume-document[contenteditable='true'] > p:only-child:has(> br:only-child)::before {
+  content: '写下完成事项、学习笔记和生活感想…';
+}
+.journal-document-workspace .resume-source textarea {
+  min-height: 260px;
+  padding: 18px;
+}
+.journal-document-preview .resume-workspace {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+.journal-document-preview .resume-paper {
+  border: 0;
+  min-height: 0;
+  padding: 0;
+}
+.journal-document-preview .resume-document {
+  min-height: 0;
+  font-size: 13px;
+}
+.journal-document-preview .resume-comments {
+  position: static;
+  max-height: none;
+}
+.journal-document-preview:not(.has-comments) .resume-comments {
+  display: none;
+}
+.journal-document-preview .resume-comment-list {
+  display: block;
+}
+.journal-sync.resume-page {
+  margin: 0;
+}
+.journal-error .journal-button {
+  margin-left: 12px;
+}
+@media (max-width: 800px) {
+  .journal-document-workspace .resume-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .journal-document-workspace .resume-comments {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+}
 @media (max-width: 700px) {
   .weekly-journal {
     padding-top: 24px;
@@ -423,7 +423,7 @@
     margin-bottom: 24px;
   }
   .journal-heading h1 {
-    font-size: 34px;
+    font-size: 24px;
   }
   .journal-heading h1 > small {
     font-size: 13px;
@@ -463,6 +463,22 @@
   .journal-access {
     padding: 24px;
     margin-top: 24px;
+  }
+  .journal-day-editing {
+    padding: 16px;
+  }
+  .journal-document-workspace .resume-paper {
+    padding: 16px;
+  }
+  .journal-document-preview .resume-paper {
+    padding: 0;
+  }
+  .journal-document-workspace .resume-source label span {
+    display: none;
+  }
+  .journal-document-workspace .resume-toolbar {
+    position: static;
+    gap: 2px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

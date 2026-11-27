@@ -26,10 +26,11 @@ function mount(query = '') {
   );
 }
 async function ready() {
-  return screen.findByRole('button', { name: '周一写点记录' });
+  return screen.findByRole('listitem', { name: '周一记录' });
 }
 
 beforeEach(() => {
+  localStorage.clear();
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date('2026-11-12T01:30:00Z'));
   vi.stubGlobal(
@@ -77,8 +78,7 @@ describe('周记页面', () => {
     await screen.findByText('2025-12-29 — 2026-01-04');
     expect(screen.getByTestId('location')).toHaveTextContent('week=2025-12-29');
     fireEvent.click(screen.getByRole('button', { name: '回到本周' }));
-    await ready();
-    expect(screen.getByLabelText('选择一周')).toHaveValue('2026-11-09');
+    await waitFor(() => expect(screen.getByLabelText('选择一周')).toHaveValue('2026-11-09'));
   });
 
   it('保存Markdown记录，模板与重新加载后的正文保持', async () => {
@@ -92,13 +92,18 @@ describe('周记页面', () => {
     });
     const view = mount();
     await ready();
-    fireEvent.click(screen.getByRole('button', { name: '周一写点记录' }));
+    fireEvent.click(screen.getByRole('listitem', { name: '周一记录' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Markdown' }));
+    await screen.findByRole('textbox', { name: '周一记录内容' });
     fireEvent.click(screen.getByRole('button', { name: '插入记录模板' }));
-    expect((screen.getByLabelText('周一记录内容') as HTMLTextAreaElement).value).toContain('### 遗留问题');
-    fireEvent.change(screen.getByLabelText('周一记录内容'), {
+    expect((screen.getByRole('textbox', { name: '周一记录内容' }) as HTMLTextAreaElement).value).toContain(
+      '### 遗留问题',
+    );
+    fireEvent.change(screen.getByRole('textbox', { name: '周一记录内容' }), {
       target: { value: '### 今日完成\n\n[跳跃游戏](https://leetcode.cn/problems/jump-game/)' },
     });
-    fireEvent.click(screen.getByRole('button', { name: '保存记录' }));
+    await waitFor(() => expect(saved.days[0].content).toContain('跳跃游戏'), { timeout: 3000 });
+    fireEvent.click(screen.getByRole('button', { name: '预览' }));
     expect(await screen.findByRole('link', { name: '跳跃游戏' })).toHaveAttribute(
       'href',
       'https://leetcode.cn/problems/jump-game/',
@@ -109,34 +114,7 @@ describe('周记页面', () => {
     await waitFor(() => expect(screen.getByRole('link', { name: '跳跃游戏' })).toBeInTheDocument());
   });
 
-  it('随想归今天、按时间展示；失败保留输入且重试复用请求避免重复', async () => {
-    const writes: string[] = [];
-    vi.mocked(fetch).mockImplementation(async (_, init) => {
-      if (init?.method !== 'PUT') return json(response());
-      writes.push(String(init.body));
-      if (writes.length === 1) throw new Error('网络暂时失败');
-      const state = JSON.parse(String(init.body)).state as WeeklyState;
-      return json(response('2026-11-09', state, 1));
-    });
-    mount();
-    await ready();
-    const thursday = screen.getByRole('heading', { name: /^周四/ }).closest('li')!;
-    expect(within(thursday).getByLabelText('当天随想内容')).toBeInTheDocument();
-    const monday = screen.getByRole('heading', { name: /^周一/ }).closest('li')!;
-    expect(within(monday).queryByLabelText('当天随想内容')).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('当天随想内容'), { target: { value: '今天终于理解了 Context' } });
-    fireEvent.click(screen.getByRole('button', { name: '记下随想' }));
-    await screen.findByText('网络暂时失败');
-    expect(screen.getByLabelText('当天随想内容')).toHaveValue('今天终于理解了 Context');
-    fireEvent.click(screen.getByRole('button', { name: '记下随想' }));
-    await screen.findByText('已记到今天的随想');
-    expect(writes[1]).toBe(writes[0]);
-    expect(within(thursday).getByText('今天终于理解了 Context')).toBeInTheDocument();
-    expect(within(thursday).getByText('09:30')).toBeInTheDocument();
-    expect(screen.getByLabelText('当天随想内容')).toHaveValue('');
-  });
-
-  it('历史周不把今天随想写入过去；删除需要明确确认', async () => {
+  it('移除随想及手动保存入口，旧随想不出现在页面或计数中', async () => {
     const saved = emptyWeek('2026-11-02');
     saved.days[0].thoughts = [
       { id: '11111111-1111-4111-8111-111111111111', content: '过去的想法', createdAt: '2026-11-02T00:00:00Z' },
@@ -150,12 +128,15 @@ describe('周记页面', () => {
     await ready();
     expect(screen.queryByLabelText('当天随想内容')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '记下随想' })).not.toBeInTheDocument();
-    expect(vi.mocked(fetch).mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(0);
-    fireEvent.click(screen.getByRole('button', { name: '删除周一08:00的随想' }));
-    expect(screen.getByText('过去的想法')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '确认删除' }));
-    await screen.findByText('随想已删除');
     expect(screen.queryByText('过去的想法')).not.toBeInTheDocument();
+    expect(screen.getByText(/0 \/ 7 天有记录/)).toBeInTheDocument();
+    expect(vi.mocked(fetch).mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(0);
+    fireEvent.click(screen.getByRole('listitem', { name: '周一记录' }));
+    await screen.findByRole('textbox', { name: '周一记录内容' });
+    fireEvent.click(screen.getByRole('button', { name: /^周记云端同步/ }));
+    expect(
+      screen.queryByRole('button', { name: /编辑记录|写点记录|保存记录|立即保存|核对后保存/ }),
+    ).not.toBeInTheDocument();
   });
 
   it('并发冲突加载最新记录并保留编辑草稿，重试不覆盖其他天', async () => {
@@ -173,15 +154,16 @@ describe('周记页面', () => {
     });
     mount();
     await ready();
-    fireEvent.click(screen.getByRole('button', { name: '周一写点记录' }));
-    fireEvent.change(screen.getByLabelText('周一记录内容'), { target: { value: '我的周一草稿' } });
-    fireEvent.click(screen.getByRole('button', { name: '保存记录' }));
-    await screen.findByText(/周记已在其他窗口更新/);
-    expect(screen.getByLabelText('周一记录内容')).toHaveValue('我的周一草稿');
-    fireEvent.click(screen.getByRole('button', { name: '保存记录' }));
-    await screen.findByText('记录已保存');
+    fireEvent.click(screen.getByRole('listitem', { name: '周一记录' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Markdown' }));
+    await screen.findByRole('textbox', { name: '周一记录内容' });
+    fireEvent.change(screen.getByRole('textbox', { name: '周一记录内容' }), { target: { value: '我的周一草稿' } });
+    await screen.findByText(/周记已在其他窗口更新/, {}, { timeout: 3000 });
+    expect(screen.getByRole('textbox', { name: '周一记录内容' })).toHaveValue('我的周一草稿');
+    fireEvent.click(screen.getByRole('button', { name: '使用当前版本' }));
+    await screen.findByText('已保存到云端');
     expect(screen.getByText('另一个窗口的周二记录')).toBeInTheDocument();
-    expect(screen.getByText('我的周一草稿')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: '周一记录内容' })).toHaveValue('我的周一草稿');
   });
 
   it('账号退出清理私密正文和草稿，并丢弃迟到的保存响应', async () => {
@@ -198,9 +180,10 @@ describe('周记页面', () => {
     });
     mount();
     await ready();
-    fireEvent.change(screen.getByLabelText('当天随想内容'), { target: { value: '私密草稿' } });
-    fireEvent.click(screen.getByRole('button', { name: '记下随想' }));
-    await waitFor(() => expect(finish).toBeTypeOf('function'));
+    fireEvent.click(screen.getByRole('listitem', { name: '周一记录' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Markdown' }));
+    fireEvent.change(await screen.findByRole('textbox', { name: '周一记录内容' }), { target: { value: '私密草稿' } });
+    await waitFor(() => expect(finish).toBeTypeOf('function'), { timeout: 3000 });
     loggedIn = false;
     act(() => window.dispatchEvent(new Event('dblog-account-change')));
     await screen.findByRole('heading', { name: '登录后，记录自己的这一周' });
@@ -229,5 +212,98 @@ describe('周记页面', () => {
     await act(async () => finish(json(response('2026-11-02'))));
     expect(screen.getByText('2026-11-16 — 2026-11-22')).toBeInTheDocument();
     expect(screen.queryByText('2026-11-02 — 2026-11-08')).not.toBeInTheDocument();
+  });
+
+  it('文档与Markdown切换后自动保存，保留高亮和留言定位，刷新可恢复', async () => {
+    let saved = emptyWeek('2026-11-09');
+    let revision = 0;
+    vi.mocked(fetch).mockImplementation(async (_, init) => {
+      if (init?.method === 'PUT') {
+        saved = JSON.parse(String(init.body)).state;
+        revision++;
+      }
+      return json(response('2026-11-09', saved, revision));
+    });
+    const rendered = mount();
+    await ready();
+    fireEvent.click(screen.getByRole('listitem', { name: '周一记录' }));
+    const doc = await screen.findByRole('textbox', { name: '周一记录内容' });
+    const editor = (doc as HTMLElement & { editor: import('@tiptap/core').Editor }).editor;
+    act(() => editor.commands.insertContent('今日学会自动保存'));
+    await waitFor(() => expect(saved.days[0].content).toContain('今日学会自动保存'), { timeout: 3000 });
+    expect(doc).toHaveAttribute('contenteditable', 'true');
+    act(() => editor.commands.setTextSelection({ from: 3, to: 7 }));
+    fireEvent.click(screen.getByRole('button', { name: '高亮' }));
+    fireEvent.click(screen.getByRole('button', { name: '添加评论' }));
+    fireEvent.change(screen.getByRole('textbox', { name: '评论内容' }), { target: { value: '明天继续练习' } });
+    fireEvent.click(screen.getByRole('button', { name: '提交评论' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Markdown' }));
+    expect((screen.getByRole('textbox', { name: '周一记录内容' }) as HTMLTextAreaElement).value).toContain('<mark');
+    expect(
+      within(screen.getByRole('complementary', { name: '周一留言' })).getByText('明天继续练习'),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(saved.days[0].comments?.[0].body).toBe('明天继续练习'), { timeout: 3000 });
+    rendered.unmount();
+    mount();
+    expect(await screen.findByText('明天继续练习')).toBeInTheDocument();
+    const restored = await screen.findByRole('textbox', { name: '周一记录内容' });
+    expect(restored.querySelector('mark')).toHaveTextContent('学会自动');
+    fireEvent.click(screen.getByRole('button', { name: '定位原文：学会自动' }));
+    expect(restored.querySelector('.is-comment-active')).toHaveTextContent('学会自动');
+  });
+
+  it('切周前保存尚未自动写入的内容；未提交留言阻止切周', async () => {
+    const archives = new Map<string, WeeklyState>();
+    const events: string[] = [];
+    vi.mocked(fetch).mockImplementation(async (url, init) => {
+      const week = new URL(String(url), 'http://localhost').searchParams.get('week') || '2026-11-09';
+      events.push(`${init?.method || 'GET'}:${week}`);
+      if (init?.method === 'PUT') archives.set(week, JSON.parse(String(init.body)).state);
+      return json(response(week, archives.get(week) ?? null, archives.has(week) ? 1 : 0));
+    });
+    mount();
+    await ready();
+    fireEvent.click(screen.getByRole('listitem', { name: '周一记录' }));
+    const doc = await screen.findByRole('textbox', { name: '周一记录内容' });
+    const editor = (doc as HTMLElement & { editor: import('@tiptap/core').Editor }).editor;
+    act(() => {
+      editor.commands.insertContent('切周前的记录');
+      editor.commands.setTextSelection({ from: 1, to: 4 });
+    });
+    fireEvent.click(screen.getByRole('button', { name: '添加评论' }));
+    fireEvent.click(screen.getByRole('button', { name: '上一周' }));
+    expect(await screen.findByText(/请先提交或取消正在编写的留言/)).toBeInTheDocument();
+    expect(screen.getByLabelText('选择一周')).toHaveValue('2026-11-09');
+    fireEvent.click(screen.getByRole('button', { name: '取消评论' }));
+    fireEvent.click(screen.getByRole('button', { name: '上一周' }));
+    await screen.findByText('2026-11-02 — 2026-11-08');
+    expect(archives.get('2026-11-09')?.days[0].content).toContain('切周前的记录');
+    expect(events.indexOf('PUT:2026-11-09')).toBeLessThan(events.indexOf('GET:2026-11-02'));
+  });
+
+  it('点击卡片即聚焦正文，键盘可切换到另一张记录，切换后保留输入', async () => {
+    let saved = emptyWeek('2026-11-09');
+    let revision = 0;
+    vi.mocked(fetch).mockImplementation(async (_, init) => {
+      if (init?.method === 'PUT') {
+        saved = JSON.parse(String(init.body)).state;
+        revision++;
+      }
+      return json(response('2026-11-09', saved, revision));
+    });
+    mount();
+    fireEvent.click(await ready());
+    const monday = await screen.findByRole('textbox', { name: '周一记录内容' });
+    await waitFor(() => expect(monday).toHaveFocus());
+    const editor = (monday as HTMLElement & { editor: import('@tiptap/core').Editor }).editor;
+    act(() => editor.commands.insertContent('周一自动保存'));
+    fireEvent.keyDown(screen.getByRole('listitem', { name: '周二记录' }), { key: 'Enter' });
+    const tuesday = await screen.findByRole('textbox', { name: '周二记录内容' });
+    await waitFor(() => expect(tuesday).toHaveFocus());
+    expect(monday).toHaveAttribute('contenteditable', 'false');
+    expect(screen.getAllByRole('toolbar')).toHaveLength(1);
+    await waitFor(() => expect(saved.days[0].content).toContain('周一自动保存'), { timeout: 3000 });
+    fireEvent.click(screen.getByRole('listitem', { name: '周一记录' }));
+    expect(screen.getByRole('textbox', { name: '周一记录内容' })).toHaveTextContent('周一自动保存');
   });
 });

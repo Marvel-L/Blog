@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { EditorContent, useEditor, useEditorState, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -89,6 +89,11 @@ export default function ResumeEditor({
   onModeChange,
   onError,
   onCommentDraft,
+  documentLabel = '定稿正文',
+  maxMarkdown = MAX_MARKDOWN,
+  placeholder = '# 定稿标题\n\n## 正文\n\n[Book 来源](/Blog/book)\n\n[Mind 问题](/Blog/mind)\n\n![方案图](https://你的图片链接)',
+  commentsLabel = '定稿评论',
+  autoFocus = false,
 }: {
   state: ResumeState;
   onChange: (value: ResumeState) => void;
@@ -96,7 +101,13 @@ export default function ResumeEditor({
   onModeChange: (mode: 'edit' | 'preview') => void;
   onError: (message: string) => void;
   onCommentDraft?: (pending: boolean) => void;
+  documentLabel?: string;
+  maxMarkdown?: number;
+  placeholder?: string;
+  commentsLabel?: string;
+  autoFocus?: boolean;
 }) {
+  const sourceId = useId();
   const { markdown } = state;
   const readonly = mode !== 'edit';
   const last = useRef(markdown);
@@ -122,7 +133,7 @@ export default function ResumeEditor({
     editorProps: {
       attributes: {
         class: 'resume-document prose max-w-none',
-        'aria-label': '定稿正文',
+        'aria-label': documentLabel,
         role: 'textbox',
         'aria-multiline': 'true',
       },
@@ -132,7 +143,8 @@ export default function ResumeEditor({
       try {
         const next = htmlToMarkdown(current.getHTML());
         const updated = { ...currentState.current, markdown: next };
-        if (!validResumeState(updated)) throw new Error('简历最多支持 10 万字。');
+        if (!validResumeState(updated) || [...next].length > maxMarkdown)
+          throw new Error(`正文最多支持 ${maxMarkdown / 10000} 万字，请缩短内容。`);
         last.current = next;
         currentState.current = updated;
         callbacks.current.onChange(updated);
@@ -164,7 +176,8 @@ export default function ResumeEditor({
   }, [editor, markdown]);
   useEffect(() => {
     editor?.setEditable(!readonly, false);
-  }, [editor, readonly]);
+    if (editor && autoFocus && !readonly) editor.commands.focus(undefined, { scrollIntoView: false });
+  }, [editor, readonly, autoFocus]);
   useEffect(() => {
     if (!editor) return;
     for (const node of editor.view.dom.querySelectorAll(`[${COMMENT_ATTR}]`)) {
@@ -227,7 +240,8 @@ export default function ResumeEditor({
       comments,
       markdown: tr?.docChanged ? documentMarkdown(tr.doc) : currentState.current.markdown,
     };
-    if (!validResumeState(updated)) throw new Error('评论无法保存，请检查内容长度或特殊控制字符。');
+    if (!validResumeState(updated) || [...updated.markdown].length > maxMarkdown)
+      throw new Error('评论无法保存，请检查内容长度或特殊控制字符。');
     // Persist anchors and metadata together; comment operations do not enter text undo history.
     if (tr?.docChanged) editor.view.dispatch(tr.setMeta('preventUpdate', true).setMeta('addToHistory', false));
     last.current = updated.markdown;
@@ -283,17 +297,16 @@ export default function ResumeEditor({
       <div className="resume-editor">
         {mode === 'markdown' && (
           <div className="resume-source">
-            <label htmlFor="resume-markdown">
+            <label htmlFor={sourceId}>
               Markdown 源码<span>支持粘贴全文、图片和来源链接</span>
             </label>
             <textarea
-              id="resume-markdown"
+              id={sourceId}
+              aria-label={documentLabel}
               value={markdown}
-              maxLength={MAX_MARKDOWN}
+              maxLength={maxMarkdown}
               spellCheck={false}
-              placeholder={
-                '# 定稿标题\n\n## 正文\n\n[Book 来源](/Blog/book)\n\n[Mind 问题](/Blog/mind)\n\n![方案图](https://你的图片链接)'
-              }
+              placeholder={placeholder}
               onChange={(event) => onChange({ ...currentState.current, markdown: event.target.value })}
             />
           </div>
@@ -502,6 +515,7 @@ export default function ResumeEditor({
         </div>
       </div>
       <ResumeComments
+        label={commentsLabel}
         comments={state.comments ?? []}
         anchors={selection?.anchors ?? []}
         active={active}

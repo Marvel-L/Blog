@@ -49,11 +49,20 @@ func validWeeklyJournal(raw json.RawMessage, monday time.Time) bool {
 	ids := map[string]bool{}
 	for index, rawDay := range days {
 		day, err := fields(rawDay, "date", "content", "thoughts")
+		if err != nil {
+			day, err = fields(rawDay, "date", "content", "thoughts", "comments")
+		}
 		var date string
 		var thoughts []json.RawMessage
 		if err != nil || json.Unmarshal(day["date"], &date) != nil || date != monday.AddDate(0, 0, index).Format("2006-01-02") ||
 			!journalText(day["content"], 20000, true) || string(day["thoughts"]) == "null" || json.Unmarshal(day["thoughts"], &thoughts) != nil || len(thoughts) > 100 {
 			return false
+		}
+		if day["comments"] != nil {
+			content := json.RawMessage(`{"version":1,"markdown":` + string(day["content"]) + `,"comments":` + string(day["comments"]) + `}`)
+			if string(day["comments"]) == "null" || !validResumeContent(content) {
+				return false
+			}
 		}
 		for _, rawThought := range thoughts {
 			thought, err := fields(rawThought, "id", "content", "createdAt")
@@ -114,11 +123,14 @@ func (a *API) weeklyJournal(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		snapshot, err = db.WeeklyJournal(r.Context(), u.ID, week)
 	} else {
-		raw, ok := jsonBody(w, r, 1024*1024)
+		raw, ok := jsonBody(w, r, 8*1024*1024)
 		if !ok {
 			return
 		}
 		body, parseErr := fields(raw, "baseRevision", "mutationId", "state")
+		if parseErr != nil {
+			body, parseErr = fields(raw, "expectedUserId", "baseRevision", "mutationId", "state")
+		}
 		var base int64
 		var mutation string
 		if parseErr != nil || string(body["baseRevision"]) == "null" || json.Unmarshal(body["baseRevision"], &base) != nil ||
@@ -126,6 +138,17 @@ func (a *API) weeklyJournal(w http.ResponseWriter, r *http.Request) {
 			!uuidPattern.MatchString(mutation) || !validWeeklyJournal(body["state"], monday) {
 			failure(w, 400)
 			return
+		}
+		if body["expectedUserId"] != nil {
+			var expectedUser string
+			if json.Unmarshal(body["expectedUserId"], &expectedUser) != nil || !uuidPattern.MatchString(expectedUser) {
+				failure(w, 400)
+				return
+			}
+			if expectedUser != u.ID {
+				failure(w, 401)
+				return
+			}
 		}
 		var conflict bool
 		snapshot, conflict, err = db.SaveWeeklyJournal(r.Context(), u.ID, week, base, strings.ToLower(mutation), body["state"])

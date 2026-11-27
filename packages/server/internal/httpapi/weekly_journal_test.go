@@ -162,3 +162,55 @@ func TestWeeklyJournalOAuthReturn(t *testing.T) {
 		requireStatus(t, f.request("GET", "/api/v1/auth/github/start?return_to="+url.QueryEscape(path+"?user_id=bob"), "", "", ""), 400)
 	}
 }
+
+func TestWeeklyJournalCommentsAndAccountGuard(t *testing.T) {
+	f := setup(t)
+	cookie := f.login(t, "")
+	w := f.request("GET", weeklyPath, cookie, "", "")
+	requireStatus(t, w, 200)
+	var owner struct{ User store.User }
+	decode(t, w.Body.String(), &owner)
+	state := weeklyState("2026-11-09", `<mark>复盘</mark><span data-resume-comments="30000000-0000-4000-8000-000000000001">今日完成</span>`)
+	var decoded map[string]any
+	if err := json.Unmarshal([]byte(state), &decoded); err != nil {
+		t.Fatal(err)
+	}
+	day := decoded["days"].([]any)[0].(map[string]any)
+	day["comments"] = []any{map[string]string{
+		"id": "30000000-0000-4000-8000-000000000001", "quote": "今日完成",
+		"body": "明天继续练习", "createdAt": "2026-11-12T01:30:00.000Z",
+	}}
+	raw, _ := json.Marshal(decoded)
+	body := dailyBody(0, "40000000-0000-4000-8000-000000000001", string(raw))
+	body = strings.Replace(body, `"baseRevision":`, fmt.Sprintf(`"expectedUserId":%q,"baseRevision":`, owner.User.ID), 1)
+	requireStatus(t, f.request("PUT", weeklyPath, cookie, strings.Replace(body, owner.User.ID, "50000000-0000-4000-8000-000000000001", 1), cfg.Origin), 401)
+	requireStatus(t, f.request("PUT", weeklyPath, cookie, body, cfg.Origin), 200)
+	requireStatus(t, f.request("PUT", weeklyPath, cookie, body, cfg.Origin), 200)
+	w = f.request("GET", weeklyPath, cookie, "", "")
+	requireStatus(t, w, 200)
+	if !strings.Contains(w.Body.String(), "明天继续练习") || !strings.Contains(w.Body.String(), "data-resume-comments") {
+		t.Fatal("journal comments or anchors were not persisted")
+	}
+}
+
+func TestWeeklyJournalCommentValidation(t *testing.T) {
+	monday, _ := time.Parse("2006-01-02", "2026-11-09")
+	raw := weeklyState("2026-11-09", "正文")
+	comments := `"comments":[{"id":"30000000-0000-4000-8000-000000000001","quote":"正文","body":"留言","createdAt":"2026-11-12T01:30:00.000Z"}],`
+	valid := strings.Replace(raw, `"date":"2026-11-09"`, comments+`"date":"2026-11-09"`, 1)
+	if !validWeeklyJournal(json.RawMessage(valid), monday) || !validWeeklyJournal(json.RawMessage(raw), monday) {
+		t.Fatal("new comments or legacy journal rejected")
+	}
+	for _, invalid := range []string{
+		strings.Replace(valid, `"body":"留言"`, `"body":""`, 1),
+		strings.Replace(valid, `"quote":"正文"`, `"quote":null`, 1),
+		strings.Replace(valid, `"body":"留言"`, fmt.Sprintf(`"body":%q`, strings.Repeat("字", 2001)), 1),
+		strings.Replace(valid, `"createdAt":"2026-11-12T01:30:00.000Z"`, `"createdAt":"2026-02-30T01:30:00.000Z"`, 1),
+		strings.Replace(valid, `"body":"留言"`, `"userId":"bob","body":"留言"`, 1),
+		strings.Replace(raw, `"date":"2026-11-09"`, `"comments":null,"date":"2026-11-09"`, 1),
+	} {
+		if validWeeklyJournal(json.RawMessage(invalid), monday) {
+			t.Fatal("invalid comment accepted")
+		}
+	}
+}

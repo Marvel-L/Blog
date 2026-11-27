@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useHref, useSearchParams } from 'react-router-dom';
 import {
   ArrowDownRight,
@@ -6,52 +7,72 @@ import {
   ChevronLeft,
   ChevronRight,
   LockKeyhole,
-  PencilLine,
-  Plus,
-  Sparkles,
+  Cloud,
+  RefreshCw,
+  X,
 } from 'lucide-react';
 import { AccountCredentials } from '@/cloud/AccountCredentials';
 import { Seo } from '@/components/Seo';
-import { MarkdownBody } from '@/components/markdown/MarkdownBody';
+import { downloadBlob } from '@/utils/download';
 import { useWeeklyJournal } from './useWeeklyJournal';
 import {
   WEEKDAYS,
   JOURNAL_TEMPLATE,
   emptyWeek,
+  journalDocument,
   mondayOf,
-  shanghaiDate,
   shiftDate,
-  thoughtTime,
   validJournalDate,
   type JournalDay,
-  type WeeklyState,
 } from './weekly-model';
+import '../resume/resume.css';
 import './weekly-journal.css';
 
+const ResumeEditor = lazy(() => import('../resume/ResumeEditor'));
+const statusText = {
+  saved: '已保存到云端',
+  pending: '待自动保存',
+  saving: '正在保存…',
+  error: '保存失败',
+  conflict: '请核对版本冲突',
+};
+
 const button = 'journal-button';
-const input = 'journal-input';
-
-function useMounted() {
-  const mounted = useRef(false);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-  return mounted;
-}
-
 export default function WeeklyJournal() {
   const [params, setParams] = useSearchParams();
   const rawWeek = params.get('week') ?? '';
   const selection = validJournalDate(rawWeek) ? mondayOf(rawWeek) : '';
   const journal = useWeeklyJournal(selection);
   const loginReturn = useHref('/weekly-journal');
-  const { data, phase, busy } = journal;
-  const state = useMemo(() => (data ? (data.archive.state ?? emptyWeek(data.weekStart)) : null), [data]);
-  const pickWeek = (date: string) => {
+  const { data, phase, busy, view } = journal;
+  const state = view?.state ?? (data ? emptyWeek(data.weekStart) : null);
+  const [navigationError, setNavigationError] = useState('');
+  const [activeDay, setActiveDay] = useState<{ session: number; date: string } | null>(null);
+  const commentsPending = useRef(new Set<string>());
+  useEffect(() => {
+    commentsPending.current.clear();
+    setNavigationError('');
+  }, [journal.session]);
+  const selectDay = (date: string) => {
+    if (activeDay?.session === journal.session && activeDay.date === date) return;
+    if (commentsPending.current.size) {
+      setNavigationError('请先提交或取消正在编写的留言，再切换记录。');
+      return;
+    }
+    setNavigationError('');
+    setActiveDay({ session: journal.session, date });
+  };
+  const pickWeek = async (date: string) => {
     if (busy || !validJournalDate(date)) return;
+    if (view?.status === 'conflict') {
+      setNavigationError('请先核对版本冲突，再切换周次。');
+      return;
+    }
+    if (commentsPending.current.size) {
+      setNavigationError('请先提交或取消正在编写的留言，再切换周次。');
+      return;
+    }
+    if (!(await journal.sync())) return;
     setParams((previous) => {
       const next = new URLSearchParams(previous);
       next.set('week', mondayOf(date));
@@ -63,20 +84,19 @@ export default function WeeklyJournal() {
     <section aria-label="我的周记" className="weekly-journal">
       <Seo
         title="我的周记"
-        description="以周一为起点，按周一到周日整理学习笔记、完成事项、遗留问题与生活记录。随想写在当天的卡片里，登录后回顾和编辑只属于自己的每一周。"
+        description="以周一为起点，按周一到周日整理学习笔记、完成事项、遗留问题与生活记录。点击记录直接书写，内容自动保存，支持 Markdown、高亮和留言。"
         url="/weekly-journal"
         noindex
       />
       <header className="journal-heading">
         <div>
           <p className="journal-eyebrow">
-            <CalendarDays size={14} aria-hidden="true" /> 每周一页 · 生活有迹
+            <CalendarDays size={14} aria-hidden="true" /> 每周一页
           </p>
           <h1>
             周记<span aria-hidden="true"> / </span>
             <small>Weekly Journal</small>
           </h1>
-          <p className="journal-description">记下做过的事、学到的东西，还有一闪而过的想法。</p>
         </div>
         <span className="journal-privacy">
           <LockKeyhole size={13} aria-hidden="true" /> 仅自己可见
@@ -93,7 +113,7 @@ export default function WeeklyJournal() {
             <LockKeyhole size={23} aria-hidden="true" />
           </div>
           <h3 className="text-lg font-semibold">登录后，记录自己的这一周</h3>
-          <p className="journal-description mb-6 mt-2">周记和随想仅自己可见，登录后可以查看和编辑。</p>
+          <p className="journal-description mb-6 mt-2">周记仅自己可见，登录后可以查看和编辑。</p>
           <AccountCredentials user={null} onUser={journal.retry} />
           <a
             className={`${button} mt-5 inline-flex`}
@@ -161,19 +181,28 @@ export default function WeeklyJournal() {
             <div className="journal-week-foot">
               <p>
                 周一至周日<span> · </span>
-                {state.days.filter((day) => day.content.trim() || day.thoughts.length).length} / 7 天有记录
+                {state.days.filter((day) => day.content.trim()).length} / 7 天有记录
               </p>
               {mondayOf(data.today) === data.weekStart && (
-                <a className="journal-today-link" href={`#journal-day-${data.today}`}>
+                <a
+                  className="journal-today-link"
+                  href={`#journal-day-${data.today}`}
+                  onClick={() => selectDay(data.today)}
+                >
                   写今天
                   <ArrowDownRight size={14} aria-hidden="true" />
                 </a>
               )}
             </div>
           </div>
-          {journal.error && (
+          {(journal.error || navigationError) && (
             <p role="alert" className="journal-error">
-              {journal.error}
+              {journal.error || navigationError}
+              {journal.error && (
+                <button type="button" className={button} onClick={() => void journal.sync()}>
+                  {view?.status === 'conflict' ? '使用当前版本' : '重试同步'}
+                </button>
+              )}
             </p>
           )}
           <ol className="journal-days">
@@ -183,19 +212,24 @@ export default function WeeklyJournal() {
                 day={day}
                 label={WEEKDAYS[index]}
                 today={data.today}
-                busy={busy}
-                save={journal.save}
+                editing={activeDay?.session === journal.session && activeDay.date === day.date}
+                onActivate={() => selectDay(day.date)}
+                update={journal.update}
+                status={view?.status ?? 'saved'}
+                onCommentDraft={(pending) => {
+                  if (pending) commentsPending.current.add(day.date);
+                  else commentsPending.current.delete(day.date);
+                }}
               />
             ))}
           </ol>
-          <p className="journal-footer-note">以周一为起点 · 日期与随想时间按北京时间展示</p>
+          <p className="journal-footer-note">以周一为起点 · 内容自动保存</p>
+          <JournalSync journal={journal} />
         </>
       )}
     </section>
   );
 }
-
-type SaveWeek = (key: string, transform: (state: WeeklyState) => WeeklyState) => Promise<boolean>;
 
 function weekNumber(monday: string) {
   const thursday = new Date(`${shiftDate(monday, 3)}T00:00:00Z`);
@@ -203,101 +237,50 @@ function weekNumber(monday: string) {
   return Math.ceil(((thursday.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
 
-function ThoughtComposer({ date, busy, save }: { date: string; busy: boolean; save: SaveWeek }) {
-  const mounted = useMounted();
-  const [content, setContent] = useState('');
-  const [notice, setNotice] = useState('');
-  const textarea = useRef<HTMLTextAreaElement>(null);
-  return (
-    <div className="journal-thought-composer" role="group" aria-label="当天随想">
-      <h4>
-        <Sparkles size={14} aria-hidden="true" /> 当天随想
-      </h4>
-      <p>刚想到的，先记下来。</p>
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          const today = shanghaiDate(new Date());
-          if (today !== date) {
-            setNotice('日期已变化，请回到本周后再记录今天的随想。');
-            return;
-          }
-          if (!content.trim() || busy) return;
-          void save(`thought:${today}:${content}`, (state) => ({
-            ...state,
-            days: state.days.map((day) =>
-              day.date === today
-                ? {
-                    ...day,
-                    thoughts: [
-                      ...day.thoughts,
-                      { id: crypto.randomUUID(), content: content.trim(), createdAt: new Date().toISOString() },
-                    ],
-                  }
-                : day,
-            ),
-          })).then((success) => {
-            if (success && mounted.current) {
-              setContent('');
-              setNotice('已记到今天的随想');
-              textarea.current?.focus();
-            }
-          });
-        }}
-      >
-        <label className="sr-only" htmlFor={`thought-${date}`}>
-          当天随想内容
-        </label>
-        <textarea
-          ref={textarea}
-          id={`thought-${date}`}
-          value={content}
-          onChange={(event) => {
-            setContent(event.target.value);
-            setNotice('');
-          }}
-          maxLength={5000}
-          rows={2}
-          placeholder="今天有什么想法？一句话也可以。"
-          disabled={busy}
-          required
-          className={input}
-        />
-        <div className="journal-thought-actions">
-          <span>支持 Markdown</span>
-          <button type="submit" className={`${button} journal-button-primary`} disabled={busy || !content.trim()}>
-            <Plus size={15} aria-hidden="true" /> {busy ? '正在保存…' : '记下随想'}
-          </button>
-        </div>
-        <p role="status" aria-live="polite" className="journal-notice">
-          {notice}
-        </p>
-      </form>
-    </div>
-  );
-}
-
 function JournalDayCard({
   day,
   label,
   today,
-  busy,
-  save,
+  editing,
+  onActivate,
+  update,
+  status,
+  onCommentDraft,
 }: {
   day: JournalDay;
   label: string;
   today: string;
-  busy: boolean;
-  save: SaveWeek;
+  editing: boolean;
+  onActivate: () => void;
+  update: ReturnType<typeof useWeeklyJournal>['update'];
+  status: keyof typeof statusText;
+  onCommentDraft: (pending: boolean) => void;
 }) {
-  const mounted = useMounted();
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(day.content);
-  const [notice, setNotice] = useState('');
-  const [deleting, setDeleting] = useState<string | null>(null);
-  const editor = useRef<HTMLTextAreaElement>(null);
+  const [mode, setMode] = useState<'edit' | 'markdown' | 'preview'>('edit');
+  const [editorError, setEditorError] = useState('');
+  useEffect(() => {
+    if (editing) setMode('edit');
+  }, [editing]);
   return (
-    <li id={`journal-day-${day.date}`} className={`journal-day ${day.date === today ? 'journal-day-today' : ''}`}>
+    <li
+      id={`journal-day-${day.date}`}
+      aria-label={`${label}记录`}
+      tabIndex={editing ? -1 : 0}
+      onClick={(event) => {
+        if (editing || !(event.target instanceof Element)) return;
+        if (event.target.closest('a, button, input, textarea, select, .resume-comments, [data-resume-comments]'))
+          return;
+        onActivate();
+      }}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget || editing) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onActivate();
+        }
+      }}
+      className={`journal-day ${day.date === today ? 'journal-day-today' : ''} ${editing ? 'journal-day-editing' : ''}`}
+    >
       <div className="journal-day-heading">
         <div className="journal-day-date">
           <span className="journal-day-number" aria-hidden="true">
@@ -311,148 +294,202 @@ function JournalDayCard({
             <time dateTime={day.date}>{day.date.slice(5).replace('-', ' / ')}</time>
           </div>
         </div>
-        {!editing && (
-          <button
-            type="button"
-            className="journal-edit-button"
-            disabled={busy}
-            aria-label={`${label}${day.content ? '编辑记录' : '写点记录'}`}
-            onClick={() => {
-              setDraft(day.content);
-              setNotice('');
-              setEditing(true);
-            }}
-          >
-            <PencilLine size={14} aria-hidden="true" />
-            {day.content ? '编辑记录' : '写点记录'}
-          </button>
-        )}
       </div>
-      {editing ? (
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (busy) return;
-            void save(`day:${day.date}:${draft}`, (state) => ({
-              ...state,
-              days: state.days.map((item) => (item.date === day.date ? { ...item, content: draft } : item)),
-            })).then((success) => {
-              if (success && mounted.current) {
-                setEditing(false);
-                setNotice('记录已保存');
-              }
-            });
-          }}
-        >
-          <label className="sr-only" htmlFor={`journal-${day.date}`}>
-            {label}记录内容
-          </label>
-          <textarea
-            ref={editor}
-            autoFocus
-            id={`journal-${day.date}`}
-            className={input}
-            rows={9}
-            maxLength={20000}
-            value={draft}
-            disabled={busy}
-            onChange={(event) => setDraft(event.target.value)}
-            placeholder="写下完成事项、学习链接、遗留问题或生活感想…"
-          />
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-            <button
-              type="button"
-              disabled={busy || Boolean(draft.trim())}
-              className="text-xs text-zinc-500 underline underline-offset-4"
-              onClick={() => {
-                setDraft(JOURNAL_TEMPLATE);
-                editor.current?.focus();
-              }}
-            >
-              插入记录模板
-            </button>
-            <div className="flex gap-2">
-              <button type="button" className={button} disabled={busy} onClick={() => setEditing(false)}>
-                取消
-              </button>
-              <button type="submit" className={`${button} journal-button-primary`} disabled={busy}>
-                {busy ? '正在保存…' : '保存记录'}
+      {editing && (
+        <div>
+          <div className="journal-editor-modes">
+            <div role="group" aria-label={`${label}编辑模式`}>
+              {(
+                [
+                  ['edit', '文档编辑'],
+                  ['markdown', 'Markdown'],
+                  ['preview', '预览'],
+                ] as const
+              ).map(([value, text]) => (
+                <button type="button" key={value} aria-pressed={mode === value} onClick={() => setMode(value)}>
+                  {text}
+                </button>
+              ))}
+            </div>
+            <span role="status">{statusText[status]}</span>
+          </div>
+          {editorError && (
+            <p role="alert" className="journal-error">
+              {editorError}
+            </p>
+          )}
+        </div>
+      )}
+      {editing || day.content.trim() || day.comments?.length ? (
+        <>
+          <div
+            className={`journal-document-workspace resume-page ${editing ? '' : 'journal-document-preview'} ${day.comments?.length ? 'has-comments' : ''}`}
+          >
+            <Suspense fallback={<p role="status">正在打开编辑器…</p>}>
+              <ResumeEditor
+                state={journalDocument(day)}
+                onChange={(value) => {
+                  update((state) => ({
+                    ...state,
+                    days: state.days.map((item) =>
+                      item.date === day.date
+                        ? { ...item, content: value.markdown, comments: value.comments ?? [] }
+                        : item,
+                    ),
+                  }));
+                  setEditorError('');
+                }}
+                mode={editing ? mode : 'preview'}
+                onModeChange={(next) => {
+                  if (!editing) onActivate();
+                  setMode(next);
+                }}
+                autoFocus={editing}
+                documentLabel={`${label}记录内容`}
+                commentsLabel={`${label}留言`}
+                maxMarkdown={20000}
+                placeholder="### 今日完成&#10;&#10;写下完成事项、学习笔记和生活感想…"
+                onError={setEditorError}
+                onCommentDraft={onCommentDraft}
+              />
+            </Suspense>
+          </div>
+          {editing && (
+            <p className="journal-editor-hint">
+              {mode === 'markdown'
+                ? '高亮和留言定位随 Markdown 保存，切换文档编辑可继续批注。'
+                : '直接点击正文书写；选中文字后右键，或用工具栏高亮、添加评论。'}
+            </p>
+          )}
+          {editing && !day.content.trim() && (
+            <div className="mt-3">
+              <button
+                type="button"
+                className="text-xs text-zinc-500 underline underline-offset-4"
+                onClick={() => {
+                  update((state) => ({
+                    ...state,
+                    days: state.days.map((item) =>
+                      item.date === day.date ? { ...item, content: JOURNAL_TEMPLATE } : item,
+                    ),
+                  }));
+                }}
+              >
+                插入记录模板
               </button>
             </div>
-          </div>
-        </form>
-      ) : day.content.trim() ? (
-        <div className="journal-markdown">
-          <MarkdownBody content={day.content} />
-        </div>
+          )}
+        </>
       ) : (
         <div className="journal-empty">
           <p>{day.date === today ? '今天，值得留下一点什么。' : '这一天，等待你的记录。'}</p>
           <span>完成事项 / 学习笔记 / 生活片段</span>
         </div>
       )}
-      {day.date === today && <ThoughtComposer date={day.date} busy={busy} save={save} />}
-      {day.thoughts.length > 0 && (
-        <div className="journal-thoughts">
-          <h4>随想 · {day.thoughts.length} 条</h4>
-          <ol>
-            {day.thoughts.map((thought) => (
-              <li key={thought.id} className="journal-thought">
-                <div className="mb-1 flex items-center justify-between gap-3">
-                  <time dateTime={thought.createdAt} className="text-xs text-zinc-400">
-                    {thoughtTime(thought.createdAt)}
-                  </time>
-                  <button
-                    type="button"
-                    className="text-xs text-zinc-500 underline underline-offset-4 disabled:opacity-50"
-                    disabled={busy}
-                    onClick={() => setDeleting(thought.id)}
-                    aria-label={`删除${label}${thoughtTime(thought.createdAt)}的随想`}
-                  >
-                    删除
-                  </button>
-                </div>
-                <div className="journal-markdown">
-                  <MarkdownBody content={thought.content} />
-                </div>
-                {deleting === thought.id && (
-                  <div className="mt-3 flex flex-wrap items-center gap-3" role="group" aria-label="确认删除随想">
-                    <span className="text-xs text-zinc-500">删除这条随想？</span>
-                    <button type="button" className={button} disabled={busy} onClick={() => setDeleting(null)}>
-                      保留
-                    </button>
-                    <button
-                      type="button"
-                      className={button}
-                      disabled={busy}
-                      onClick={() => {
-                        void save(`delete:${day.date}:${thought.id}`, (state) => ({
-                          ...state,
-                          days: state.days.map((item) =>
-                            item.date === day.date
-                              ? { ...item, thoughts: item.thoughts.filter((entry) => entry.id !== thought.id) }
-                              : item,
-                          ),
-                        })).then((success) => {
-                          if (success && mounted.current) {
-                            setDeleting(null);
-                            setNotice('随想已删除');
-                          }
-                        });
-                      }}
-                    >
-                      确认删除
-                    </button>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ol>
+    </li>
+  );
+}
+
+function JournalSync({ journal }: { journal: ReturnType<typeof useWeeklyJournal> }) {
+  const [open, setOpen] = useState(false);
+  const panel = useRef<HTMLDivElement>(null);
+  const orb = useRef<HTMLButtonElement>(null);
+  const view = journal.view!;
+  useEffect(() => {
+    if (!open) return;
+    panel.current?.focus();
+    const outside = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !panel.current?.contains(event.target) &&
+        !orb.current?.contains(event.target)
+      )
+        setOpen(false);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+        orb.current?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', outside);
+    window.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('pointerdown', outside);
+      window.removeEventListener('keydown', escape);
+    };
+  }, [open]);
+  return createPortal(
+    <div className="resume-page resume-sync journal-sync">
+      {open && (
+        <div ref={panel} className="resume-sync-panel" role="region" aria-label="周记同步详情" tabIndex={-1}>
+          <header>
+            <strong>周记云端同步</strong>
+            <button type="button" aria-label="关闭同步详情" onClick={() => setOpen(false)}>
+              <X size={16} />
+            </button>
+          </header>
+          <p>
+            {journal.data?.user.name || journal.data?.user.login} · {statusText[view.status]}
+          </p>
+          <p className="resume-sync-note">修改后自动保存，本机草稿按账号和周次保留。</p>
+          {view.updatedAt && (
+            <p className="resume-sync-note">最近保存：{new Date(view.updatedAt).toLocaleString('zh-CN')}</p>
+          )}
+          {journal.error && <p role="alert">{journal.error}</p>}
+          <div className="resume-sync-actions">
+            {(view.status === 'error' || view.status === 'conflict') && (
+              <button type="button" className={button} onClick={() => void journal.sync()}>
+                {view.status === 'conflict' ? '使用当前版本' : '重试同步'}
+              </button>
+            )}
+            <button
+              type="button"
+              className={button}
+              disabled={view.status !== 'saved'}
+              onClick={() => void journal.reload()}
+            >
+              刷新云端
+            </button>
+            <button
+              type="button"
+              className={button}
+              onClick={() =>
+                downloadBlob(
+                  new Blob([JSON.stringify(view.state, null, 2)], { type: 'application/json' }),
+                  `周记-${journal.data?.weekStart}.json`,
+                )
+              }
+            >
+              下载备份
+            </button>
+            {view.status === 'conflict' && (
+              <button
+                type="button"
+                className={button}
+                onClick={() => {
+                  if (window.confirm('读取云端将替换本机草稿，请先下载需要保留的备份。继续？'))
+                    void journal.reload(true);
+                }}
+              >
+                读取云端版本
+              </button>
+            )}
+          </div>
         </div>
       )}
-      <p role="status" aria-live="polite" className="journal-notice">
-        {notice}
-      </p>
-    </li>
+      <button
+        ref={orb}
+        type="button"
+        className={`resume-sync-orb is-${view.status}`}
+        aria-label={`周记云端同步：${statusText[view.status]}`}
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        {journal.busy ? <RefreshCw size={21} aria-hidden="true" /> : <Cloud size={23} aria-hidden="true" />}
+        <i />
+      </button>
+    </div>,
+    document.body,
   );
 }
